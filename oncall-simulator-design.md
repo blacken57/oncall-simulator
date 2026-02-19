@@ -38,12 +38,24 @@ The "control panel" of the game. It lists all system components and the actions 
 - **Constraints & Trade-offs**: Every action has limits.
     - *Example*: Scaling a compute instance has a max of 32GB RAM.
     - *Example*: Increasing GCU (Global Compute Units) too high might drop `utilization` metrics below a threshold, triggering "Under-utilization" alerts (wasting budget).
-- **Latency**: Actions are not instantaneous. Restarting a service or scaling a cluster takes a specific number of ticks to complete.
+- **Latency & Ownership**: 
+    - **Internal Components**: Quick response times for scaling/restarts.
+    - **External/Partner Services**: (Items, Inventory, Payments, Fulfillment) Owned by other teams or 3rd parties. Actions like "Increase Quota" or "Adjust Payload Size" take significantly longer (e.g., 30-60 ticks). 
+    - **"Cut a Ticket"**: If a partner service has high latency, the player must "Cut a Ticket" to that team, which has the highest latency but is the only way to resolve the upstream issue.
 - **Financial Budget**: Every component has a "Running Cost." Scaling up or adding instances increases the "Monthly Burn Rate." Players must balance system health with cost efficiency.
 - **Action Types**:
     - **Configuration**: Scaling RAM/CPU, adjusting timeouts.
     - **Lifecycle**: Restarting processes, killing "zombie" jobs, starting new instances.
     - **Administrative**: Approving quota requests, flushing caches, toggling feature flags.
+
+### Future Architecture Components
+
+As the game progresses (Levels 2+), the architecture expands to include external dependencies:
+
+1. **Items Service**: Returns item details for checkout. *Attributes: QPS, Payload Size.*
+2. **Inventory Service**: Validates item availability. *Attributes: QPS, Query Latency.*
+3. **Payment Services**: External providers (Credit Cards, UPI, Bank). *Attributes: Success Rate, Provider Latency.*
+4. **Fulfillment Service**: Asynchronous order processing. *Attributes: Queue Depth, Processing Throughput.*
 
 ### Core Challenge
 
@@ -52,6 +64,29 @@ Players must read documentation and use monitoring data to diagnose and resolve 
 ---
 
 ## Technical Architecture
+
+### Svelte 5 Reactive Models
+
+The game state is built using Svelte 5 **Runes** (`$state`, `$derived`) inside TypeScript classes for a fully reactive, object-oriented engine.
+
+#### Core Models (`models.svelte.ts`)
+
+- **`Attribute`**: Manages a resource (e.g., RAM).
+  - `limit`: Configured value (Set Value).
+  - `current`: Real-time usage.
+  - `utilization`: Calculated percentage.
+- **`Metric`**: Tracks telemetry (e.g., Latency).
+  - `value`: Current reading.
+  - `history`: Array of last 60 readings for sparklines.
+- **`SystemComponent`**: Base class for all services.
+  - `tick(traffic, dependencies)`: Abstract method where "physics" is calculated.
+  - `status`: Reactive health state (`healthy` | `warning` | `critical`).
+
+#### Specialized Components
+
+- **`ComputeNode`**: Scales GCU/RAM based on traffic; calculates P99 Latency.
+- **`DatabaseNode`**: Manages connection pools and query latency.
+- **`StorageNode`**: Acts as a buffer that fills over time; tracks disk utilization.
 
 ### Tick-Based Game Loop
 
@@ -155,38 +190,23 @@ interface StatusEffect {
 Actions are the primary way players interact with the game state. They modify base values of metrics or toggle status effects.
 
 ```typescript
-interface SystemComponent {
-  id: string
-  name: string
-  metrics: string[] // IDs of metrics this component owns
-  actions: SystemAction[]
-}
+### Actions System
 
-interface SystemAction {
-  id: string
-  name: string
-  description: string
-  parameters?: {
-    name: string
-    type: 'number' | 'boolean' | 'choice'
-    min?: number
-    max?: number
-    options?: string[]
-  }
-  effect: (gameState: GameState, params: any) => void
-  cooldown: number // ticks before action can be taken again
-  latency: number // ticks until the effect is applied
-  cost: number // financial cost per tick or one-time
-}
+Actions use a **Latency Queue** to simulate real-world delays. When an action is applied, it is added to a `pendingActions` queue in the Engine.
 
-interface AuditLogEntry {
-  tick: number
-  componentId: string
-  actionName: string
-  parameters: any
-  status: 'pending' | 'success' | 'failed'
+```typescript
+interface QueuedAction {
+  id: string;
+  componentId: string;
+  attributeId: string;
+  newValue: number;
+  ticksRemaining: number;
+  status: 'pending' | 'completed';
 }
 ```
+
+- **Execution**: The Engine decrements `ticksRemaining` every tick.
+- **Completion**: Once it reaches 0, the Engine updates the `limit` of the target `Attribute`.
 
 ### Ticket Generation
 
@@ -291,8 +311,9 @@ interface Ticket {
 src/
 ├── lib/
 │   ├── game/
-│   │   ├── engine.ts        # Tick loop, game state
-│   │   ├── metrics.ts       # Metric definitions & calculations
+│   │   ├── engine.svelte.ts # Tick loop, global state
+│   │   ├── models.svelte.ts # Attribute, Metric, Component classes
+│   │   ├── metrics.ts       # Scenario definitions
 │   │   ├── statusEffects.ts # Status effect definitions
 │   │   ├── tickets.ts       # Ticket generation & management
 │   │   └── events.ts        # Random event spawning
@@ -334,16 +355,17 @@ src/
 
 ## Next Steps
 
-1. Initialize project with chosen stack
-2. Build core game engine (tick loop, state management)
-3. Implement metrics system with a few basic metrics
-4. Add status effects that modify metrics
-5. Build simple dashboard with one or two graphs
-6. Add ticket spawning logic
-7. Create documentation content
-8. Implement ticket resolution flow
-9. Add pager alerts
-10. Polish UI and add scoring
+1. [x] Initialize project with Svelte 5 + Vite
+2. [x] Build core game engine (tick loop, OO state)
+3. [x] Implement metrics system with base attributes/usage
+4. [x] Build dashboard with SVG sparklines and progress bars
+5. [x] Implement Actions system with latency and budget
+6. [ ] Add status effects that modify metrics
+7. [ ] Add ticket spawning logic
+8. [ ] Create documentation content
+9. [ ] Implement ticket resolution flow
+10. [ ] Add pager alerts
+11. [ ] Polish UI and add scoring
 
 ---
 
