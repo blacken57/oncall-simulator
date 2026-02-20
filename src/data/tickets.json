@@ -1,0 +1,39 @@
+[
+  {
+    "id": "high_latency_checkout",
+    "title": "High Latency on Checkout",
+    "description": "Users are reporting slow response times when trying to complete purchases. Checkout server latency is higher than expected.",
+    "severity": "high",
+    "triggerCondition": {
+      "type": "metric",
+      "id": "latency",
+      "operator": ">",
+      "value": 200
+    },
+    "docIds": ["latency_guide", "scaling_checkout"]
+  },
+  {
+    "id": "storage_full_logs",
+    "title": "Log Storage Almost Full",
+    "description": "The log block storage is reaching its capacity limit. Logs may stop being recorded soon.",
+    "severity": "medium",
+    "triggerCondition": {
+      "type": "metric",
+      "id": "storage_usage",
+      "operator": ">=",
+      "value": 90
+    },
+    "docIds": ["log_storage_management"]
+  },
+  {
+    "id": "bank_outage_ticket",
+    "title": "Payment Provider Connection Issues",
+    "description": "We are seeing a high volume of payment failures across all platforms. Upstream provider might be down.",
+    "severity": "critical",
+    "triggerCondition": {
+      "type": "status_effect",
+      "id": "bank_api_error"
+    },
+    "docIds": ["payment_troubleshooting"]
+  }
+]

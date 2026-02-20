@@ -1,3 +1,5 @@
+import type { StatusEffect } from './statusEffects';
+
 /**
  * Represents a configurable property of a system (e.g., RAM Limit vs RAM Usage)
  */
@@ -71,6 +73,7 @@ export abstract class SystemComponent {
   metrics = $state<Record<string, Metric>>({});
 
   status = $state<'healthy' | 'warning' | 'critical'>('healthy');
+  effects = $state<StatusEffect[]>([]);
 
   constructor(id: string, name: string) {
     this.id = id;
@@ -78,7 +81,7 @@ export abstract class SystemComponent {
   }
 
   /** Every component calculates its own 'physics' here */
-  abstract tick(traffic: number, dependencies: Record<string, SystemComponent>): void;
+  abstract tick(traffic: number, dependencies: Record<string, SystemComponent>, activeEffects?: StatusEffect[]): void;
 
   /** Calculate total operational cost for this component */
   get totalCost() {

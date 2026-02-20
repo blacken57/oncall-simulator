@@ -1,0 +1,57 @@
+[
+  {
+    "id": "bank_api_error",
+    "name": "Bank API Outage",
+    "description": "The upstream payment provider is experiencing issues, leading to increased error rates.",
+    "type": "external",
+    "modifiers": [
+      {
+        "target": "metric",
+        "componentId": "checkoutServer",
+        "id": "error_rate",
+        "operation": "add",
+        "value": 50
+      }
+    ],
+    "duration": 60,
+    "chance": 0.005
+  },
+  {
+    "id": "viral_post",
+    "name": "Viral Social Media Post",
+    "description": "A popular influencer shared the app, causing a massive surge in traffic!",
+    "type": "external",
+    "modifiers": [
+      {
+        "target": "traffic",
+        "operation": "multiply_percent",
+        "value": 200
+      }
+    ],
+    "duration": 120,
+    "chance": 0.002
+  },
+  {
+    "id": "memory_pressure",
+    "name": "Memory Pressure",
+    "description": "High memory usage is causing garbage collection pauses and slowing down the system.",
+    "type": "internal",
+    "modifiers": [
+      {
+        "target": "metric",
+        "id": "latency",
+        "operation": "multiply_percent",
+        "value": 30
+      }
+    ],
+    "duration": "permanent",
+    "triggerCondition": {
+      "type": "attribute",
+      "componentId": "checkoutServer",
+      "id": "ram",
+      "operator": ">=",
+      "value": 85,
+      "useUtilization": true
+    }
+  }
+]

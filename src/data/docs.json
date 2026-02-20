@@ -1,0 +1,22 @@
+[
+  {
+    "id": "latency_guide",
+    "title": "Understanding Latency Spikes",
+    "content": "Latency spikes in the checkout server are often caused by resource exhaustion. Check the GCU and RAM utilization. If they are over 80%, consider scaling up the server limits."
+  },
+  {
+    "id": "scaling_checkout",
+    "title": "Scaling Checkout Infrastructure",
+    "content": "To scale the checkout server, use the Actions page to increase GCU or RAM. Increasing GCU helps with processing more requests per second, while RAM handles larger data payloads. Note that scaling has a cost and might take some time to apply."
+  },
+  {
+    "id": "log_storage_management",
+    "title": "Managing Log Block Storage",
+    "content": "Log block storage holds all system logs. If it reaches capacity, log ingestion will stop, causing monitoring issues. You can increase the storage limit or set up more aggressive log rotation policies (future feature)."
+  },
+  {
+    "id": "payment_troubleshooting",
+    "title": "Troubleshooting Payment Failures",
+    "content": "High error rates during payments usually point to an issue with the external Bank API. If the status dashboard shows 'Bank API Outage', there's not much you can do locally except wait for them to fix it or cut a ticket to their support team."
+  }
+]
