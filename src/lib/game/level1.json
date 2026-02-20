@@ -1,0 +1,104 @@
+{
+  "id": "level-1",
+  "name": "Standard Operations",
+  "description": "Keep the checkout system healthy under normal load.",
+  "components": [
+    {
+      "id": "checkout-server",
+      "name": "Checkout Server",
+      "type": "compute",
+      "attributes": {
+        "ram": { "name": "Memory", "unit": "GB", "initialLimit": 8, "minLimit": 2, "maxLimit": 64, "costPerUnit": 10 },
+        "gcu": { "name": "GCU", "unit": "GCU", "initialLimit": 20, "minLimit": 1, "maxLimit": 32, "costPerUnit": 25 }
+      },
+      "metrics": {
+        "latency": { "name": "P99 Latency", "unit": "ms" },
+        "error_rate": { "name": "Error Rate", "unit": "%" }
+      },
+      "traffic_routes": [
+        {
+          "name": "external_checkout_requests",
+          "outgoing_traffics": [
+            { "name": "internal_db_queries", "multiplier": 2 },
+            { "name": "internal_log_writes", "multiplier": 5 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "checkout-db",
+      "name": "Checkout DB",
+      "type": "database",
+      "attributes": {
+        "connections": { "name": "Max Connections", "unit": "count", "initialLimit": 100, "minLimit": 10, "maxLimit": 1000, "costPerUnit": 1 },
+        "storage": { "name": "Storage", "unit": "GB", "initialLimit": 500, "minLimit": 50, "maxLimit": 5000, "costPerUnit": 0.5 }
+      },
+      "metrics": {
+        "query_latency": { "name": "Query Latency", "unit": "ms" }
+      },
+      "traffic_routes": [
+        {
+          "name": "internal_db_queries",
+          "outgoing_traffics": []
+        }
+      ]
+    },
+    {
+      "id": "log-storage",
+      "name": "Log Block Storage",
+      "type": "storage",
+      "attributes": {
+        "storage_usage": { "name": "Storage Usage", "unit": "GB", "initialLimit": 1000, "minLimit": 100, "maxLimit": 10000, "costPerUnit": 0.1 }
+      },
+      "metrics": {
+        "fill_rate": { "name": "Fill Rate", "unit": "GB/s" }
+      },
+      "traffic_routes": [
+        {
+          "name": "internal_log_writes",
+          "outgoing_traffics": []
+        }
+      ]
+    }
+  ],
+  "traffics": [
+    {
+      "type": "external",
+      "name": "external_checkout_requests",
+      "target_component_name": "Checkout Server",
+      "value": 100,
+      "base_variance": 10
+    },
+    {
+      "type": "internal",
+      "name": "internal_db_queries",
+      "target_component_name": "Checkout DB"
+    },
+    {
+      "type": "internal",
+      "name": "internal_log_writes",
+      "target_component_name": "Log Block Storage"
+    }
+  ],
+  "statusEffects": [
+    {
+      "type": "traffic",
+      "name": "Viral Post",
+      "traffic_affected": "external_checkout_requests",
+      "multiplier": 3.0,
+      "turnsRemaining": 30
+    },
+    {
+      "type": "component",
+      "name": "Database Throttling",
+      "component_affected": "checkout-db",
+      "metric_affected": "query_latency",
+      "multiplier": 5.0,
+      "materialization_probability": 0.01,
+      "resolution_condition": {
+        "turnsRemaining": 10
+      },
+      "max_instances_at_once": 1
+    }
+  ]
+}

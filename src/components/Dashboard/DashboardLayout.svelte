@@ -4,6 +4,33 @@
 </script>
 
 <div class="dashboard">
+	<!-- System-wide Traffic Overview -->
+	<section class="traffic-overview full-width">
+		<header>
+			<h2>SYSTEM TRAFFIC</h2>
+		</header>
+		<div class="metrics-grid traffic">
+			{#each Object.values(engine.traffics) as traffic}
+				{#if traffic.type === 'external'}
+					<MetricCard 
+						name="{traffic.id} (In)"
+						value={traffic.value}
+						unit="req/s"
+						history={traffic.successHistory.map((s, i) => s + (traffic.failureHistory[i] || 0))}
+						status="healthy"
+					/>
+					<MetricCard 
+						name="{traffic.id} (Success)"
+						value={traffic.successHistory[traffic.successHistory.length - 1] || 0}
+						unit="req/s"
+						history={traffic.successHistory}
+						status={(traffic.failureHistory[traffic.failureHistory.length - 1] || 0) > 10 ? 'critical' : 'healthy'}
+					/>
+				{/if}
+			{/each}
+		</div>
+	</section>
+
 	{#each Object.values(engine.components) as component}
 		<section class="component-group {component.status}">
 			<header>
@@ -45,6 +72,22 @@
 		grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
 		gap: 1.5rem;
 		padding: 1rem;
+	}
+
+	.full-width {
+		grid-column: 1 / -1;
+	}
+
+	.traffic-overview {
+		background: #0a0a0a;
+		border: 2px solid #222;
+		border-radius: 8px;
+		padding: 1.5rem;
+		margin-bottom: 1rem;
+	}
+
+	.metrics-grid.traffic {
+		grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 	}
 
 	.component-group {

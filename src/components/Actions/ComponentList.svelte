@@ -1,17 +1,20 @@
 <script lang="ts">
 	import { engine } from '$lib/game/engine.svelte';
 
-	// Initialize local limits immediately to avoid render race conditions
-	let localLimits = $state<Record<string, Record<string, number>>>(
-		Object.fromEntries(
-			Object.entries(engine.components).map(([compId, comp]) => [
-				compId,
-				Object.fromEntries(
-					Object.entries(comp.attributes).map(([attrId, attr]) => [attrId, attr.limit])
-				)
-			])
-		)
-	);
+	// Initialize local limits using an effect to handle dynamic level loading
+	let localLimits = $state<Record<string, Record<string, number>>>({});
+
+	$effect(() => {
+		// Re-initialize localLimits whenever the level changes
+		const newLimits: Record<string, Record<string, number>> = {};
+		for (const [compId, component] of Object.entries(engine.components)) {
+			newLimits[compId] = {};
+			for (const [attrId, attr] of Object.entries(component.attributes)) {
+				newLimits[compId][attrId] = attr.limit;
+			}
+		}
+		localLimits = newLimits;
+	});
 
 	function handleQueue(compId: string, attrId: string) {
 		const newValue = localLimits[compId][attrId];

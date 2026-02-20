@@ -1,7 +1,14 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { engine } from '$lib/game/engine.svelte';
 	import DashboardLayout from '../components/Dashboard/DashboardLayout.svelte';
 	import ComponentList from '../components/Actions/ComponentList.svelte';
+	import level1 from '$lib/game/level1.json';
+
+	onMount(() => {
+		// @ts-ignore - level1.json might need casting to LevelConfig if not automatically typed
+		engine.loadLevel(level1);
+	});
 
 	let tick = $derived(engine.tick);
 	let isRunning = $derived(engine.isRunning);
