@@ -15,19 +15,11 @@ export interface TrafficConfig {
   name: string; // Unique readable id
   target_component_name: string; // Each component should have a unique name
   value?: number; // Base value if any
-  successful_response_metric?: string; // Name of the metric to track successful responses
-  unsuccessful_response_metric?: string; // Name of the metric to track unsuccessful responses
   base_variance?: number; // Noise factor
-}
-
-export interface MitigationActionConfig {
-  name: string;
-  parameters?: Record<string, any>;
 }
 
 export interface ResolutionConditionConfig {
   turnsRemaining?: number;
-  mitigation_action?: MitigationActionConfig;
 }
 
 export interface ComponentStatusEffectConfig {
@@ -74,7 +66,6 @@ export interface ComponentConfig {
   attributes: Record<string, AttributeConfig>;
   metrics: Record<string, MetricConfig>;
   traffic_routes: TrafficRouteConfig[];
-  config?: Record<string, any>; // Extra parameters for the tick physics
 }
 
 export interface LevelConfig {

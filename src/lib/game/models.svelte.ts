@@ -24,8 +24,6 @@ export class Traffic {
   type: 'internal' | 'external';
   targetComponentName: string;
   value = $state(0);
-  successfulResponseMetric?: string;
-  unsuccessfulResponseMetric?: string;
   baseVariance: number;
   
   // History for tracking performance over time
@@ -38,8 +36,6 @@ export class Traffic {
     this.type = config.type;
     this.targetComponentName = config.target_component_name;
     this.value = config.value || 0;
-    this.successfulResponseMetric = config.successful_response_metric;
-    this.unsuccessfulResponseMetric = config.unsuccessful_response_metric;
     this.baseVariance = config.base_variance ?? 5;
   }
 
