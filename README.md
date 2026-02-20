@@ -4,7 +4,9 @@ An interactive simulation game where players step into the shoes of an oncall en
 
 ## 🕹️ Game Concept
 
-As the oncall engineer, you are responsible for the health of a distributed system. The game features:
+As the oncall engineer, you are responsible for the health of a distributed system. For a deep dive into the underlying systems and simulation physics, see the [Design Document](oncall-simulator-design.md).
+
+The game features:
 
 - **Tickets Page**: A queue of incoming issues ranging from customer complaints to critical system failures.
 - **Monitoring Dashboards**: Real-time graphs and metrics (Latency, Error Rate, CPU/RAM utilization) to diagnose issues.
@@ -67,10 +69,14 @@ Preview the build with `npm run preview`.
 
 ## 🗺️ Roadmap
 
+We are actively expanding the simulator's capabilities. For a detailed technical roadmap, see the [Future Plans](FUTURE_PLANS.md).
+
 - [x] Svelte 5 + Vite initialization
 - [x] Core game engine and OO state models
 - [x] Metrics system and SVG sparklines
 - [x] Latency-based action system
+- [x] Sequential Short-circuiting Traffic Physics
+- [x] Enforced Resource Capacity Caps
 - [ ] Status effects system (e.g., "Viral Post", "Regional Outage")
 - [ ] Automated ticket spawning and resolution flow
 - [ ] PagerDuty-style urgent alerts
