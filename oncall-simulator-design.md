@@ -1,424 +1,70 @@
 # Oncall Simulator - Design Document
 
 ## Overview
-
-An "oncall simulator" game where players act as oncall engineers, managing tickets, monitoring dashboards, reading documentation, and responding to pages - all while trying to resolve as many issues as possible.
+An "oncall simulator" game where players act as oncall engineers, managing tickets, monitoring dashboards, reading documentation, and responding to pages.
 
 ---
 
 ## Game Concept
 
 ### Player Tools
+- **Tickets Page**: Queue of incoming issues to resolve.
+- **Monitoring Page**: Multiple dashboards with reactive graphs/metrics.
+- **Actions Page**: Control panel to scale resources, restart services, and toggle configurations.
+- **Audit Log**: Chronological history of all player and system actions.
+- **Budget/Score**: Real-time tracking of operational costs and SLA status.
+- **Documentation Page**: Searchable docs containing troubleshooting steps and system architecture details.
+- **Pager**: Urgent alerts that interrupt the player and require immediate attention.
 
-- **Tickets Page**: Queue of incoming issues to resolve
-- **Monitoring Page**: Multiple dashboards with graphs/metrics
-- **Actions Page**: Interface to interact with system components and take corrective measures
-- **Audit Log**: Chronological history of all actions taken and their results
-- **Budget/Score**: Real-time tracking of operational costs and SLA status
-- **Documentation Page**: Searchable docs to help solve issues
-- **Pager**: Urgent alerts that interrupt the player
+## Simulation Physics
 
-### Issue Types
+The core of the simulator is a reactive "physics" engine that governs how requests flow, fail, and degrade across the system.
 
-All issues appear as a ticket. Some tickets are higher severity than others. For now, it is fine to just have two types of tickets. Urgent and Normal.
-Each issue should have some hints as to how to solve it. The hints can appear as links to the documentation page(Can be implemented later).
+### 1. Recursive Traffic Propagation
+Traffic is modeled as a recursive tree. An "External" request (e.g., `checkout_requests`) enters a root component. That component then generates "Internal" requests to its defined dependencies (e.g., `db_queries`, `log_writes`).
+- **Multipliers**: Dependencies can have multipliers (e.g., 1 Checkout = 5 Log Writes).
+- **Success Scaling**: Success is calculated from the bottom up. If a dependency returns only 50% success, the parent component's success is capped proportionally.
 
-- Urgent pages
-- Customer onboarding problems
-- System alerts
-- Quota increase requests
-- Mis-routed bugs (Later)
-- Possible code errors (Later)
+### 2. Sequential Short-circuiting
+To mimic real-world request chains, dependencies are processed **sequentially**. 
+- If a component requires `Auth` -> `Database` -> `Logging`, and `Database` is 100% down, the `Logging` service is **never called**.
+- This provides a realistic "load-shedding" effect where a failure in a critical upstream service reduces the load on downstream services.
 
-### Actions Page
+### 3. Hard Capacity & Saturation
+Components enforce strict physical limits based on their attributes:
+- **Compute (GCU)**: Each GCU has a fixed request-handling capacity. Requests exceeding `GCU * capacity_factor` are dropped.
+- **Database (Connections)**: A 1:1 relationship between requests and connections. If `Incoming > Max Connections`, the excess requests fail immediately.
+- **Storage**: A "leaky bucket" that fills over time. Once storage is 100% full, all incoming write requests fail.
 
-The "control panel" of the game. It lists all system components and the actions available for each.
+### 4. Latency Degradation
+Latency is not static. It follows a non-linear curve based on **Utilization**:
+- **Healthy Range (0-80%)**: Latency remains near the baseline with minor variance.
+- **Congestion Range (80-95%)**: Latency increases exponentially as the system struggles to context-switch or manage queue depths.
+- **Saturation Range (>95%)**: Latency spikes dramatically, often leading to timeouts in upstream services.
 
-- **Component-Based**: Actions are grouped by service (e.g., `Auth Service`, `Payment Gateway`, `Compute Cluster`).
-- **Constraints & Trade-offs**: Every action has limits.
-    - *Example*: Scaling a compute instance has a max of 32GB RAM.
-    - *Example*: Increasing GCU (Global Compute Units) too high might drop `utilization` metrics below a threshold, triggering "Under-utilization" alerts (wasting budget).
-- **Latency & Ownership**: 
-    - **Internal Components**: Quick response times for scaling/restarts.
-    - **External/Partner Services**: (Items, Inventory, Payments, Fulfillment) Owned by other teams or 3rd parties. Actions like "Increase Quota" or "Adjust Payload Size" take significantly longer (e.g., 30-60 ticks). 
-    - **"Cut a Ticket"**: If a partner service has high latency, the player must "Cut a Ticket" to that team, which has the highest latency but is the only way to resolve the upstream issue.
-- **Financial Budget**: Every component has a "Running Cost." Scaling up or adding instances increases the "Monthly Burn Rate." Players must balance system health with cost efficiency.
-- **Action Types**:
-    - **Configuration**: Scaling RAM/CPU, adjusting timeouts.
-    - **Lifecycle**: Restarting processes, killing "zombie" jobs, starting new instances.
-    - **Administrative**: Approving quota requests, flushing caches, toggling feature flags.
+### 5. Cascading Failures
+The system naturally demonstrates "Cascading Failures." 
+- *Scenario*: A heavy logging burst fills the `Log Block Storage`. 
+- *Result*: `Log Storage` success drops to 0% -> `Checkout Server` (which depends on logs) sees its success drop to 0% -> The user-facing "Success" metric on the dashboard crashes, even if the `Checkout Server` GCU/RAM are perfectly healthy.
 
-### Future Architecture Components
-
-As the game progresses (Levels 2+), the architecture expands to include external dependencies:
-
-1. **Items Service**: Returns item details for checkout. *Attributes: QPS, Payload Size.*
-2. **Inventory Service**: Validates item availability. *Attributes: QPS, Query Latency.*
-3. **Payment Services**: External providers (Credit Cards, UPI, Bank). *Attributes: Success Rate, Provider Latency.*
-4. **Fulfillment Service**: Asynchronous order processing. *Attributes: Queue Depth, Processing Throughput.*
-
-### Core Challenge
-
-Players must read documentation and use monitoring data to diagnose and resolve tickets correctly. Score is based on tickets resolved vs time.
 
 ---
 
-## Technical Architecture
+## Technical Architecture (High-Level)
 
-### Svelte 5 Reactive Models
+### Svelte 5 Reactive Engine
+The simulation is built using Svelte 5 **Runes** (`$state`, `$derived`) for high-performance reactivity. The engine runs on a deterministic tick system (default 1 second per tick).
 
-The game state is built using Svelte 5 **Runes** (`$state`, `$derived`) inside TypeScript classes for a fully reactive, object-oriented engine.
-
-#### Core Models (`models.svelte.ts`)
-
-- **`Attribute`**: Manages a resource (e.g., RAM).
-  - `limit`: Configured value (Set Value).
-  - `current`: Real-time usage.
-  - `history`: Array of last 60 readings for sparklines (Tracked reactively).
-  - `utilization`: Calculated percentage.
-- **`Metric`**: Tracks telemetry (e.g., Latency).
-  - `value`: Current reading.
-  - `history`: Array of last 60 readings for sparklines.
-- **`SystemComponent`**: Base class for all services.
-  - `tick(traffic, dependencies)`: Abstract method where "physics" is calculated.
-  - `status`: Reactive health state (`healthy` | `warning` | `critical`).
-
-#### Specialized Components
-
-- **`ComputeNode`**: Scales GCU/RAM based on traffic; calculates P99 Latency.
-- **`DatabaseNode`**: Manages connection pools, query latency, and proportional storage growth.
-- **`StorageNode`**: Acts as a buffer that fills over time based on system traffic; tracks storage usage.
-
-### Dashboard Visualization
-
-The monitoring dashboard provides real-time observability:
-- **Trend Graphs**: All attributes and metrics are visualized as auto-scaling sparklines.
-- **Vertical Utilization Bars**: Prominent capacity indicators placed beside graphs for attributes with limits.
-- **Fixed Scaling for Attributes**: Attribute graphs are scaled to the user-defined `limit` for clear capacity context.
-
-### Tick-Based Game Loop
-
-The game runs on a tick system where each tick updates the game state:
-
-```
-tick() {
-  1. Calculate metrics from base + active status effects + randomness
-  2. Evaluate metrics → trigger/duration internal status effects
-  3. Random roll for new external status effects
-  4. Cleanup expired effects (often based on user action)
-  5. Spawn tickets based on metric anomalies
-}
-```
-
-### Traffic System
-The simulation uses a multi-layered, recursive traffic system to model realistic service-to-service interactions.
-
-- **Traffic Types**:
-    - **External Traffic**: User-facing requests (e.g., `checkout_requests`). Generates based on its previous value, random noise, and active status effects.
-    - **Internal Traffic**: Generated by components as dependencies (e.g., `db_queries`, `log_writes`).
-- **Recursive Routing**: 
-    - Components define `TrafficRoutes` that map incoming traffic to outgoing dependency calls.
-    - Failures propagate: if a database call fails, the parent checkout request is also marked as failed.
-
-### Status Effects System (V2)
-
-Status effects are now more granular and follow a mathematical materialization model.
-
-- **TrafficStatusEffect**: Modifies the volume of a specific traffic flow (e.g., "Viral Post" multiplier).
-- **ComponentStatusEffect**: Modifies a specific metric within a component (e.g., Latency, Error Rate).
-    - **Materialization**: Effects have a `materialization_probability` checked every tick.
-    - **Formula**: (1 + sum(multipliers)) * base_value.
-    - **Resolution**: Can be time-based (`turnsRemaining`) or mitigated by player actions.
-
-### Metrics System
-
-| Category | Metrics | Base Value |
-|----------|---------|------------|
-| Traffic | successHistory, failureHistory | calculated |
-| Performance | latency_p99, error_rate | dynamic |
-| Infrastructure | cpu, memory, disk_usage, queue_depth | dynamic |
-
-### Metric Calculation per Tick
-
-Metrics are calculated using a cumulative multiplier approach:
-
-```
-final_value = (1 + sum(active_effect.multiplier)) * baseline_value
-```
-
-### Cascading Events Example
-
-```
-bank_api_error (external, random)
-    ↓
-error_rate spikes (+50%)
-    ↓
-retry_storm triggered (internal, from high error_rate)
-    ↓
-queue_depth explodes (+500%)
-    ↓
-latency_p99 degrades
-    ↓
-cpu spikes from processing backlog
-    ↓
-cpu_throttled triggered (internal, cpu > 80%)
-    ↓
-throughput drops
-    ↓
-customer complaints ticket spawned
-```
-
-### Status Effect Properties
-
-```typescript
-interface StatusEffect {
-  id: string
-  name: string
-  type: 'external' | 'internal'
-  modifiers: {
-    metricId: string
-    operation: 'add' | 'multiply' | 'multiply_percent'
-    value: number
-  }[]
-  duration: number | 'permanent' // ticks
-  triggerCondition?: {
-    metricId: string
-    operator: '>' | '<' | '=='
-    value: number
-  }
-  chance?: number // 0-1 for external effects
-}
-```
-
-### Actions System
-
-Actions are the primary way players interact with the game state. They modify base values of metrics or toggle status effects.
-
-```typescript
-### Actions System
-
-Actions use a **Latency Queue** to simulate real-world delays. When an action is applied, it is added to a `pendingActions` queue in the Engine.
-
-```typescript
-interface QueuedAction {
-  id: string;
-  componentId: string;
-  attributeId: string;
-  newValue: number;
-  ticksRemaining: number;
-  status: 'pending' | 'completed';
-}
-```
-
-- **Execution**: The Engine decrements `ticksRemaining` every tick.
-- **Completion**: Once it reaches 0, the Engine updates the `limit` of the target `Attribute`.
-
-### Ticket Generation
-
-Tickets spawn based on:
-
-1. Metric anomalies (error_rate > X)
-2. Status effects active for too long
-3. Combinations of issues (multiple status effects active)
-4. Random customer reports
-
-```typescript
-interface Ticket {
-  id: string
-  title: string
-  description: string
-  severity: 'low' | 'medium' | 'high' | 'critical'
-  spawnedBy: string[] // metric ids or status effect ids
-  resolution: {
-    action: string
-    requiredDocs: string[]
-    requiredMetrics: string[]
-  }
-  timeToResolve: number
-}
-```
+### Core Systems
+1. **Game Engine**: Orchestrates the tick loop, manages global state, and processes the "Pending Action Queue" (simulating real-world infrastructure latency).
+2. **Traffic Handler**: Manages recursive request flows and implements **Sequential Short-circuiting** (if a primary dependency is 100% down, downstream dependencies are load-shed).
+3. **Status Effects**: Implements temporary or permanent modifiers to system performance (e.g., "Viral Post" traffic spikes, "Database Throttling").
 
 ---
 
-## MVP Features
-
-### Must Have
-
-1. **Ticket Queue**: Issues spawn over time, player clicks to view details
-2. **Monitoring Dashboards**: Multiple graphs showing metric history
-3. **Actions Page**: List of components and buttons/sliders to modify system state
-4. **Audit Log**: Scrollable list of recent player actions and system events
-5. **Budget & SLA Tracking**: Dashboard for financial spend and service availability
-6. **Documentation**: Searchable/fake docs that help solve issues
-7. **Pager**: Urgent interruptions requiring immediate attention
-8. **Score Tracking**: Tickets resolved, time, accuracy
-
-### Nice to Have
-
-- Multiple services/systems to monitor
-- Different difficulty levels
-- Incident retrospectives
-- Learning mode with hints
-- Leaderboards
-
----
-
-## Tech Stack Options
-
-### Option 1: Svelte + Vite (Recommended)
-
-```
-- Vite (bundler)
-- Svelte 5 (new runes reactivity)
-- Tailwind CSS (styling)
-- Recharts or @sveltejs/plot (graphs)
-- No backend (all client-side)
-```
-
-**Why Svelte:**
-
-- Built-in reactive stores - perfect for tick-based game logic
-- Less boilerplate than React for state updates
-- Automatic UI updates when state changes
-- Faster runtime (compiled, not virtual DOM)
-- Svelte 5 runes (`$state`, `$derived`) are ideal for game state
-
-### Option 2: React + Vite
-
-```
-- Vite (bundler)
-- React 18
-- Zustand (state management)
-- Tailwind CSS (styling)
-- Recharts (graphs)
-```
-
-**When to choose:**
-
-- Team is more familiar with React
-- Need larger ecosystem/support
-
-### Option 3: Vue + Vite
-
-```
-- Vite (bundler)
-- Vue 3
-- Pinia (state management)
-- Tailwind CSS (styling)
-- Chart.js (graphs)
-```
-
----
-
-## Project Structure
-
-```
-src/
-├── lib/
-│   ├── game/
-│   │   ├── engine.svelte.ts # Tick loop, global state
-│   │   ├── models.svelte.ts # Attribute, Metric, Component classes
-│   │   ├── metrics.ts       # Scenario definitions
-│   │   ├── statusEffects.ts # Status effect definitions
-│   │   ├── tickets.ts       # Ticket generation & management
-│   │   └── events.ts        # Random event spawning
-│   └── utils/
-│       └── random.ts        # Weighted randomness, etc.
-├── components/
-│   ├── Dashboard/
-│   │   ├── Graph.svelte
-│   │   ├── MetricCard.svelte
-│   │   └── DashboardLayout.svelte
-│   ├── Actions/
-│   │   ├── ComponentList.svelte
-│   │   ├── ActionButton.svelte
-│   │   ├── ConfigSlider.svelte
-│   │   └── AuditLog.svelte
-│   ├── Tickets/
-│   │   ├── TicketQueue.svelte
-│   │   └── TicketDetail.svelte
-│   ├── Docs/
-│   │   ├── DocBrowser.svelte
-│   │   └── DocSearch.svelte
-│   ├── Pager/
-│   │   └── PagerAlert.svelte
-│   └── Game/
-│       ├── GameControls.svelte
-│       └── ScoreDisplay.svelte
-├── stores/
-│   └── gameStore.ts         # Svelte stores / Zustand store
-├── data/
-│   ├── docs.json            # Fake documentation content
-│   ├── statusEffects.json   # Status effect definitions
-│   └── tickets.json         # Ticket templates
-└── routes/
-    ├── +page.svelte         # Main game
-    └── +layout.svelte       # App layout
-```
-
----
-
-## Next Steps
-
-1. [x] Initialize project with Svelte 5 + Vite
-2. [x] Build core game engine (tick loop, OO state)
-3. [x] Implement metrics system with base attributes/usage
-4. [x] Build dashboard with SVG sparklines and vertical utilization bars
-5. [x] Implement Actions system with latency and budget
-6. [x] Refactor core components and logic (Rename Checkout Server, Fix Storage growth)
-7. [ ] Add status effects that modify metrics
-8. [ ] Add ticket spawning logic
-9. [ ] Create documentation content
-10. [ ] Implement ticket resolution flow
-11. [ ] Add pager alerts
-12. [ ] Polish UI and add scoring
-
----
-
-## Implementation Guide (Developer Reference)
-
-This section provides a technical deep-dive into how the simulator's core logic is structured and how to extend it.
-
-### 1. Core Reactive Architecture
-The game engine is built on **Svelte 5 Runes**, which provide a fine-grained reactivity model. Instead of global stores, we use TypeScript classes with `$state` and `$derived` properties.
-
-- **`GameEngine` (`src/lib/game/engine.svelte.ts`)**: The central singleton. It manages the global `tick` counter and the collection of `SystemComponent` objects.
-- **`SystemComponent` (`src/lib/game/models.svelte.ts`)**: An abstract base class. Each "service" (e.g., a Database or API) extends this class and implements its own `tick()` logic.
-
-### 2. The "Physics" of a Component
-Every component has two main collections of data:
-1.  **Attributes**: User-configurable "knobs" (Limits/Capacity).
-    - *Example*: RAM Limit.
-    - *Cost*: Budget is consumed based on the `limit`, regardless of actual usage.
-2.  **Metrics**: Read-only telemetry (Actual Usage/Performance).
-    - *Example*: P99 Latency, Error Rate.
-    - *Logic*: Metrics are calculated in the `tick()` method based on current traffic and attribute limits.
-
-**Example Logic (ComputeNode):**
-```typescript
-// If GCU utilization > 80%, latency begins to spike exponentially
-if (util > 80) {
-  latency *= (1 + (util - 80) / 10);
-}
-```
-
-### 3. The Pending Action Queue
-To simulate real-world infrastructure latency (e.g., waiting 60 seconds for a server to scale), the engine uses a `pendingActions` queue.
-- When a user moves a slider, a `QueuedAction` is created.
-- The `limit` of the attribute is **not** updated immediately.
-- The engine decrements `ticksRemaining` on every tick.
-- Once it reaches zero, the new value is applied to the attribute, and the UI reflects the change.
-
-### 4. File Map & Responsibilities
-- `engine.svelte.ts`: Orchestration, tick loop, action application.
-- `models.svelte.ts`: Definitions for `Attribute`, `Metric`, and specific component types (`ComputeNode`, `DatabaseNode`, etc.).
-- `statusEffects.ts`: Types and logic for temporary conditions (Incidents/Events).
-- `tickets.ts`: Definitions for the alerting and ticketing system.
-
-### 5. Adding a New Component Type
-To add a new type of infrastructure (e.g., a Load Balancer):
-1.  Extend `SystemComponent` in `models.svelte.ts`.
-2.  Define its `attributes` (e.g., Max Connections) and `metrics` (e.g., Throughput).
-3.  Implement the `tick()` method to define how it behaves under load.
-4.  Register it in `engine.initializeLevel1()`.
-
+## Current Roadmap
+See `FUTURE_PLANS.md` for detailed technical tasks and upcoming features including:
+- Asynchronous Pub/Sub Queues.
+- Robust Component Configuration Engine.
+- Fail-open/Optional Dependencies.
+- Scheduled Maintenance Jobs.
