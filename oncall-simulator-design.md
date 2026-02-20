@@ -74,6 +74,7 @@ The game state is built using Svelte 5 **Runes** (`$state`, `$derived`) inside T
 - **`Attribute`**: Manages a resource (e.g., RAM).
   - `limit`: Configured value (Set Value).
   - `current`: Real-time usage.
+  - `history`: Array of last 60 readings for sparklines (Tracked reactively).
   - `utilization`: Calculated percentage.
 - **`Metric`**: Tracks telemetry (e.g., Latency).
   - `value`: Current reading.
@@ -85,8 +86,15 @@ The game state is built using Svelte 5 **Runes** (`$state`, `$derived`) inside T
 #### Specialized Components
 
 - **`ComputeNode`**: Scales GCU/RAM based on traffic; calculates P99 Latency.
-- **`DatabaseNode`**: Manages connection pools and query latency.
-- **`StorageNode`**: Acts as a buffer that fills over time; tracks disk utilization.
+- **`DatabaseNode`**: Manages connection pools, query latency, and proportional storage growth.
+- **`StorageNode`**: Acts as a buffer that fills over time based on system traffic; tracks storage usage.
+
+### Dashboard Visualization
+
+The monitoring dashboard provides real-time observability:
+- **Trend Graphs**: All attributes and metrics are visualized as auto-scaling sparklines.
+- **Vertical Utilization Bars**: Prominent capacity indicators placed beside graphs for attributes with limits.
+- **Fixed Scaling for Attributes**: Attribute graphs are scaled to the user-defined `limit` for clear capacity context.
 
 ### Tick-Based Game Loop
 
@@ -358,14 +366,15 @@ src/
 1. [x] Initialize project with Svelte 5 + Vite
 2. [x] Build core game engine (tick loop, OO state)
 3. [x] Implement metrics system with base attributes/usage
-4. [x] Build dashboard with SVG sparklines and progress bars
+4. [x] Build dashboard with SVG sparklines and vertical utilization bars
 5. [x] Implement Actions system with latency and budget
-6. [ ] Add status effects that modify metrics
-7. [ ] Add ticket spawning logic
-8. [ ] Create documentation content
-9. [ ] Implement ticket resolution flow
-10. [ ] Add pager alerts
-11. [ ] Polish UI and add scoring
+6. [x] Refactor core components and logic (Rename Checkout Server, Fix Storage growth)
+7. [ ] Add status effects that modify metrics
+8. [ ] Add ticket spawning logic
+9. [ ] Create documentation content
+10. [ ] Implement ticket resolution flow
+11. [ ] Add pager alerts
+12. [ ] Polish UI and add scoring
 
 ---
 
