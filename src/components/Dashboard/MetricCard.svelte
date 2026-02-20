@@ -4,24 +4,45 @@
 		value: number;
 		unit: string;
 		history: number[];
+		limit?: number;
 		status?: 'healthy' | 'warning' | 'critical';
 	}
 
-	let { name, value, unit, history, status = 'healthy' }: Props = $props();
+	let { name, value, unit, history, limit, status = 'healthy' }: Props = $props();
 
 	// Calculate SVG Path for the line and the filled area
 	let paths = $derived.by(() => {
 		if (history.length < 2) return { line: "", area: "" };
 		
-		const min = Math.min(...history);
-		const max = Math.max(...history);
-		const range = Math.max(max - min, 0.0001); // Prevent division by zero
+		const hMin = Math.min(...history);
+		const hMax = Math.max(...history);
+		
+		// Auto-scale based on history, but with a bit of "breathing room"
+		// If limit is provided, we use it as a hint for the scale but prioritize trend visibility
+		let min = hMin;
+		let max = hMax;
+		
+		// Ensure there's always some vertical range so it doesn't look like a flat line at the top/bottom
+		let range = max - min;
+		if (range < 0.1) {
+			// Very flat data - center it with a small range
+			min -= 1;
+			max += 1;
+			range = max - min;
+		} else {
+			// Add 10% padding
+			min -= range * 0.1;
+			max += range * 0.1;
+			range = max - min;
+		}
+		
 		const width = 100;
 		const height = 30;
 		
 		const points = history.map((v, i) => {
 			const x = (i / (history.length - 1)) * width;
-			const y = height - ((v - min) / range) * height;
+			const pct = (v - min) / range;
+			const y = height - (pct * height);
 			return { x, y };
 		});
 
@@ -43,6 +64,9 @@
 		<div class="value-container">
 			<span class="value">{value.toFixed(1)}</span>
 			<span class="unit">{unit}</span>
+			{#if limit !== undefined}
+				<span class="limit">/ {limit}</span>
+			{/if}
 		</div>
 		<div class="sparkline-container">
 			<svg viewBox="0 0 100 30" preserveAspectRatio="none" width="100%" height="30">
@@ -63,6 +87,15 @@
 				/>
 			</svg>
 		</div>
+
+		{#if limit !== undefined}
+			<div class="util-bar-mini">
+				<div 
+					class="fill" 
+					style="width: {Math.min(100, (value / limit) * 100)}%"
+				></div>
+			</div>
+		{/if}
 	</div>
 </div>
 
@@ -95,6 +128,8 @@
 
 	.value-container {
 		margin-bottom: 0.5rem;
+		display: flex;
+		align-items: baseline;
 	}
 
 	.value {
@@ -109,11 +144,32 @@
 		margin-left: 0.2rem;
 	}
 
+	.limit {
+		font-size: 0.7rem;
+		color: #444;
+		margin-left: 0.4rem;
+	}
+
 	.sparkline-container {
 		height: 30px;
 		width: 100%;
 		color: #4ade80;
 		overflow: hidden;
+		margin-bottom: 4px;
+	}
+
+	.util-bar-mini {
+		height: 3px;
+		background: #222;
+		border-radius: 1px;
+		width: 100%;
+		overflow: hidden;
+	}
+
+	.util-bar-mini .fill {
+		height: 100%;
+		background: currentColor;
+		opacity: 0.5;
 	}
 
 	/* Status Colors */

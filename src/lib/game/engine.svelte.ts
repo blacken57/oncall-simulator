@@ -17,15 +17,15 @@ export class GameEngine {
 	baseTraffic = $state(100);
 	budget = $state(5000);
 	
+	// The Scenario Components
+	components: Record<string, SystemComponent> = $state({});
+	
 	// Pending actions with latency
 	pendingActions = $state<QueuedAction[]>([]);
 	
 	currentSpend = $derived(
 		Object.values(this.components).reduce((sum, comp) => sum + comp.totalCost, 0)
 	);
-
-	// The Scenario Components
-	components: Record<string, SystemComponent> = $state({});
 
 	private interval: ReturnType<typeof setInterval> | null = null;
 
@@ -35,12 +35,18 @@ export class GameEngine {
 
 	initializeLevel1() {
 		this.components = {
-			apiGateway: new ComputeNode('api-gateway', 'API Gateway', 8, 20),
+			checkoutServer: new ComputeNode('checkout-server', 'Checkout Server', 8, 20),
 			checkoutDb: new DatabaseNode('checkout-db', 'Checkout DB', 100, 500),
 			logIngestor: new ComputeNode('log-ingestor', 'Log Ingestor', 4, 15),
 			logStorage: new StorageNode('log-storage', 'Log Block Storage', 1000)
 		};
-		this.components.logStorage.attributes.capacity.current = 200;
+		this.components.logStorage.attributes.storage_usage.update(200);
+
+		// Pre-populate with some history so graphs aren't empty
+		for (let i = 0; i < 5; i++) {
+			this.update();
+		}
+		this.tick = 0; // Reset tick so game starts at 0
 	}
 
 	/** Queue a new action to be applied after a delay */

@@ -23,20 +23,16 @@
 					/>
 				{/each}
 
-				<!-- Resource Attributes (RAM, GCU, Storage) -->
+				<!-- Resource Attributes (RAM, GCU, Storage) rendered as graphs -->
 				{#each Object.values(component.attributes) as attr}
-					<div class="attr-card">
-						<div class="attr-info">
-							<span>{attr.name}</span>
-							<span>{attr.current.toFixed(1)} / {attr.limit} {attr.unit}</span>
-						</div>
-						<div class="progress-bar">
-							<div 
-								class="fill" 
-								style="width: {Math.min(100, attr.utilization)}%; background: {attr.utilization > 90 ? '#f87171' : attr.utilization > 70 ? '#fbbf24' : '#4ade80'}"
-							></div>
-						</div>
-					</div>
+					<MetricCard 
+						name={attr.name}
+						value={attr.current}
+						unit={attr.unit}
+						history={attr.history}
+						limit={attr.limit}
+						status={attr.utilization > 90 ? 'critical' : attr.utilization > 70 ? 'warning' : 'healthy'}
+					/>
 				{/each}
 			</div>
 		</section>

@@ -6,6 +6,8 @@ export class Attribute {
 	unit: string;
 	limit = $state(0);
 	current = $state(0);
+	history = $state<number[]>([]);
+	maxHistory = 60;
 	minLimit: number;
 	maxLimit: number;
 	costPerUnit: number;
@@ -18,6 +20,11 @@ export class Attribute {
 		this.minLimit = min;
 		this.maxLimit = max;
 		this.costPerUnit = cost;
+	}
+
+	update(newValue: number) {
+		this.current = newValue;
+		this.history = [...this.history, newValue].slice(-this.maxHistory);
 	}
 
 	/** Total cost of this attribute per tick based on its limit */
@@ -48,10 +55,7 @@ export class Metric {
 
 	update(newValue: number) {
 		this.value = newValue;
-		this.history.push(newValue);
-		if (this.history.length > this.maxHistory) {
-			this.history.shift();
-		}
+		this.history = [...this.history, newValue].slice(-this.maxHistory);
 	}
 }
 
@@ -99,10 +103,10 @@ export class ComputeNode extends SystemComponent {
 
 	tick(traffic: number) {
 		// Logic: GCU usage scales with traffic (100 req/s ≈ 5 GCU)
-		this.attributes.gcu.current = (traffic / 20) + (Math.random() * 0.5);
+		this.attributes.gcu.update((traffic / 20) + (Math.random() * 0.5));
 		
 		// Logic: RAM usage scales slowly with traffic
-		this.attributes.ram.current = 1.2 + (traffic / 200);
+		this.attributes.ram.update(1.2 + (traffic / 200) + (Math.random() * 0.1 - 0.05));
 
 		// Physics: Latency spikes as GCU utilization crosses 80%
 		const util = this.attributes.gcu.utilization;
@@ -138,7 +142,7 @@ export class DatabaseNode extends SystemComponent {
 	}
 
 	tick(traffic: number) {
-		this.attributes.connections.current = (traffic / 4) + (Math.random() * 2);
+		this.attributes.connections.update((traffic / 4) + (Math.random() * 2));
 		
 		const connUtil = this.attributes.connections.utilization;
 		let qLat = 10 + (this.attributes.connections.current / 5);
@@ -161,20 +165,20 @@ export class StorageNode extends SystemComponent {
 
 	constructor(id: string, name: string, capacity: number) {
 		super(id, name);
-		this.attributes.capacity = new Attribute('Total Capacity', 'GB', capacity, 100, 10000, 0.1);
+		this.attributes.storage_usage = new Attribute('Storage Usage', 'GB', capacity, 100, 10000, 0.1);
 		this.metrics.fill_rate = new Metric('Fill Rate', 'GB/s');
 	}
 
 	tick(traffic: number) {
 		const growth = traffic * this.fillRate;
-		this.attributes.capacity.current = Math.min(
-			this.attributes.capacity.limit, 
-			this.attributes.capacity.current + growth
-		);
+		this.attributes.storage_usage.update(Math.min(
+			this.attributes.storage_usage.limit, 
+			this.attributes.storage_usage.current + growth
+		));
 		
 		this.metrics.fill_rate.update(growth);
 
-		const util = this.attributes.capacity.utilization;
+		const util = this.attributes.storage_usage.utilization;
 		if (util >= 100) this.status = 'critical';
 		else if (util > 85) this.status = 'warning';
 		else this.status = 'healthy';
