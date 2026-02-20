@@ -9,26 +9,39 @@
 		<header>
 			<h2>SYSTEM TRAFFIC</h2>
 		</header>
-		<div class="metrics-grid traffic">
-			{#each Object.values(engine.traffics) as traffic}
-				{#if traffic.type === 'external'}
-					<MetricCard 
-						name="{traffic.id} (In)"
-						value={traffic.value}
-						unit="req/s"
-						history={traffic.successHistory.map((s, i) => s + (traffic.failureHistory[i] || 0))}
-						status="healthy"
-					/>
-					<MetricCard 
-						name="{traffic.id} (Success)"
-						value={traffic.successHistory[traffic.successHistory.length - 1] || 0}
-						unit="req/s"
-						history={traffic.successHistory}
-						status={(traffic.failureHistory[traffic.failureHistory.length - 1] || 0) > 10 ? 'critical' : 'healthy'}
-					/>
-				{/if}
-			{/each}
-		</div>
+		
+		{#each Object.values(engine.traffics) as traffic}
+			{#if traffic.type === 'external'}
+				<div class="traffic-group">
+					<div class="traffic-header">
+						<span class="traffic-id">{traffic.id}</span>
+					</div>
+					<div class="metrics-grid traffic">
+						<MetricCard 
+							name="Incoming"
+							value={traffic.value}
+							unit="req/s"
+							history={traffic.successHistory.map((s, i) => s + (traffic.failureHistory[i] || 0))}
+							status="healthy"
+						/>
+						<MetricCard 
+							name="Success"
+							value={traffic.successHistory[traffic.successHistory.length - 1] || 0}
+							unit="req/s"
+							history={traffic.successHistory}
+							status="healthy"
+						/>
+						<MetricCard 
+							name="Failed"
+							value={traffic.failureHistory[traffic.failureHistory.length - 1] || 0}
+							unit="req/s"
+							history={traffic.failureHistory}
+							status={(traffic.failureHistory[traffic.failureHistory.length - 1] || 0) > 0 ? 'critical' : 'healthy'}
+						/>
+					</div>
+				</div>
+			{/if}
+		{/each}
 	</section>
 
 	{#each Object.values(engine.components) as component}
@@ -87,7 +100,36 @@
 	}
 
 	.metrics-grid.traffic {
-		grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+		gap: 0.75rem;
+		max-width: 1000px; /* Cap width to keep sparklines concise */
+	}
+
+	.traffic-group {
+		margin-bottom: 1.5rem;
+		padding-bottom: 1rem;
+		border-bottom: 1px solid #1a1a1a;
+	}
+
+	.traffic-group:last-child {
+		border-bottom: none;
+		margin-bottom: 0;
+	}
+
+	.traffic-header {
+		margin-bottom: 0.5rem;
+	}
+
+	.traffic-id {
+		font-size: 0.75rem;
+		font-weight: bold;
+		color: #f87171;
+		text-transform: uppercase;
+		letter-spacing: 0.1em;
+		background: #1a1a1a;
+		padding: 0.2rem 0.5rem;
+		border-radius: 4px;
 	}
 
 	.component-group {
