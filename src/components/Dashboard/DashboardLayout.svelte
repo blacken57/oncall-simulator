@@ -19,7 +19,7 @@
 					<div class="metrics-grid traffic">
 						<MetricCard 
 							name="Incoming"
-							value={traffic.value}
+							value={traffic.actualValue}
 							unit="req/s"
 							history={traffic.successHistory.map((s, i) => s + (traffic.failureHistory[i] || 0))}
 							status="healthy"

@@ -12,7 +12,7 @@ import type {
  * Interface to avoid circular dependency with GameEngine
  */
 export interface TrafficHandler {
-  handleTraffic(trafficName: string, value: number): [number, number];
+  handleTraffic(trafficName: string, value: number): number;
   statusEffects: StatusEffect[];
 }
 
@@ -23,7 +23,8 @@ export class Traffic {
   id: string; // The unique readable id (name)
   type: 'internal' | 'external';
   targetComponentName: string;
-  value = $state(0);
+  value = $state(0); // Base value (drifts with noise)
+  actualValue = $state(0); // Actual volume processed (after multipliers)
   baseVariance: number;
   
   // History for tracking performance over time
@@ -39,8 +40,9 @@ export class Traffic {
     this.baseVariance = config.base_variance ?? 5;
   }
 
-  update(newValue: number, successful: number, unsuccessful: number) {
-    this.value = newValue;
+  update(baseValue: number, actualValue: number, successful: number, unsuccessful: number) {
+    this.value = baseValue;
+    this.actualValue = actualValue;
     this.successHistory = [...this.successHistory, successful].slice(-this.maxHistory);
     this.failureHistory = [...this.failureHistory, unsuccessful].slice(-this.maxHistory);
   }
@@ -139,36 +141,39 @@ export abstract class SystemComponent {
     }
   }
 
-  /**
-   * Processes a specific traffic flow through this component.
-   * @returns [successfulCalls, unsuccessfulCalls]
-   */
-  handleTraffic(trafficName: string, value: number, handler: TrafficHandler): [number, number] {
-    this.incomingTrafficVolume += value;
-    
-    let unsuccessfulCalls = 0;
-    const route = this.trafficRoutes.find(r => r.name === trafficName);
-    
-    // 1. Process outgoing traffic dependencies
-    if (route && value > 0) {
-      for (const outgoing of route.outgoing_traffics) {
-        const requiredValue = value * outgoing.multiplier;
-        const [subSuccess, subFail] = handler.handleTraffic(outgoing.name, requiredValue);
-        
-        const failRatio = subFail / requiredValue;
-        unsuccessfulCalls = Math.max(unsuccessfulCalls, Math.round(value * (isNaN(failRatio) ? 0 : failRatio)));
+    /**
+     * Processes a specific traffic flow through this component.
+     * @returns successfulCalls
+     */
+    handleTraffic(trafficName: string, value: number, handler: TrafficHandler): number {
+      this.incomingTrafficVolume += value;
+      
+      let successfulVolume = value;
+      const route = this.trafficRoutes.find(r => r.name === trafficName);
+      
+      // 1. Process outgoing traffic dependencies sequentially
+      if (route && value > 0) {
+        for (const outgoing of route.outgoing_traffics) {
+          // Only pass what hasn't already failed upstream in the chain
+          const subSuccess = handler.handleTraffic(outgoing.name, successfulVolume * outgoing.multiplier);
+          
+          // Scale success back to parent requests (conservative floor)
+          const parentEquivalentSuccess = Math.floor(subSuccess / outgoing.multiplier);
+          successfulVolume = Math.min(successfulVolume, parentEquivalentSuccess);
+          
+          if (successfulVolume <= 0) break; // Short-circuit: nothing left to process
+        }
       }
+  
+      // 2. Add internal failures (e.g. saturation)
+      const internalFails = this.calculateInternalFailures(successfulVolume);
+      successfulVolume = Math.max(0, successfulVolume - internalFails);
+      
+      const failed = value - successfulVolume;
+      this.unsuccessfulTrafficVolume += failed;
+  
+      return successfulVolume;
     }
-
-    // 2. Apply internal saturation failures (e.g. over capacity)
-    const internalFailures = this.calculateInternalFailures(value);
-    unsuccessfulCalls = Math.min(value, unsuccessfulCalls + internalFailures);
-
-    const successfulCalls = value - unsuccessfulCalls;
-    this.unsuccessfulTrafficVolume += unsuccessfulCalls;
-
-    return [successfulCalls, unsuccessfulCalls];
-  }
 
   /**
    * Subclasses should implement this to define failure logic based on utilization.
@@ -192,10 +197,10 @@ export class ComputeNode extends SystemComponent {
   type = 'compute';
 
   protected calculateInternalFailures(value: number): number {
-    const util = this.attributes.gcu.utilization;
-    if (util > 100) {
-      // Linear failure increase above 100% utilization
-      return Math.round(value * ((util - 100) / 100));
+    // 1 GCU handles 20 requests (based on tick logic below)
+    const capacity = this.attributes.gcu.limit * 20;
+    if (value > capacity) {
+      return value - capacity;
     }
     return 0;
   }
@@ -262,16 +267,18 @@ export class DatabaseNode extends SystemComponent {
   fillRate = 0.0001;
 
   protected calculateInternalFailures(value: number): number {
-    const connUtil = this.attributes.connections.utilization;
-    if (connUtil > 100) {
-        return Math.round(value * 0.5); // 50% failure if connections maxed
+    // Enforce hard cap: 1 request = 1 connection
+    const limit = this.attributes.connections.limit;
+    if (value > limit) {
+      return value - limit;
     }
     return 0;
   }
 
   tick(handler: TrafficHandler) {
     const traffic = this.incomingTrafficVolume;
-    this.attributes.connections.update((traffic / 4) + (Math.random() * 2));
+    // Update connections to reflect current 1:1 traffic load
+    this.attributes.connections.update(traffic + (Math.random() * 2));
 
     const growth = traffic * this.fillRate;
     this.attributes.storage.update(Math.min(
