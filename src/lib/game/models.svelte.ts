@@ -127,6 +127,7 @@ export abstract class SystemComponent {
 
   // Temporary state for the current tick
   incomingTrafficVolume = 0;
+  unsuccessfulTrafficVolume = 0;
 
   constructor(config: ComponentConfig) {
     this.id = config.id;
@@ -168,6 +169,7 @@ export abstract class SystemComponent {
     unsuccessfulCalls = Math.min(value, unsuccessfulCalls + internalFailures);
 
     const successfulCalls = value - unsuccessfulCalls;
+    this.unsuccessfulTrafficVolume += unsuccessfulCalls;
 
     return [successfulCalls, unsuccessfulCalls];
   }
@@ -224,25 +226,34 @@ export class ComputeNode extends SystemComponent {
 
     this.metrics.latency.update(latency);
     
-    let errorRate = util > 100 ? (util - 100) * 2 : 0;
+    // Calculate Error Rate: (failed traffic / total traffic) * 100
+    const failureRate = traffic > 0 ? (this.unsuccessfulTrafficVolume / traffic) * 100 : 0;
+    
     // Apply error_rate status effects
     let errMultSum = 0;
     const errEffects = handler.statusEffects.filter(
         (e: any) => e.type === 'component' && e.isActive && e.componentAffected === this.id && e.metricAffected === 'error_rate'
     ) as ComponentStatusEffect[];
     for (const e of errEffects) errMultSum += e.multiplier;
-    errorRate += errMultSum; 
+    const errorRate = failureRate + errMultSum; 
 
     this.metrics.error_rate.update(errorRate);
+    
+    if (this.metrics.incoming) {
+      this.metrics.incoming.update(traffic);
+    }
 
     this.updateStatus();
     this.incomingTrafficVolume = 0; // Reset for next tick
+    this.unsuccessfulTrafficVolume = 0;
   }
 
   private updateStatus() {
     const gcuUtil = this.attributes.gcu.utilization;
-    if (gcuUtil > 95) this.status = 'critical';
-    else if (gcuUtil > 80) this.status = 'warning';
+    const errorRate = this.metrics.error_rate.value;
+    
+    if (gcuUtil > 95 || errorRate > 5) this.status = 'critical';
+    else if (gcuUtil > 80 || errorRate > 1) this.status = 'warning';
     else this.status = 'healthy';
   }
 }
@@ -262,7 +273,7 @@ export class DatabaseNode extends SystemComponent {
     return 0;
   }
 
-  tick() {
+  tick(handler: TrafficHandler) {
     const traffic = this.incomingTrafficVolume;
     this.attributes.connections.update((traffic / 4) + (Math.random() * 2));
 
@@ -281,11 +292,22 @@ export class DatabaseNode extends SystemComponent {
 
     this.metrics.query_latency.update(qLat);
 
-    if (connUtil > 100) this.status = 'critical';
-    else if (connUtil > 80) this.status = 'warning';
+    if (this.metrics.error_rate) {
+      const errorRate = traffic > 0 ? (this.unsuccessfulTrafficVolume / traffic) * 100 : 0;
+      this.metrics.error_rate.update(errorRate);
+    }
+
+    if (this.metrics.incoming) {
+      this.metrics.incoming.update(traffic);
+    }
+
+    const errorRate = this.metrics.error_rate?.value ?? 0;
+    if (connUtil > 100 || errorRate > 5) this.status = 'critical';
+    else if (connUtil > 80 || errorRate > 1) this.status = 'warning';
     else this.status = 'healthy';
     
     this.incomingTrafficVolume = 0;
+    this.unsuccessfulTrafficVolume = 0;
   }
 }
 
@@ -302,7 +324,7 @@ export class StorageNode extends SystemComponent {
     return 0;
   }
 
-  tick() {
+  tick(handler: TrafficHandler) {
     const traffic = this.incomingTrafficVolume;
     const growth = traffic * this.fillRate;
     this.attributes.storage_usage.update(Math.min(
@@ -312,12 +334,23 @@ export class StorageNode extends SystemComponent {
 
     this.metrics.fill_rate.update(growth);
 
+    if (this.metrics.error_rate) {
+      const errorRate = traffic > 0 ? (this.unsuccessfulTrafficVolume / traffic) * 100 : 0;
+      this.metrics.error_rate.update(errorRate);
+    }
+
+    if (this.metrics.incoming) {
+      this.metrics.incoming.update(traffic);
+    }
+
     const util = this.attributes.storage_usage.utilization;
-    if (util >= 100) this.status = 'critical';
-    else if (util > 85) this.status = 'warning';
+    const errorRate = this.metrics.error_rate?.value ?? 0;
+    if (util >= 100 || errorRate > 5) this.status = 'critical';
+    else if (util > 85 || errorRate > 1) this.status = 'warning';
     else this.status = 'healthy';
 
     this.incomingTrafficVolume = 0;
+    this.unsuccessfulTrafficVolume = 0;
   }
 }
 

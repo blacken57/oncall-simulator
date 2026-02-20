@@ -21,6 +21,7 @@ export interface QueuedAction {
 export class GameEngine implements TrafficHandler {
 	tick = $state(0);
 	isRunning = $state(false);
+	budget = $state(2000); // Monthly operational budget
 	
 	components: Record<string, SystemComponent> = $state({});
 	traffics: Record<string, Traffic> = $state({});
