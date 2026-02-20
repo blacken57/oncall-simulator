@@ -378,11 +378,50 @@ src/
 
 ---
 
-## Open Questions
+## Implementation Guide (Developer Reference)
 
-- [ ] Tick speed: Real-time (e.g., 1 tick/second) or turn-based?
-- [ ] Difficulty progression: Does game get harder over time?
-- [ ] Scope: Single service or multiple interconnected services?
-- [ ] Resolution mechanics: Multi-choice? Free text? Click-to-fix?
-- [ ] Win/lose conditions: Time-limit? Incident-free streak? Score threshold?
+This section provides a technical deep-dive into how the simulator's core logic is structured and how to extend it.
+
+### 1. Core Reactive Architecture
+The game engine is built on **Svelte 5 Runes**, which provide a fine-grained reactivity model. Instead of global stores, we use TypeScript classes with `$state` and `$derived` properties.
+
+- **`GameEngine` (`src/lib/game/engine.svelte.ts`)**: The central singleton. It manages the global `tick` counter and the collection of `SystemComponent` objects.
+- **`SystemComponent` (`src/lib/game/models.svelte.ts`)**: An abstract base class. Each "service" (e.g., a Database or API) extends this class and implements its own `tick()` logic.
+
+### 2. The "Physics" of a Component
+Every component has two main collections of data:
+1.  **Attributes**: User-configurable "knobs" (Limits/Capacity).
+    - *Example*: RAM Limit.
+    - *Cost*: Budget is consumed based on the `limit`, regardless of actual usage.
+2.  **Metrics**: Read-only telemetry (Actual Usage/Performance).
+    - *Example*: P99 Latency, Error Rate.
+    - *Logic*: Metrics are calculated in the `tick()` method based on current traffic and attribute limits.
+
+**Example Logic (ComputeNode):**
+```typescript
+// If GCU utilization > 80%, latency begins to spike exponentially
+if (util > 80) {
+  latency *= (1 + (util - 80) / 10);
+}
+```
+
+### 3. The Pending Action Queue
+To simulate real-world infrastructure latency (e.g., waiting 60 seconds for a server to scale), the engine uses a `pendingActions` queue.
+- When a user moves a slider, a `QueuedAction` is created.
+- The `limit` of the attribute is **not** updated immediately.
+- The engine decrements `ticksRemaining` on every tick.
+- Once it reaches zero, the new value is applied to the attribute, and the UI reflects the change.
+
+### 4. File Map & Responsibilities
+- `engine.svelte.ts`: Orchestration, tick loop, action application.
+- `models.svelte.ts`: Definitions for `Attribute`, `Metric`, and specific component types (`ComputeNode`, `DatabaseNode`, etc.).
+- `statusEffects.ts`: Types and logic for temporary conditions (Incidents/Events).
+- `tickets.ts`: Definitions for the alerting and ticketing system.
+
+### 5. Adding a New Component Type
+To add a new type of infrastructure (e.g., a Load Balancer):
+1.  Extend `SystemComponent` in `models.svelte.ts`.
+2.  Define its `attributes` (e.g., Max Connections) and `metrics` (e.g., Throughput).
+3.  Implement the `tick()` method to define how it behaves under load.
+4.  Register it in `engine.initializeLevel1()`.
 
