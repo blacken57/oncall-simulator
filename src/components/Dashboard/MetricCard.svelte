@@ -14,28 +14,28 @@
 	let paths = $derived.by(() => {
 		if (history.length < 2) return { line: "", area: "" };
 		
-		const hMin = Math.min(...history);
-		const hMax = Math.max(...history);
+		let min: number, max: number;
 		
-		// Auto-scale based on history, but with a bit of "breathing room"
-		// If limit is provided, we use it as a hint for the scale but prioritize trend visibility
-		let min = hMin;
-		let max = hMax;
-		
-		// Ensure there's always some vertical range so it doesn't look like a flat line at the top/bottom
-		let range = max - min;
-		if (range < 0.1) {
-			// Very flat data - center it with a small range
-			min -= 1;
-			max += 1;
-			range = max - min;
+		if (limit !== undefined) {
+			// Scaled to the limit set by the user
+			min = 0;
+			max = limit || 0.1;
 		} else {
-			// Add 10% padding
-			min -= range * 0.1;
-			max += range * 0.1;
-			range = max - min;
+			// Auto-scale for metrics without a defined limit
+			const hMin = Math.min(...history);
+			const hMax = Math.max(...history);
+			const hRange = hMax - hMin;
+			
+			if (hRange < 0.1) {
+				min = hMin - 1;
+				max = hMax + 1;
+			} else {
+				min = hMin - hRange * 0.1;
+				max = hMax + hRange * 0.1;
+			}
 		}
-		
+
+		const range = max - min;
 		const width = 100;
 		const height = 30;
 		
@@ -51,6 +51,8 @@
 
 		return { line: linePath, area: areaPath };
 	});
+
+	let utilization = $derived(limit ? (value / limit) * 100 : 0);
 </script>
 
 <div class="metric-card {status}">
@@ -68,34 +70,37 @@
 				<span class="limit">/ {limit}</span>
 			{/if}
 		</div>
-		<div class="sparkline-container">
-			<svg viewBox="0 0 100 30" preserveAspectRatio="none" width="100%" height="30">
-				<!-- Area Fill -->
-				<path
-					d={paths.area}
-					fill="currentColor"
-					fill-opacity="0.1"
-				/>
-				<!-- The Line -->
-				<path
-					d={paths.line}
-					fill="none"
-					stroke="currentColor"
-					stroke-width="1.5"
-					stroke-linejoin="round"
-					stroke-linecap="round"
-				/>
-			</svg>
-		</div>
-
-		{#if limit !== undefined}
-			<div class="util-bar-mini">
-				<div 
-					class="fill" 
-					style="width: {Math.min(100, (value / limit) * 100)}%"
-				></div>
+		
+		<div class="visuals">
+			<div class="sparkline-container">
+				<svg viewBox="0 0 100 30" preserveAspectRatio="none" width="100%" height="30">
+					<!-- Area Fill -->
+					<path
+						d={paths.area}
+						fill="currentColor"
+						fill-opacity="0.1"
+					/>
+					<!-- The Line -->
+					<path
+						d={paths.line}
+						fill="none"
+						stroke="currentColor"
+						stroke-width="1.5"
+						stroke-linejoin="round"
+						stroke-linecap="round"
+					/>
+				</svg>
 			</div>
-		{/if}
+
+			{#if limit !== undefined}
+				<div class="utilization-v-side">
+					<div class="v-bar-container">
+						<div class="v-bar-fill" style="height: {Math.min(100, utilization)}%"></div>
+					</div>
+					<span class="util-text-v">{utilization.toFixed(0)}%</span>
+				</div>
+			{/if}
+		</div>
 	</div>
 </div>
 
@@ -108,7 +113,7 @@
 		display: flex;
 		flex-direction: column;
 		justify-content: space-between;
-		min-height: 100px;
+		min-height: 110px;
 	}
 
 	.header {
@@ -127,7 +132,7 @@
 	}
 
 	.value-container {
-		margin-bottom: 0.5rem;
+		margin-bottom: 0.75rem;
 		display: flex;
 		align-items: baseline;
 	}
@@ -150,32 +155,57 @@
 		margin-left: 0.4rem;
 	}
 
+	.visuals {
+		display: flex;
+		align-items: stretch;
+		gap: 0.75rem;
+		height: 35px;
+	}
+
 	.sparkline-container {
+		flex: 1;
 		height: 30px;
-		width: 100%;
 		color: #4ade80;
 		overflow: hidden;
-		margin-bottom: 4px;
+		align-self: flex-end;
 	}
 
-	.util-bar-mini {
-		height: 3px;
+	.utilization-v-side {
+		display: flex;
+		align-items: flex-end;
+		gap: 4px;
+		width: 45px;
+	}
+
+	.v-bar-container {
+		width: 8px;
+		height: 30px;
 		background: #222;
 		border-radius: 1px;
-		width: 100%;
 		overflow: hidden;
+		border: 1px solid #333;
+		display: flex;
+		flex-direction: column;
+		justify-content: flex-end;
 	}
 
-	.util-bar-mini .fill {
-		height: 100%;
+	.v-bar-fill {
+		width: 100%;
 		background: currentColor;
-		opacity: 0.5;
+		transition: height 0.3s ease;
+	}
+
+	.util-text-v {
+		font-size: 0.6rem;
+		font-weight: bold;
+		color: #888;
+		min-width: 25px;
 	}
 
 	/* Status Colors */
-	.healthy .sparkline-container { color: #4ade80; }
-	.warning .sparkline-container { color: #fbbf24; }
-	.critical .sparkline-container { color: #f87171; }
+	.healthy .sparkline-container, .healthy .v-bar-fill { color: #4ade80; }
+	.warning .sparkline-container, .warning .v-bar-fill { color: #fbbf24; }
+	.critical .sparkline-container, .critical .v-bar-fill { color: #f87171; }
 
 	.status-dot {
 		width: 6px;

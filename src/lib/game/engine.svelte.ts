@@ -40,6 +40,7 @@ export class GameEngine {
 			logIngestor: new ComputeNode('log-ingestor', 'Log Ingestor', 4, 15),
 			logStorage: new StorageNode('log-storage', 'Log Block Storage', 1000)
 		};
+		this.components.checkoutDb.attributes.storage.update(50);
 		this.components.logStorage.attributes.storage_usage.update(200);
 
 		// Pre-populate with some history so graphs aren't empty
