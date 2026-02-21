@@ -1,0 +1,97 @@
+import type { 
+  AttributeConfig, 
+  MetricConfig, 
+  TrafficConfig 
+} from './schema';
+
+/**
+ * Represents a specific flow of traffic within the system.
+ */
+export class Traffic {
+  id: string; // The unique readable id (name)
+  type: 'internal' | 'external';
+  targetComponentName: string;
+  value = $state(0); // Base value (drifts with noise)
+  actualValue = $state(0); // Actual volume processed (after multipliers)
+  baseVariance: number;
+  
+  // History for tracking performance over time
+  successHistory = $state<number[]>([]);
+  failureHistory = $state<number[]>([]);
+  maxHistory = 60;
+
+  constructor(config: TrafficConfig) {
+    this.id = config.name;
+    this.type = config.type;
+    this.targetComponentName = config.target_component_name;
+    this.value = config.value || 0;
+    this.baseVariance = config.base_variance ?? 5;
+  }
+
+  update(baseValue: number, actualValue: number, successful: number, unsuccessful: number) {
+    this.value = baseValue;
+    this.actualValue = actualValue;
+    this.successHistory = [...this.successHistory, successful].slice(-this.maxHistory);
+    this.failureHistory = [...this.failureHistory, unsuccessful].slice(-this.maxHistory);
+  }
+}
+
+/**
+ * Represents a configurable property of a system (e.g., RAM Limit vs RAM Usage).
+ */
+export class Attribute {
+  name: string;
+  unit: string;
+  limit = $state(0);
+  current = $state(0);
+  history = $state<number[]>([]);
+  maxHistory: number;
+  minLimit: number;
+  maxLimit: number;
+  costPerUnit: number;
+
+  constructor(config: AttributeConfig) {
+    this.name = config.name;
+    this.unit = config.unit;
+    this.limit = config.initialLimit;
+    this.minLimit = config.minLimit;
+    this.maxLimit = config.maxLimit;
+    this.costPerUnit = config.costPerUnit;
+    this.maxHistory = config.maxHistory ?? 60;
+  }
+
+  update(newValue: number) {
+    this.current = newValue;
+    this.history = [...this.history, newValue].slice(-this.maxHistory);
+  }
+
+  get cost() {
+    return this.limit * this.costPerUnit;
+  }
+
+  get utilization() {
+    return (this.current / this.limit) * 100;
+  }
+}
+
+/**
+ * Tracks telemetry data (performance metrics) over time.
+ */
+export class Metric {
+  name: string;
+  unit: string;
+  value = $state(0);
+  history = $state<number[]>([]);
+  maxHistory: number;
+
+  constructor(config: MetricConfig) {
+    this.name = config.name;
+    this.unit = config.unit;
+    this.maxHistory = config.maxHistory ?? 60;
+  }
+
+  update(newValue: number) {
+    this.value = newValue;
+    this.history = [...this.history, newValue].slice(-this.maxHistory);
+  }
+}

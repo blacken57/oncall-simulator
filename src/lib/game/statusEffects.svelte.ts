@@ -15,6 +15,7 @@ export class ComponentStatusEffect {
   componentAffected: string;
   metricAffected: string;
   multiplier: number;
+  offset: number;
   materializationProbability: number;
   resolutionCondition: ResolutionConditionConfig;
   maxInstancesAtOnce: number;
@@ -27,7 +28,8 @@ export class ComponentStatusEffect {
     this.name = config.name;
     this.componentAffected = config.component_affected;
     this.metricAffected = config.metric_affected;
-    this.multiplier = config.multiplier;
+    this.multiplier = config.multiplier ?? 0;
+    this.offset = config.offset ?? 0;
     this.materializationProbability = config.materialization_probability;
     this.resolutionCondition = config.resolution_condition;
     this.maxInstancesAtOnce = config.max_instances_at_once;
@@ -62,13 +64,15 @@ export class TrafficStatusEffect {
   name: string;
   trafficAffected: string;
   multiplier: number;
+  offset: number;
   turnsRemaining = $state(0);
   isActive = $state(true);
 
   constructor(config: TrafficStatusEffectConfig) {
     this.name = config.name;
     this.trafficAffected = config.traffic_affected;
-    this.multiplier = config.multiplier;
+    this.multiplier = config.multiplier ?? 0;
+    this.offset = config.offset ?? 0;
     this.turnsRemaining = config.turnsRemaining;
   }
 

@@ -140,5 +140,18 @@
       },
       "max_instances_at_once": 1
     }
+  ],
+  "scheduledJobs": [
+    {
+      "name": "Hourly Log Rotation",
+      "targetName": "Log Block Storage",
+      "schedule": {
+        "interval": 30
+      },
+      "affectedAttributes": [
+        { "name": "storage_usage", "multiplier": -0.5 }
+      ],
+      "emittedTraffic": []
+    }
   ]
 }

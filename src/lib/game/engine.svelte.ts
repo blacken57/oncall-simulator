@@ -8,6 +8,7 @@ import {
 } from './models.svelte';
 import type { LevelConfig } from './schema';
 import { ComponentStatusEffect, TrafficStatusEffect, type StatusEffect } from './statusEffects.svelte';
+import { ScheduledJob } from './scheduledJobs.svelte';
 
 export interface QueuedAction {
   id: string;
@@ -26,6 +27,7 @@ export class GameEngine implements TrafficHandler {
   components: Record<string, SystemComponent> = $state({});
   traffics: Record<string, Traffic> = $state({});
   statusEffects: StatusEffect[] = $state([]);
+  scheduledJobs: ScheduledJob[] = $state([]);
   pendingActions = $state<QueuedAction[]>([]);
 
   currentLevelId = $state<string | null>(null);
@@ -48,6 +50,7 @@ export class GameEngine implements TrafficHandler {
     this.components = {};
     this.traffics = {};
     this.statusEffects = [];
+    this.scheduledJobs = (config.scheduledJobs || []).map(j => new ScheduledJob(j));
     this.pendingActions = [];
 
     // Create components
@@ -131,6 +134,13 @@ export class GameEngine implements TrafficHandler {
   update() {
     this.tick++;
 
+    // 0. Process Scheduled Jobs
+    for (const job of this.scheduledJobs) {
+      if (job.shouldRun(this.tick)) {
+        job.run(this, this.tick);
+      }
+    }
+
     // 1. Update Status Effects (Materialization & Resolution)
     for (const effect of this.statusEffects) {
       effect.tick();
@@ -155,15 +165,17 @@ export class GameEngine implements TrafficHandler {
         const newBaseValue = Math.max(0, traffic.value + noise);
         traffic.value = newBaseValue;
 
-        let multiplier = 1;
+        let multiplierSum = 0;
+        let offsetSum = 0;
         // Apply traffic-specific status effects to the CURRENT tick
         for (const effect of this.statusEffects) {
           if (effect instanceof TrafficStatusEffect && effect.isActive && effect.trafficAffected === traffic.id) {
-            multiplier *= effect.multiplier;
+            multiplierSum += effect.multiplier;
+            offsetSum += effect.offset;
           }
         }
 
-        				const currentVolume = Math.round(newBaseValue * multiplier);
+        const currentVolume = Math.round(newBaseValue + (newBaseValue * multiplierSum) + offsetSum);
         				
         				// Recursive call chain
         				const success = this.handleTraffic(traffic.id, currentVolume);

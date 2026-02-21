@@ -27,7 +27,8 @@ export interface ComponentStatusEffectConfig {
   name: string; // Unique readable id
   component_affected: string; // Component ID
   metric_affected: string; // Metric name within the component
-  multiplier: number; // (a + x1 + x2 + x3)*base_value where xn refers to the multipliers
+  multiplier?: number; // Defaults to 0 if missing.
+  offset?: number; // Static value to add/subtract. Defaults to 0 if missing.
   materialization_probability: number; // Probability each tick (0-1)
   resolution_condition: ResolutionConditionConfig;
   max_instances_at_once: number;
@@ -37,7 +38,8 @@ export interface TrafficStatusEffectConfig {
   type: 'traffic';
   name: string; // Unique readable id
   traffic_affected: string; // Traffic ID
-  multiplier: number; // Multiplier for traffic value
+  multiplier?: number; // Defaults to 0 if missing.
+  offset?: number; // Defaults to 0 if missing.
   turnsRemaining: number;
 }
 
@@ -98,6 +100,28 @@ export interface ComponentConfig {
   physics?: ComponentPhysicsConfig;
 }
 
+export interface StatusEffectTargetAttribute {
+  name: string; // Attribute name within the target component
+  multiplier?: number; // Multiplier (current * multiplier). Defaults to 0 if missing.
+  offset?: number; // Static value to add/subtract. Defaults to 0 if missing.
+  // Note: At least one of multiplier or offset must be provided.
+}
+
+export interface StatusEffectTargetTraffic {
+  name: string; // Name of the traffic to release
+  value: number; // Volume of traffic to emit
+}
+
+export interface ScheduledJobConfig {
+  name: string; // Unique identifier
+  targetName: string; // Name of the target component
+  schedule: {
+    interval: number; // Every X ticks
+  };
+  affectedAttributes: StatusEffectTargetAttribute[];
+  emittedTraffic: StatusEffectTargetTraffic[];
+}
+
 export interface LevelConfig {
   id: string;
   name: string;
@@ -105,4 +129,5 @@ export interface LevelConfig {
   components: ComponentConfig[];
   traffics: TrafficConfig[];
   statusEffects: StatusEffectConfig[];
+  scheduledJobs?: ScheduledJobConfig[];
 }
