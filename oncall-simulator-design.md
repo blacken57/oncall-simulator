@@ -47,6 +47,11 @@ The system naturally demonstrates "Cascading Failures."
 - *Scenario*: A heavy logging burst fills the `Log Block Storage`. 
 - *Result*: `Log Storage` success drops to 0% -> `Checkout Server` (which depends on logs) sees its success drop to 0% -> The user-facing "Success" metric on the dashboard crashes, even if the `Checkout Server` GCU/RAM are perfectly healthy.
 
+### 6. Two-Pass Traffic Resolution
+To prevent "First-Come, First-Served" bias where the first processed traffic flow consumes all available capacity, the engine uses a two-pass resolution system:
+- **Pass 1 (Demand Pass)**: Recursively calculates the total intended volume (demand) for every component in the system before any processing.
+- **Pass 2 (Resolution Pass)**: Components use their total demand to calculate a fixed failure rate for the tick (e.g., `(Demand - Limit) / Demand`). This rate is applied proportionally to all incoming flows, ensuring that if a resource is over-capacity, all users share the failure equally.
+
 
 ---
 
