@@ -11,8 +11,9 @@ export class Traffic {
   id: string; // The unique readable id (name)
   type: 'internal' | 'external';
   targetComponentName: string;
-  value = $state(0); // Base value (drifts with noise)
-  actualValue = $state(0); // Actual volume processed (after multipliers)
+  nominalValue: number; // The stable base value from config
+  value = $state(0); // Current tick's base value (with noise)
+  actualValue = $state(0); // Total volume after multipliers/effects
   baseVariance: number;
   
   // History for tracking performance over time
@@ -24,7 +25,8 @@ export class Traffic {
     this.id = config.name;
     this.type = config.type;
     this.targetComponentName = config.target_component_name;
-    this.value = config.value || 0;
+    this.nominalValue = config.value || 0;
+    this.value = this.nominalValue;
     this.baseVariance = config.base_variance ?? 5;
   }
 

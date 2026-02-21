@@ -173,34 +173,37 @@ export class GameEngine implements TrafficHandler {
       });
       this.pendingActions = this.pendingActions.filter(a => a.status === 'pending');
   
-      // 4. PRE-PASS: Calculate External Volumes and Record Demand
-      const externalWork: { traffic: Traffic, volume: number, base: number }[] = [];
+              // 4. PRE-PASS (Demand Pass): Calculate External Volumes and Record Demand
+              // This phase identifies the total load hitting every component in the system
+              // BEFORE any component decides to drop traffic.
+              const externalWork: { traffic: Traffic, volume: number, base: number }[] = [];
+                    for (const traffic of Object.values(this.traffics)) {
+            if (traffic.type === 'external') {
+              const noise = (Math.random() * traffic.baseVariance * 2) - traffic.baseVariance;
+              // Use nominalValue as the fixed center point for noise
+              const newBaseValue = Math.max(0, traffic.nominalValue + noise);
       
-      for (const traffic of Object.values(this.traffics)) {
-        if (traffic.type === 'external') {
-          const noise = (Math.random() * traffic.baseVariance * 2) - traffic.baseVariance;
-          const newBaseValue = Math.max(0, traffic.value + noise);
-          traffic.value = newBaseValue;
-  
-          let multiplierSum = 0;
-          let offsetSum = 0;
-          for (const effect of this.statusEffects) {
-            if (effect instanceof TrafficStatusEffect && effect.isActive && effect.trafficAffected === traffic.id) {
-              multiplierSum += effect.multiplier;
-              offsetSum += effect.offset;
+              let multiplierSum = 0;
+              let offsetSum = 0;
+              for (const effect of this.statusEffects) {
+                if (effect instanceof TrafficStatusEffect && effect.isActive && effect.trafficAffected === traffic.id) {
+                  multiplierSum += effect.multiplier;
+                  offsetSum += effect.offset;
+                }
+              }
+      
+              const currentVolume = Math.round(newBaseValue + (newBaseValue * multiplierSum) + offsetSum);
+              externalWork.push({ traffic, volume: currentVolume, base: newBaseValue });
+              
+              // Pass 1: Recursive demand collection
+              this.recordDemand(traffic.id, currentVolume);
             }
           }
-  
-          const currentVolume = Math.round(newBaseValue + (newBaseValue * multiplierSum) + offsetSum);
-          externalWork.push({ traffic, volume: currentVolume, base: newBaseValue });
-          
-          // Pass 1: Recursive demand collection
-          this.recordDemand(traffic.id, currentVolume);
-        }
-      }
-  
-      // 5. RESOLUTION-PASS: Process External Traffic with known total demand
-      for (const work of externalWork) {
+                // 5. RESOLUTION-PASS: Process External Traffic with known total demand
+                // Components will now use the demand recorded in Pass 4 to apply fair,
+                // proportional success/failure rates to all competing traffic flows.
+                for (const work of externalWork) {
+            
         const { traffic, volume, base } = work;
         const success = this.handleTraffic(traffic.id, volume);
         const fail = volume - success;

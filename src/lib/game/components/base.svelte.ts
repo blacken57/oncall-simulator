@@ -17,6 +17,12 @@ export interface TrafficHandler {
 
 /**
  * The base class for all simulated infrastructure components.
+ * 
+ * DESIGN PRINCIPLE: Two-Pass Resolution
+ * To ensure fair traffic distribution, components use two passes:
+ * 1. Demand Pass: recordDemand() collects total intended volume from all sources recursively.
+ * 2. Resolution Pass: handleTraffic() uses the total demand to calculate a fair failure rate 
+ *    applied proportionally to all incoming flows, preventing "first-come-first-served" bias.
  */
 export abstract class SystemComponent {
   id: string;
@@ -62,6 +68,7 @@ export abstract class SystemComponent {
 
   /**
    * Pass 1: Records the intended traffic volume to calculate total demand.
+   * This builds a global view of load before any success/failure is decided.
    */
   recordDemand(trafficName: string, value: number, handler: TrafficHandler) {
     this.totalExpectedVolume += value;
@@ -75,7 +82,8 @@ export abstract class SystemComponent {
   }
 
   /**
-   * Processes a specific traffic flow through this component using total demand for fairness.
+   * Pass 2: Processes a specific traffic flow through this component.
+   * Uses the pre-calculated totalExpectedVolume to ensure failures are distributed evenly.
    * @returns successfulCalls
    */
   handleTraffic(trafficName: string, value: number, handler: TrafficHandler): number {
