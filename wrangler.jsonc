@@ -1,0 +1,9 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "oncall-simulator",
+  "compatibility_date": "2026-02-21",
+  "pages_build_output_dir": ".svelte-kit/cloudflare",
+  "observability": {
+    "enabled": true
+  }
+}
