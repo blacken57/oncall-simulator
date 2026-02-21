@@ -3,6 +3,7 @@
   import { engine } from '$lib/game/engine.svelte';
   import DashboardLayout from '../components/Dashboard/DashboardLayout.svelte';
   import ComponentList from '../components/Actions/ComponentList.svelte';
+  import TicketList from '../components/Tickets/TicketList.svelte';
   import level1 from '../data/level1.json';
 
   onMount(() => {
@@ -14,6 +15,7 @@
   let isRunning = $derived(engine.isRunning);
   let currentSpend = $derived(engine.currentSpend);
   let budgetRemaining = $derived(engine.budget - currentSpend);
+  let activeTicketsCount = $derived(engine.tickets.filter(t => t.status !== 'resolved').length);
 
   let activeView = $state('dashboard');
 </script>
@@ -60,7 +62,15 @@
         class="nav-item {activeView === 'actions' ? 'active' : ''}"
         onclick={() => (activeView = 'actions')}>Actions</button
       >
-      <button class="nav-item">Tickets</button>
+      <button 
+        class="nav-item {activeView === 'tickets' ? 'active' : ''}" 
+        onclick={() => (activeView = 'tickets')}
+      >
+        Tickets
+        {#if activeTicketsCount > 0}
+          <span class="badge">{activeTicketsCount}</span>
+        {/if}
+      </button>
       <button class="nav-item">Docs</button>
     </nav>
 
@@ -69,6 +79,8 @@
         <DashboardLayout />
       {:else if activeView === 'actions'}
         <ComponentList />
+      {:else if activeView === 'tickets'}
+        <TicketList />
       {/if}
     </div>
   </div>
@@ -80,6 +92,16 @@
     background: #000;
     color: #e0e0e0;
     font-family: 'JetBrains Mono', 'Courier New', monospace;
+  }
+
+  .badge {
+    background: #f87171;
+    color: #fff;
+    font-size: 0.6rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 10px;
+    margin-left: 0.4rem;
+    vertical-align: middle;
   }
 
   .game-container {

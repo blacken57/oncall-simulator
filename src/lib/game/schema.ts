@@ -134,3 +134,16 @@ export interface LevelConfig {
   statusEffects: StatusEffectConfig[];
   scheduledJobs?: ScheduledJobConfig[];
 }
+
+export type TicketStatus = 'open' | 'investigating' | 'resolved';
+
+export interface Ticket {
+  id: string;
+  componentId: string;
+  title: string;
+  description: string;
+  status: TicketStatus;
+  createdAt: number;
+  resolvedAt?: number;
+  impactedMetric?: string;
+}

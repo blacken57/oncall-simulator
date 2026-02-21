@@ -6,7 +6,7 @@ import {
   type SystemComponent,
   type TrafficHandler
 } from './models.svelte';
-import type { LevelConfig } from './schema';
+import type { LevelConfig, Ticket, TicketStatus } from './schema';
 import {
   ComponentStatusEffect,
   TrafficStatusEffect,
@@ -33,6 +33,7 @@ export class GameEngine implements TrafficHandler {
   statusEffects: StatusEffect[] = $state([]);
   scheduledJobs: ScheduledJob[] = $state([]);
   pendingActions = $state<QueuedAction[]>([]);
+  tickets = $state<Ticket[]>([]);
 
   currentLevelId = $state<string | null>(null);
 
@@ -86,6 +87,7 @@ export class GameEngine implements TrafficHandler {
     this.statusEffects = [];
     this.scheduledJobs = (config.scheduledJobs || []).map((j) => new ScheduledJob(j));
     this.pendingActions = [];
+    this.tickets = [];
 
     // Create components
     for (const compConfig of config.components) {
@@ -251,6 +253,25 @@ export class GameEngine implements TrafficHandler {
     // 6. Tick each component to finalize metrics and handle physics
     Object.values(this.components).forEach((comp) => {
       comp.tick(this);
+
+      // Ticket generation: if status just turned critical, create a ticket
+      if (comp.status === 'critical' && comp.lastStatus !== 'critical') {
+        const alreadyHasOpenTicket = this.tickets.some(
+          (t) => t.componentId === comp.id && t.status !== 'resolved'
+        );
+
+        if (!alreadyHasOpenTicket) {
+          this.tickets.push({
+            id: Math.random().toString(36).substr(2, 9),
+            componentId: comp.id,
+            title: `CRITICAL: ${comp.name} failure`,
+            description: `${comp.name} has entered a critical state. Investigate metrics immediately.`,
+            status: 'open',
+            createdAt: this.tick
+          });
+        }
+      }
+      comp.lastStatus = comp.status;
     });
   }
   private applyAction(action: QueuedAction) {

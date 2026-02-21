@@ -38,6 +38,7 @@ export abstract class SystemComponent {
   attributes = $state<Record<string, Attribute>>({});
   metrics = $state<Record<string, Metric>>({});
   status = $state<'healthy' | 'warning' | 'critical'>('healthy');
+  lastStatus: 'healthy' | 'warning' | 'critical' = 'healthy';
 
   /** Configuration for how traffic flows through and out of this component */
   trafficRoutes: TrafficRouteConfig[] = [];
