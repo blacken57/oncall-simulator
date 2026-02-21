@@ -36,9 +36,10 @@ export class DatabaseNode extends SystemComponent {
   tick(handler: TrafficHandler) {
     const traffic = this.incomingTrafficVolume;
     const physics = this.physics;
+    const noiseFactor = physics.noise_factor ?? 2;
 
     // Connections update
-    this.attributes.connections.update(traffic + Math.random() * (physics.noise_factor ?? 2));
+    this.attributes.connections.update(traffic + Math.random() * noiseFactor);
 
     const growth = traffic * (physics.consumption_rates?.storage ?? 0.0001);
     this.attributes.storage.update(
@@ -56,10 +57,35 @@ export class DatabaseNode extends SystemComponent {
       avgLatency *= 1 + (physics.saturation_penalty_factor ?? 4);
     }
 
+    // Apply status effect multipliers for latency
+    let multiplierSum = 0;
+    let offsetSum = 0;
+    const activeEffects = this.getActiveComponentEffects(handler).filter(
+      (e) => e.metricAffected === 'query_latency'
+    );
+    for (const e of activeEffects) {
+      multiplierSum += e.multiplier;
+      offsetSum += e.offset;
+    }
+    avgLatency = avgLatency + avgLatency * multiplierSum + offsetSum;
+
     this.metrics.query_latency.update(avgLatency);
 
     if (this.metrics.error_rate) {
-      const errorRate = traffic > 0 ? (this.unsuccessfulTrafficVolume / traffic) * 100 : 0;
+      const baseFailureRate = traffic > 0 ? (this.unsuccessfulTrafficVolume / traffic) * 100 : 0;
+
+      // Apply error_rate status effects
+      let errMultSum = 0;
+      let errOffsetSum = 0;
+      const errEffects = this.getActiveComponentEffects(handler).filter(
+        (e) => e.metricAffected === 'error_rate'
+      );
+      for (const e of errEffects) {
+        errMultSum += e.multiplier;
+        errOffsetSum += e.offset;
+      }
+      const errorRate = baseFailureRate + baseFailureRate * errMultSum + errOffsetSum;
+
       this.metrics.error_rate.update(errorRate);
     }
 
@@ -68,9 +94,6 @@ export class DatabaseNode extends SystemComponent {
     }
 
     this.updateStatus();
-
-    this.incomingTrafficVolume = 0;
-    this.unsuccessfulTrafficVolume = 0;
   }
 
   private updateStatus() {

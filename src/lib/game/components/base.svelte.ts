@@ -1,4 +1,8 @@
-import type { StatusEffect } from '../statusEffects.svelte';
+import {
+  ComponentStatusEffect,
+  TrafficStatusEffect,
+  type StatusEffect
+} from '../statusEffects.svelte';
 import type { ComponentConfig, TrafficRouteConfig, ComponentPhysicsConfig } from '../schema';
 import { Attribute, Metric } from '../base.svelte';
 
@@ -12,6 +16,9 @@ export interface TrafficHandler {
     value: number
   ): { successfulVolume: number; averageLatency: number };
   statusEffects: StatusEffect[];
+  components: Record<string, SystemComponent>;
+  getActiveComponentEffects(componentId: string): ComponentStatusEffect[];
+  getActiveTrafficEffects(trafficId: string): TrafficStatusEffect[];
 }
 
 /**
@@ -158,6 +165,10 @@ export abstract class SystemComponent {
    * Updates component internal state (utilization, etc.) based on total traffic seen this tick.
    */
   abstract tick(handler: TrafficHandler): void;
+
+  protected getActiveComponentEffects(handler: TrafficHandler) {
+    return handler.getActiveComponentEffects(this.id);
+  }
 
   get totalCost() {
     return Object.values(this.attributes).reduce((sum, attr) => sum + attr.cost, 0);

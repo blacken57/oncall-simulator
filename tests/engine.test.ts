@@ -185,6 +185,82 @@ describe('GameEngine Integration', () => {
     expect(server.attributes.gcu.limit).toBe(5);
   });
 
+  it('should allow scheduled jobs to target attribute value (utilization) instead of limit', () => {
+    const level = JSON.parse(JSON.stringify(baseLevel));
+    // Disable noise, base usage, and consumption for isolation
+    level.components[0].physics = {
+      resource_base_usage: { ram: 0, gcu: 0 },
+      consumption_rates: { ram: 0 },
+      noise_factor: 0
+    };
+    level.traffics[0].value = 0; // No traffic to generate usage
+    level.scheduledJobs = [
+      {
+        name: 'Clear Cache',
+        targetName: 'server',
+        schedule: { interval: 1 },
+        affectedAttributes: [
+          {
+            name: 'ram',
+            target: 'value',
+            multiplier: -1.0 // Clear all usage
+          }
+        ],
+        emittedTraffic: []
+      }
+    ];
+
+    const engine = new GameEngine();
+    engine.loadLevel(level);
+
+    const server = engine.components['server'];
+    const ram = server.attributes['ram'];
+
+    // Manually set some usage
+    ram.update(4); 
+    expect(ram.current).toBe(4);
+    expect(ram.limit).toBe(8);
+
+    engine.update();
+
+    // Limit should be UNTOUCHED (8), but current usage should be CLEARED (0)
+    expect(ram.limit).toBe(8);
+    expect(ram.current).toBe(0);
+  });
+
+  it('should allow scheduled jobs to increase attribute limits using offset and multiplier', () => {
+    const level = JSON.parse(JSON.stringify(baseLevel));
+    level.scheduledJobs = [
+      {
+        name: 'Auto-scale GCU',
+        targetName: 'server',
+        schedule: { interval: 1 },
+        affectedAttributes: [
+          {
+            name: 'gcu',
+            target: 'limit',
+            multiplier: 0.5, // +50%
+            offset: 2        // +2 units
+          }
+        ],
+        emittedTraffic: []
+      }
+    ];
+
+    const engine = new GameEngine();
+    engine.loadLevel(level);
+
+    const server = engine.components['server'];
+    
+    // Initial limit is 10
+    expect(server.attributes.gcu.limit).toBe(10);
+
+    engine.update();
+
+    // New limit: 10 + (10 * 0.5) + 2 = 17
+    expect(server.attributes.gcu.limit).toBe(17);
+  });
+
   it('should propagate latency additively through dependency chains', () => {
     const level: LevelConfig = {
       id: 'latency-test',

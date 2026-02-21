@@ -40,9 +40,39 @@ export class GameEngine implements TrafficHandler {
     Object.values(this.components).reduce((sum, comp) => sum + comp.totalCost, 0)
   );
 
+  activeComponentEffects = $derived.by(() => {
+    const map: Record<string, ComponentStatusEffect[]> = {};
+    for (const effect of this.statusEffects) {
+      if (effect instanceof ComponentStatusEffect && effect.isActive) {
+        if (!map[effect.componentAffected]) map[effect.componentAffected] = [];
+        map[effect.componentAffected].push(effect);
+      }
+    }
+    return map;
+  });
+
+  activeTrafficEffects = $derived.by(() => {
+    const map: Record<string, TrafficStatusEffect[]> = {};
+    for (const effect of this.statusEffects) {
+      if (effect instanceof TrafficStatusEffect && effect.isActive) {
+        if (!map[effect.trafficAffected]) map[effect.trafficAffected] = [];
+        map[effect.trafficAffected].push(effect);
+      }
+    }
+    return map;
+  });
+
   private interval: ReturnType<typeof setInterval> | null = null;
 
   constructor() {}
+
+  getActiveComponentEffects(componentId: string): ComponentStatusEffect[] {
+    return this.activeComponentEffects[componentId] || [];
+  }
+
+  getActiveTrafficEffects(trafficId: string): TrafficStatusEffect[] {
+    return this.activeTrafficEffects[trafficId] || [];
+  }
 
   /**
    * Loads a level from a configuration object.
@@ -193,15 +223,9 @@ export class GameEngine implements TrafficHandler {
 
         let multiplierSum = 0;
         let offsetSum = 0;
-        for (const effect of this.statusEffects) {
-          if (
-            effect instanceof TrafficStatusEffect &&
-            effect.isActive &&
-            effect.trafficAffected === traffic.id
-          ) {
-            multiplierSum += effect.multiplier;
-            offsetSum += effect.offset;
-          }
+        for (const effect of this.getActiveTrafficEffects(traffic.id)) {
+          multiplierSum += effect.multiplier;
+          offsetSum += effect.offset;
         }
 
         const currentVolume = Math.round(newBaseValue + newBaseValue * multiplierSum + offsetSum);

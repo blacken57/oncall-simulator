@@ -40,19 +40,18 @@ export class ComputeNode extends SystemComponent {
   tick(handler: TrafficHandler) {
     const traffic = this.incomingTrafficVolume;
     const physics = this.physics;
-    const noise = (Math.random() - 0.5) * (physics.noise_factor ?? 0);
+    const noiseFactor = physics.noise_factor ?? 0.5;
+    const noise = (Math.random() - 0.5) * noiseFactor;
 
     // GCU Usage
     const capPerUnit = physics.request_capacity_per_unit ?? 20;
     const gcuBase = physics.resource_base_usage?.gcu ?? 0;
-    this.attributes.gcu.update(
-      gcuBase + traffic / capPerUnit + Math.random() * (physics.noise_factor ?? 0.5)
-    );
+    this.attributes.gcu.update(gcuBase + traffic / capPerUnit + Math.random() * noiseFactor);
 
     // RAM Usage
     const ramBase = physics.resource_base_usage?.ram ?? 0;
     const ramUsagePerReq = physics.consumption_rates?.ram ?? 0;
-    this.attributes.ram.update(ramBase + traffic * ramUsagePerReq + noise * 0.2);
+    this.attributes.ram.update(ramBase + traffic * ramUsagePerReq + noise * 0.5);
 
     const util = this.attributes.gcu.utilization;
 
@@ -69,13 +68,9 @@ export class ComputeNode extends SystemComponent {
     // Apply status effect multipliers: (1 + sum(multipliers)) * base_value + sum(offsets)
     let multiplierSum = 0;
     let offsetSum = 0;
-    const activeEffects = handler.statusEffects.filter(
-      (e: any) =>
-        e.type === 'component' &&
-        e.isActive &&
-        e.componentAffected === this.id &&
-        e.metricAffected === 'latency'
-    ) as ComponentStatusEffect[];
+    const activeEffects = this.getActiveComponentEffects(handler).filter(
+      (e) => e.metricAffected === 'latency'
+    );
     for (const e of activeEffects) {
       multiplierSum += e.multiplier;
       offsetSum += e.offset;
@@ -90,13 +85,9 @@ export class ComputeNode extends SystemComponent {
     // Apply error_rate status effects
     let errMultSum = 0;
     let errOffsetSum = 0;
-    const errEffects = handler.statusEffects.filter(
-      (e: any) =>
-        e.type === 'component' &&
-        e.isActive &&
-        e.componentAffected === this.id &&
-        e.metricAffected === 'error_rate'
-    ) as ComponentStatusEffect[];
+    const errEffects = this.getActiveComponentEffects(handler).filter(
+      (e) => e.metricAffected === 'error_rate'
+    );
     for (const e of errEffects) {
       errMultSum += e.multiplier;
       errOffsetSum += e.offset;
@@ -110,8 +101,6 @@ export class ComputeNode extends SystemComponent {
     }
 
     this.updateStatus();
-    this.incomingTrafficVolume = 0; // Reset for next tick
-    this.unsuccessfulTrafficVolume = 0;
   }
 
   private updateStatus() {

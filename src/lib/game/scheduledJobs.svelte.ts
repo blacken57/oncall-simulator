@@ -3,7 +3,7 @@ import type {
   StatusEffectTargetAttribute,
   StatusEffectTargetTraffic
 } from './schema';
-import type { TrafficHandler } from './components/base.svelte';
+import type { TrafficHandler, SystemComponent } from './components/base.svelte';
 
 export class ScheduledJob {
   name: string;
@@ -30,7 +30,7 @@ export class ScheduledJob {
   /**
    * Executes the job, applying attribute changes and emitting traffic.
    */
-  run(handler: any, tick: number) {
+  run(handler: TrafficHandler, tick: number) {
     // 1. Emit traffic
     for (const traffic of this.emittedTraffic) {
       handler.handleTraffic(traffic.name, traffic.value);
@@ -38,18 +38,27 @@ export class ScheduledJob {
 
     // 2. Affected attributes:
     // Find the target component in the engine (handler)
-    const target = Object.values(handler.components as Record<string, any>).find(
-      (c: any) => c.name === this.targetName || c.id === this.targetName
+    const target = Object.values(handler.components).find(
+      (c: SystemComponent) => c.name === this.targetName || c.id === this.targetName
     );
 
     if (target) {
       for (const effect of this.affectedAttributes) {
         const attr = target.attributes[effect.name];
         if (attr) {
-          // Apply additive multiplier and/or static offset to the LIMIT
-          const multiplierEffect = attr.limit * (effect.multiplier ?? 0);
+          const targetProp = effect.target ?? 'limit';
+          const baseValue = targetProp === 'limit' ? attr.limit : attr.current;
+          
+          const multiplierEffect = baseValue * (effect.multiplier ?? 0);
           const offsetEffect = effect.offset ?? 0;
-          attr.limit = attr.limit + multiplierEffect + offsetEffect;
+          const newValue = Math.max(0, baseValue + multiplierEffect + offsetEffect);
+
+          if (targetProp === 'limit') {
+            attr.limit = newValue;
+          } else {
+            // Note: Attribute.update handles history, so we use it
+            attr.update(newValue);
+          }
         }
       }
     }

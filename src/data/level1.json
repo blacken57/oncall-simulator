@@ -252,6 +252,7 @@
       "affectedAttributes": [
         {
           "name": "storage_usage",
+          "target": "value",
           "multiplier": -0.5
         }
       ],

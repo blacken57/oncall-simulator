@@ -36,9 +36,12 @@ export class Traffic {
   ) {
     this.value = baseValue;
     this.actualValue = actualValue;
-    this.successHistory = [...this.successHistory, successful].slice(-this.maxHistory);
-    this.failureHistory = [...this.failureHistory, unsuccessful].slice(-this.maxHistory);
-    this.latencyHistory = [...this.latencyHistory, averageLatency].slice(-this.maxHistory);
+    this.successHistory.push(successful);
+    if (this.successHistory.length > this.maxHistory) this.successHistory.shift();
+    this.failureHistory.push(unsuccessful);
+    if (this.failureHistory.length > this.maxHistory) this.failureHistory.shift();
+    this.latencyHistory.push(averageLatency);
+    if (this.latencyHistory.length > this.maxHistory) this.latencyHistory.shift();
   }
 }
 
@@ -70,7 +73,8 @@ export class Attribute {
 
   update(newValue: number) {
     this.current = newValue;
-    this.history = [...this.history, newValue].slice(-this.maxHistory);
+    this.history.push(newValue);
+    if (this.history.length > this.maxHistory) this.history.shift();
   }
 
   get cost() {
@@ -100,6 +104,7 @@ export class Metric {
 
   update(newValue: number) {
     this.value = newValue;
-    this.history = [...this.history, newValue].slice(-this.maxHistory);
+    this.history.push(newValue);
+    if (this.history.length > this.maxHistory) this.history.shift();
   }
 }

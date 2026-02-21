@@ -104,6 +104,7 @@ export interface ComponentConfig {
 
 export interface StatusEffectTargetAttribute {
   name: string; // Attribute name within the target component
+  target?: 'limit' | 'value'; // Whether to affect the max capacity or current utilization. Defaults to 'limit'.
   multiplier?: number; // Multiplier (current * multiplier). Defaults to 0 if missing.
   offset?: number; // Static value to add/subtract. Defaults to 0 if missing.
   // Note: At least one of multiplier or offset must be provided.
