@@ -70,8 +70,8 @@
           <span class="badge">{activeTicketsCount}</span>
         {/if}
       </button>
-      <button 
-        class="nav-item {activeView === 'docs' ? 'active' : ''}" 
+      <button
+        class="nav-item {activeView === 'docs' ? 'active' : ''}"
         onclick={() => (activeView = 'docs')}
       >
         Docs
