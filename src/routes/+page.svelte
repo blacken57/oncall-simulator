@@ -1,16 +1,14 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import { engine } from '$lib/game/engine.svelte';
   import DashboardLayout from '../components/Dashboard/DashboardLayout.svelte';
   import ComponentList from '../components/Actions/ComponentList.svelte';
   import TicketList from '../components/Tickets/TicketList.svelte';
   import DocsView from '../components/Docs/DocsView.svelte';
   import level1 from '../data/level1.json';
+  import type { LevelConfig } from '$lib/game/schema';
 
-  onMount(() => {
-    // @ts-ignore - level1.json might need casting to LevelConfig if not automatically typed
-    engine.loadLevel(level1);
-  });
+  // Load level at top level for SSR support
+  engine.loadLevel(level1 as unknown as LevelConfig);
 
   let tick = $derived(engine.tick);
   let isRunning = $derived(engine.isRunning);
