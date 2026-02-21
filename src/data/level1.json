@@ -38,7 +38,8 @@
           "initialLimit": 8,
           "minLimit": 2,
           "maxLimit": 64,
-          "costPerUnit": 10
+          "costPerUnit": 10,
+          "apply_delay": 5
         },
         "gcu": {
           "name": "GCU",
@@ -46,7 +47,8 @@
           "initialLimit": 20,
           "minLimit": 1,
           "maxLimit": 32,
-          "costPerUnit": 25
+          "costPerUnit": 25,
+          "apply_delay": 10
         }
       },
       "metrics": {
@@ -126,7 +128,8 @@
           "initialLimit": 100,
           "minLimit": 10,
           "maxLimit": 1000,
-          "costPerUnit": 1
+          "costPerUnit": 1,
+          "apply_delay": 15
         },
         "storage": {
           "name": "Storage",

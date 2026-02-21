@@ -251,4 +251,24 @@ describe('GameEngine Integration', () => {
     expect(upstream.metrics.latency.value).toBe(160);
     expect(traffic.latencyHistory[0]).toBe(160);
   });
+
+  it('should respect custom apply_delay in queueAction', () => {
+    const engine = new GameEngine();
+    engine.loadLevel(baseLevel);
+
+    const server = engine.components['server'];
+    const ram = server.attributes['ram'];
+
+    // initial ram limit is 8.
+    // Apply a change with 10 ticks delay
+    engine.queueAction('server', 'ram', 16, 10);
+
+    // After 5 ticks, it should still be 8
+    for (let i = 0; i < 5; i++) engine.update();
+    expect(ram.limit).toBe(8);
+
+    // After 5 more ticks (total 10), it should be 16
+    for (let i = 0; i < 5; i++) engine.update();
+    expect(ram.limit).toBe(16);
+  });
 });

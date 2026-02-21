@@ -55,6 +55,7 @@ export class Attribute {
   minLimit: number;
   maxLimit: number;
   costPerUnit: number;
+  applyDelay: number;
 
   constructor(config: AttributeConfig) {
     this.name = config.name;
@@ -63,6 +64,7 @@ export class Attribute {
     this.minLimit = config.minLimit;
     this.maxLimit = config.maxLimit;
     this.costPerUnit = config.costPerUnit;
+    this.applyDelay = config.apply_delay ?? 5;
     this.maxHistory = config.maxHistory ?? 60;
   }
 

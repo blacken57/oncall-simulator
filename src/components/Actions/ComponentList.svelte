@@ -18,7 +18,8 @@
 
   function handleQueue(compId: string, attrId: string) {
     const newValue = localLimits[compId][attrId];
-    engine.queueAction(compId, attrId, newValue);
+    const attr = engine.components[compId].attributes[attrId];
+    engine.queueAction(compId, attrId, newValue, attr.applyDelay);
   }
 
   function getPendingAction(compId: string, attrId: string) {

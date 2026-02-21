@@ -127,7 +127,7 @@ export class GameEngine implements TrafficHandler {
     return targetComponent.handleTraffic(trafficName, value, this);
   }
 
-  queueAction(componentId: string, attributeId: string, newValue: number, latency = 5) {
+  queueAction(componentId: string, attributeId: string, newValue: number, latency: number) {
     this.pendingActions.push({
       id: Math.random().toString(36).substr(2, 9),
       componentId,

@@ -54,6 +54,7 @@ export interface AttributeConfig {
   maxLimit: number;
   costPerUnit: number;
   maxHistory?: number;
+  apply_delay?: number; // How many ticks it takes for a change to materialize
 }
 
 export interface MetricConfig {
