@@ -5,35 +5,36 @@ This file provides foundational context for the Oncall Simulator project to ensu
 ## 🏗️ Technical Architecture
 
 - **Framework**: Svelte 5 with Runes (`$state`, `$derived`, `$effect`).
-- **Core Engine**: `src/lib/game/engine.svelte.ts`. Manages a 1s/tick loop and a `pendingActions` queue for infrastructure latency.
+- **Core Engine**: `src/lib/game/engine.svelte.ts`. Manages a 1s/tick loop and a `pendingActions` queue for infrastructure latency (`apply_delay`).
 - **Physics Engine**: `src/lib/game/components/`. Modular node implementations (`ComputeNode`, `DatabaseNode`, `StorageNode`) inheriting from `SystemComponent`.
-- **Data-Driven**: Level config is loaded from `src/data/level1.json`, including a structured `physics` configuration for each component.
+- **Data-Driven**: Level config is loaded from `src/data/level1.json`, including structured `physics` and `apply_delay` parameters.
+- **Verification**: Build-time level validator (`scripts/validate-levels.ts`) and Vitest suite (`tests/`).
 
 ## 🔬 Simulation Physics (Key Logic)
 
 - **Two-Pass Traffic Resolution**:
   - **Pass 1 (Demand Pass)**: Recursively calculates total expected volume across all nodes before any processing.
   - **Pass 2 (Resolution Pass)**: Applies a uniform `failureRate` based on total demand to all incoming flows, ensuring proportional and fair traffic distribution.
-- **Sequential Short-circuiting**: If an upstream dependency fails, downstream dependencies in the same route are **not** called.
-- **Additive Modifiers**: Status effects and scheduled jobs use a `value + (value * multiplier) + offset` formula for deterministic compounding.
-- **Scheduled Jobs**: Background tasks (e.g., Log Rotation) that run on periodic tick intervals, affecting attributes or emitting internal traffic.
+- **Additive Latency Propagation**: Total Latency = `Base Route Latency + sum(Multiplier * Dependency Latency)`. Component-level utilization penalties are applied to the final result.
+- **Additive Modifiers**: Status effects and scheduled jobs use a `value + (value * multiplier) + offset` formula.
+- **Scheduled Jobs**: Background tasks (e.g., Log Rotation) that run on periodic tick intervals, affecting attribute limits or emitting internal traffic.
 - **Stable Noise**: Noise is applied to `nominalValue` to prevent permanent random-walk drift over time.
 
 ## 📍 Key Files & Symbols
 
 - `src/lib/game/components/base.svelte.ts`: Contains the `SystemComponent` base and two-pass logic.
-- `src/lib/game/engine.svelte.ts`: Manages global `tick`, `budget`, and orchestrates the two-pass resolution.
-- `src/lib/game/schema.ts`: Defines `ComponentPhysicsConfig` and `ScheduledJobConfig`.
-- `src/lib/game/scheduledJobs.svelte.ts`: Handles execution of periodic background tasks.
+- `src/lib/game/engine.svelte.ts`: Manages global `tick` and orchestrates the two-pass resolution.
+- `src/lib/game/schema.ts`: Defines `ComponentPhysicsConfig`, `ScheduledJobConfig`, and `AttributeConfig`.
+- `src/lib/game/validator.ts`: Logic for validating level configuration integrity.
 
 ## 🚀 Immediate Roadmap (Next Session)
 
-1.  **Fail-Open Logic**: Support `optional: true` for non-critical dependencies (e.g., analytics).
-2.  **QueueNode**: Implement a node to simulate pub/sub latency and background processing.
-3.  **Advanced Status Effects**: Support route-specific filtering for more surgical outage scenarios.
+1.  **Horizontal Scaling**: Implement `instances` attribute and `queue_depth` metrics.
+2.  **Fail-Open Logic**: Support `optional: true` for non-critical dependencies.
+3.  **QueueNode**: Implement a node to simulate pub/sub latency and background processing.
 
 ## ⚠️ Known Constraints
 
-- **Validation**: Always run `npm run check` after changing `handleTraffic` or `Metric` signatures.
-- **Multipliers**: Be careful with recursive multipliers; they can lead to massive traffic volume spikes.
-- **Memory**: The `Attribute` and `Metric` classes store 60 ticks of history.
+- **Validation**: Always run `npm run validate` before deploying or testing new levels.
+- **Testing**: All core logic (Physics, Two-Pass, Validator) must have corresponding Vitest tests in `tests/`.
+- **Formatting**: Project uses Prettier (`npm run format`).
