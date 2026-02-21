@@ -231,7 +231,7 @@
     {
       "type": "internal",
       "name": "internal_log_writes",
-      "target_component_name": "hLog Block Storage"
+      "target_component_name": "Log Block Storage"
     }
   ],
   "statusEffects": [],

@@ -50,10 +50,18 @@ export function validateLevel(config: LevelConfig): ValidationError[] {
   const internalTraffics = config.traffics.filter((t) => t.type === 'internal').map((t) => t.name);
   const allOutgoingTrafficNames = new Set<string>();
 
-  config.components.forEach((comp) => {
-    comp.traffic_routes.forEach((route) => {
-      route.outgoing_traffics.forEach((outgoing) => {
+  config.components.forEach((comp, i) => {
+    comp.traffic_routes.forEach((route, j) => {
+      route.outgoing_traffics.forEach((outgoing, k) => {
         allOutgoingTrafficNames.add(outgoing.name);
+        
+        // Ensure the outgoing traffic exists in the global traffics list
+        if (!trafficNames.has(outgoing.name)) {
+          errors.push({
+            path: `components[${i}].traffic_routes[${j}].outgoing_traffics[${k}]`,
+            message: `Component "${comp.name}" route "${route.name}" references non-existent traffic: "${outgoing.name}"`
+          });
+        }
       });
     });
   });
