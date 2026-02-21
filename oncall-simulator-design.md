@@ -50,21 +50,23 @@ Components enforce strict physical limits based on their attributes (GCU, Connec
 ### 5. Latency Propagation
 
 Latency is cumulative and route-specific:
+
 - **Base Latency**: Every traffic route has a `base_latency_ms`.
 - **Dependency Addition**: Total Latency = `Base Latency + sum(Dependency Multiplier * Dependency Latency)`.
 - **Utilization Friction**: Non-linear latency penalties are applied at the component level when utilization (e.g., GCU usage) exceeds a saturation threshold (typically 80%).
 
 ### 6. Additive Modifiers
 
-Modifiers (Status Effects and Scheduled Jobs) apply changes using a standard additive formula: 
+Modifiers (Status Effects and Scheduled Jobs) apply changes using a standard additive formula:
 `final_value = base_value + (base_value * multiplier) + offset`.
 This allows multiple effects to compound predictably.
 
 ### 7. Cascading Failures
 
-The system naturally demonstrates "Cascading Failures." 
-- *Scenario*: A heavy logging burst fills the `Log Block Storage`. 
-- *Result*: `Log Storage` success drops to 0% -> `Checkout Server` (which depends on logs) sees its success drop to 0% -> The user-facing "Success" metric on the dashboard crashes, even if the server itself is healthy.
+The system naturally demonstrates "Cascading Failures."
+
+- _Scenario_: A heavy logging burst fills the `Log Block Storage`.
+- _Result_: `Log Storage` success drops to 0% -> `Checkout Server` (which depends on logs) sees its success drop to 0% -> The user-facing "Success" metric on the dashboard crashes, even if the server itself is healthy.
 
 ---
 

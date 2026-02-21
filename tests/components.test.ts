@@ -18,7 +18,14 @@ describe('Component Physics', () => {
       type: 'compute',
       physics: { request_capacity_per_unit: 10 },
       attributes: {
-        gcu: { name: 'GCU', unit: 'GCU', initialLimit: 10, minLimit: 1, maxLimit: 100, costPerUnit: 1 },
+        gcu: {
+          name: 'GCU',
+          unit: 'GCU',
+          initialLimit: 10,
+          minLimit: 1,
+          maxLimit: 100,
+          costPerUnit: 1
+        },
         ram: { name: 'RAM', unit: 'GB', initialLimit: 8, minLimit: 1, maxLimit: 64, costPerUnit: 1 }
       },
       metrics: {
@@ -52,8 +59,22 @@ describe('Component Physics', () => {
       name: 'DB',
       type: 'database',
       attributes: {
-        connections: { name: 'Conn', unit: 'count', initialLimit: 100, minLimit: 1, maxLimit: 1000, costPerUnit: 1 },
-        storage: { name: 'Store', unit: 'GB', initialLimit: 100, minLimit: 1, maxLimit: 1000, costPerUnit: 1 }
+        connections: {
+          name: 'Conn',
+          unit: 'count',
+          initialLimit: 100,
+          minLimit: 1,
+          maxLimit: 1000,
+          costPerUnit: 1
+        },
+        storage: {
+          name: 'Store',
+          unit: 'GB',
+          initialLimit: 100,
+          minLimit: 1,
+          maxLimit: 1000,
+          costPerUnit: 1
+        }
       },
       metrics: {
         query_latency: { name: 'Lat', unit: 'ms' },
@@ -77,7 +98,14 @@ describe('Component Physics', () => {
       name: 'Storage',
       type: 'storage',
       attributes: {
-        storage_usage: { name: 'Usage', unit: 'GB', initialLimit: 100, minLimit: 1, maxLimit: 1000, costPerUnit: 1 }
+        storage_usage: {
+          name: 'Usage',
+          unit: 'GB',
+          initialLimit: 100,
+          minLimit: 1,
+          maxLimit: 1000,
+          costPerUnit: 1
+        }
       },
       metrics: {
         fill_rate: { name: 'Fill', unit: 'GB/s' },

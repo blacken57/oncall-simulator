@@ -111,7 +111,9 @@ export abstract class SystemComponent {
         );
 
         // Scale success back to parent requests (conservative floor)
-        const parentEquivalentSuccess = Math.floor(subResult.successfulVolume / outgoing.multiplier);
+        const parentEquivalentSuccess = Math.floor(
+          subResult.successfulVolume / outgoing.multiplier
+        );
         successfulVolume = Math.min(successfulVolume, parentEquivalentSuccess);
 
         // Add to total dependency latency

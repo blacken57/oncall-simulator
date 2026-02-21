@@ -54,7 +54,7 @@ export function validateLevel(config: LevelConfig): ValidationError[] {
     comp.traffic_routes.forEach((route, j) => {
       route.outgoing_traffics.forEach((outgoing, k) => {
         allOutgoingTrafficNames.add(outgoing.name);
-        
+
         // Ensure the outgoing traffic exists in the global traffics list
         if (!trafficNames.has(outgoing.name)) {
           errors.push({

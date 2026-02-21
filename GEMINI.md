@@ -37,4 +37,4 @@ This file provides foundational context for the Oncall Simulator project to ensu
 
 - **Validation**: Always run `npm run validate` before deploying or testing new levels.
 - **Testing**: All core logic (Physics, Two-Pass, Validator) must have corresponding Vitest tests in `tests/`.
-- **Formatting**: Project uses Prettier (`npm run format`).
+- **Formatting**: Project uses Prettier. **Always run `npm run format` before committing changes.**

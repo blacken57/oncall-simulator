@@ -17,7 +17,7 @@ This document tracks the roadmap and architectural direction for the Oncall Simu
 
 - **Objective**: Introduce "Number of Instances" and "Queue Depth" to move beyond simple hardware limits.
 - **Instances (Attribute)**: Implement horizontal scaling. Total Capacity = `instances * gcu_per_instance * factor`. This attribute should have a high `apply_delay` (provisioning time).
-- **Queue Depth (Metric)**: Track requests waiting for a thread. 
+- **Queue Depth (Metric)**: Track requests waiting for a thread.
 - **Wait Time Physics**: `Total Latency = Processing Time + (Queue Depth * Time Per Request)`.
 - **Vertical Software Scale**: Add "Worker Threads" attribute. More threads allow more concurrency but add a "Context Switching" latency penalty.
 
