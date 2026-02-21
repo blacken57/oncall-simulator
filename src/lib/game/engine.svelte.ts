@@ -142,18 +142,21 @@ export class GameEngine implements TrafficHandler {
    * Main recursive entry point for handling traffic.
    * Returns successfulCalls
    */
-  handleTraffic(trafficName: string, value: number): number {
+  handleTraffic(
+    trafficName: string,
+    value: number
+  ): { successfulVolume: number; averageLatency: number } {
     const traffic = this.traffics[trafficName];
     if (!traffic) {
       // If traffic definition is missing, assume it just works (to prevent deadlocks)
-      return value;
+      return { successfulVolume: value, averageLatency: 0 };
     }
 
     const targetComponent = Object.values(this.components).find(
       (c) => c.name === traffic.targetComponentName
     );
     if (!targetComponent) {
-      return 0; // Black hole
+      return { successfulVolume: 0, averageLatency: 0 }; // Black hole
     }
 
     return targetComponent.handleTraffic(trafficName, value, this);

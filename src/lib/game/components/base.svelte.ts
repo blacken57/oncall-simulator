@@ -3,7 +3,12 @@ import {
   TrafficStatusEffect,
   type StatusEffect
 } from '../statusEffects.svelte';
-import type { ComponentConfig, TrafficRouteConfig, ComponentPhysicsConfig } from '../schema';
+import type {
+  ComponentConfig,
+  TrafficRouteConfig,
+  ComponentPhysicsConfig,
+  AlertConfig
+} from '../schema';
 import { Attribute, Metric } from '../base.svelte';
 
 /**

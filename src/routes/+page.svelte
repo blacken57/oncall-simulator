@@ -4,6 +4,7 @@
   import DashboardLayout from '../components/Dashboard/DashboardLayout.svelte';
   import ComponentList from '../components/Actions/ComponentList.svelte';
   import TicketList from '../components/Tickets/TicketList.svelte';
+  import DocsView from '../components/Docs/DocsView.svelte';
   import level1 from '../data/level1.json';
 
   onMount(() => {
@@ -71,7 +72,12 @@
           <span class="badge">{activeTicketsCount}</span>
         {/if}
       </button>
-      <button class="nav-item">Docs</button>
+      <button 
+        class="nav-item {activeView === 'docs' ? 'active' : ''}" 
+        onclick={() => (activeView = 'docs')}
+      >
+        Docs
+      </button>
     </nav>
 
     <div class="main-view">
@@ -81,6 +87,8 @@
         <ComponentList />
       {:else if activeView === 'tickets'}
         <TicketList />
+      {:else if activeView === 'docs'}
+        <DocsView />
       {/if}
     </div>
   </div>
