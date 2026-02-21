@@ -134,27 +134,7 @@
       "target_component_name": "Log Block Storage"
     }
   ],
-  "statusEffects": [
-    {
-      "type": "traffic",
-      "name": "Viral Post",
-      "traffic_affected": "initiatePurchase",
-      "multiplier": 3.0,
-      "turnsRemaining": 30
-    },
-    {
-      "type": "component",
-      "name": "Database Throttling",
-      "component_affected": "checkout-db",
-      "metric_affected": "query_latency",
-      "multiplier": 5.0,
-      "materialization_probability": 0.01,
-      "resolution_condition": {
-        "turnsRemaining": 10
-      },
-      "max_instances_at_once": 1
-    }
-  ],
+  "statusEffects": [],
   "scheduledJobs": [
     {
       "name": "Hourly Log Rotation",
