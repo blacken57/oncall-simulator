@@ -92,6 +92,14 @@ export interface ComponentPhysicsConfig {
   status_thresholds?: Record<string, { warning: number; critical: number }>;
 }
 
+export interface AlertConfig {
+  name: string;
+  metric: string; // The key in metrics or attributes
+  warning_threshold: number;
+  critical_threshold: number;
+  direction: 'above' | 'below'; // 'above' means value > threshold is bad
+}
+
 export interface ComponentConfig {
   id: string;
   name: string;
@@ -100,6 +108,7 @@ export interface ComponentConfig {
   metrics: Record<string, MetricConfig>;
   traffic_routes: TrafficRouteConfig[];
   physics?: ComponentPhysicsConfig;
+  alerts?: AlertConfig[];
 }
 
 export interface StatusEffectTargetAttribute {
@@ -140,6 +149,7 @@ export type TicketStatus = 'open' | 'investigating' | 'resolved';
 export interface Ticket {
   id: string;
   componentId: string;
+  alertName: string;
   title: string;
   description: string;
   status: TicketStatus;

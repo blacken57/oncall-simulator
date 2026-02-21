@@ -113,7 +113,32 @@ export function validateLevel(config: LevelConfig): ValidationError[] {
     });
   }
 
-  // 7. Cycle Detection (Traffic Dependency Graph)
+  // 7. Validate Alerts
+  config.components.forEach((comp, i) => {
+    if (comp.alerts) {
+      const alertNames = new Set<string>();
+      comp.alerts.forEach((alert, j) => {
+        if (alertNames.has(alert.name)) {
+          errors.push({
+            path: `components[${i}].alerts[${j}].name`,
+            message: `Component "${comp.name}" has duplicate alert name: "${alert.name}"`
+          });
+        }
+        alertNames.add(alert.name);
+
+        // Ensure metric/attribute exists
+        const exists = comp.metrics[alert.metric] || comp.attributes[alert.metric];
+        if (!exists) {
+          errors.push({
+            path: `components[${i}].alerts[${j}].metric`,
+            message: `Component "${comp.name}" alert "${alert.name}" references non-existent metric or attribute: "${alert.metric}"`
+          });
+        }
+      });
+    }
+  });
+
+  // 8. Cycle Detection (Traffic Dependency Graph)
   // Build a map of component name -> set of component names it calls
   const adjacency: Record<string, Set<string>> = {};
   for (const comp of config.components) {

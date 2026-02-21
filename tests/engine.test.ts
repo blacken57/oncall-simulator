@@ -35,6 +35,7 @@ describe('GameEngine Integration', () => {
           latency: { name: 'Lat', unit: 'ms' },
           error_rate: { name: 'Err', unit: '%' }
         },
+        alerts: [],
         traffic_routes: [
           {
             name: 'inflow',
@@ -69,6 +70,7 @@ describe('GameEngine Integration', () => {
           query_latency: { name: 'Lat', unit: 'ms' },
           error_rate: { name: 'Err', unit: '%' }
         },
+        alerts: [],
         traffic_routes: [
           {
             name: 'dbflow',
@@ -217,7 +219,7 @@ describe('GameEngine Integration', () => {
     const ram = server.attributes['ram'];
 
     // Manually set some usage
-    ram.update(4); 
+    ram.update(4);
     expect(ram.current).toBe(4);
     expect(ram.limit).toBe(8);
 
@@ -240,7 +242,7 @@ describe('GameEngine Integration', () => {
             name: 'gcu',
             target: 'limit',
             multiplier: 0.5, // +50%
-            offset: 2        // +2 units
+            offset: 2 // +2 units
           }
         ],
         emittedTraffic: []
@@ -251,7 +253,7 @@ describe('GameEngine Integration', () => {
     engine.loadLevel(level);
 
     const server = engine.components['server'];
-    
+
     // Initial limit is 10
     expect(server.attributes.gcu.limit).toBe(10);
 
@@ -264,7 +266,7 @@ describe('GameEngine Integration', () => {
   it('should enforce maxHistory limit on all telemetry arrays', () => {
     const engine = new GameEngine();
     engine.loadLevel(baseLevel);
-    
+
     const traffic = engine.traffics['inflow'];
     const server = engine.components['server'];
     const latencyMetric = server.metrics.latency;

@@ -34,6 +34,7 @@ describe('Component Physics', () => {
         latency: { name: 'Lat', unit: 'ms' },
         error_rate: { name: 'Err', unit: '%' }
       },
+      alerts: [],
       traffic_routes: []
     };
 
@@ -71,7 +72,7 @@ describe('Component Physics', () => {
       // 10 GCU * 20 req/GCU = 200 total capacity.
       // 80 incoming / 200 capacity = 40% util.
       node.attributes.gcu.limit = 10;
-      node.incomingTrafficVolume = 80; 
+      node.incomingTrafficVolume = 80;
       node.totalLatencySum = 100 * 80;
       node.totalSuccessfulRequests = 80;
       node.tick(mockHandler as any);
@@ -132,6 +133,7 @@ describe('Component Physics', () => {
         query_latency: { name: 'Lat', unit: 'ms' },
         error_rate: { name: 'Err', unit: '%' }
       },
+      alerts: [],
       traffic_routes: []
     };
 
@@ -163,6 +165,7 @@ describe('Component Physics', () => {
         fill_rate: { name: 'Fill', unit: 'GB/s' },
         error_rate: { name: 'Err', unit: '%' }
       },
+      alerts: [],
       traffic_routes: []
     };
 

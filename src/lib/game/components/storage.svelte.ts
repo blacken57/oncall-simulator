@@ -12,11 +12,7 @@ export class StorageNode extends SystemComponent {
       consumption_rates: {
         storage_usage: 0.05
       },
-      saturation_threshold_percent: 100,
-      status_thresholds: {
-        storage_util: { warning: 85, critical: 100 },
-        error_rate: { warning: 1, critical: 5 }
-      }
+      saturation_threshold_percent: 100
     };
   }
 
@@ -59,19 +55,6 @@ export class StorageNode extends SystemComponent {
       this.metrics.incoming.update(traffic);
     }
 
-    this.updateStatus();
-  }
-
-  private updateStatus() {
-    const util = this.attributes.storage_usage.utilization;
-    const errorRate = this.metrics.error_rate?.value ?? 0;
-    const thresholds = this.physics.status_thresholds || {};
-
-    const utilT = thresholds.storage_util || { warning: 85, critical: 100 };
-    const errT = thresholds.error_rate || { warning: 1, critical: 5 };
-
-    if (util >= utilT.critical || errorRate > errT.critical) this.status = 'critical';
-    else if (util > utilT.warning || errorRate > errT.warning) this.status = 'warning';
-    else this.status = 'healthy';
+    this.checkAlerts();
   }
 }

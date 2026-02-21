@@ -15,7 +15,7 @@
   let isRunning = $derived(engine.isRunning);
   let currentSpend = $derived(engine.currentSpend);
   let budgetRemaining = $derived(engine.budget - currentSpend);
-  let activeTicketsCount = $derived(engine.tickets.filter(t => t.status !== 'resolved').length);
+  let activeTicketsCount = $derived(engine.tickets.filter((t) => t.status !== 'resolved').length);
 
   let activeView = $state('dashboard');
 </script>
@@ -62,8 +62,8 @@
         class="nav-item {activeView === 'actions' ? 'active' : ''}"
         onclick={() => (activeView = 'actions')}>Actions</button
       >
-      <button 
-        class="nav-item {activeView === 'tickets' ? 'active' : ''}" 
+      <button
+        class="nav-item {activeView === 'tickets' ? 'active' : ''}"
         onclick={() => (activeView = 'tickets')}
       >
         Tickets

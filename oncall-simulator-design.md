@@ -38,6 +38,7 @@ Total Latency = `Base Latency + sum(Multiplier * Dependency Latency)`. Non-linea
 ### 4. Alerting & Incident Management
 
 Incident lifecycle is driven by the `alerts` configuration:
+
 - **Triggers**: Components evaluate metrics/attributes against `warning` and `critical` thresholds every tick.
 - **Automated Paging**: A `critical` alert trigger generates a unique ticket.
 - **Deduplication**: Tickets are unique to a `(Component, Alert)` pair. A new ticket will not be cut if one is already open for that specific alert.

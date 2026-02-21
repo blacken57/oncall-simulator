@@ -19,17 +19,7 @@
         "consumption_rates": {
           "ram": 0.005
         },
-        "noise_factor": 0.5,
-        "status_thresholds": {
-          "gcu_util": {
-            "warning": 80,
-            "critical": 95
-          },
-          "error_rate": {
-            "warning": 1,
-            "critical": 5
-          }
-        }
+        "noise_factor": 0.5
       },
       "attributes": {
         "ram": {
@@ -65,6 +55,22 @@
           "unit": "%"
         }
       },
+      "alerts": [
+        {
+          "name": "High GCU Utilization",
+          "metric": "gcu",
+          "warning_threshold": 80,
+          "critical_threshold": 95,
+          "direction": "above"
+        },
+        {
+          "name": "High Error Rate",
+          "metric": "error_rate",
+          "warning_threshold": 1,
+          "critical_threshold": 5,
+          "direction": "above"
+        }
+      ],
       "traffic_routes": [
         {
           "name": "initiatePurchase",
@@ -109,17 +115,7 @@
         "consumption_rates": {
           "storage": 0.0001
         },
-        "noise_factor": 2,
-        "status_thresholds": {
-          "conn_util": {
-            "warning": 80,
-            "critical": 100
-          },
-          "error_rate": {
-            "warning": 1,
-            "critical": 5
-          }
-        }
+        "noise_factor": 2
       },
       "attributes": {
         "connections": {
@@ -154,6 +150,22 @@
           "unit": "%"
         }
       },
+      "alerts": [
+        {
+          "name": "Connection Saturation",
+          "metric": "connections",
+          "warning_threshold": 80,
+          "critical_threshold": 100,
+          "direction": "above"
+        },
+        {
+          "name": "Database Errors",
+          "metric": "error_rate",
+          "warning_threshold": 1,
+          "critical_threshold": 5,
+          "direction": "above"
+        }
+      ],
       "traffic_routes": [
         {
           "name": "internal_db_queries",
@@ -170,17 +182,7 @@
         "consumption_rates": {
           "storage_usage": 0.05
         },
-        "saturation_threshold_percent": 100,
-        "status_thresholds": {
-          "storage_util": {
-            "warning": 85,
-            "critical": 100
-          },
-          "error_rate": {
-            "warning": 1,
-            "critical": 5
-          }
-        }
+        "saturation_threshold_percent": 100
       },
       "attributes": {
         "storage_usage": {
@@ -206,6 +208,15 @@
           "unit": "%"
         }
       },
+      "alerts": [
+        {
+          "name": "Disk Near Full",
+          "metric": "storage_usage",
+          "warning_threshold": 85,
+          "critical_threshold": 100,
+          "direction": "above"
+        }
+      ],
       "traffic_routes": [
         {
           "name": "internal_log_writes",

@@ -254,21 +254,25 @@ export class GameEngine implements TrafficHandler {
     Object.values(this.components).forEach((comp) => {
       comp.tick(this);
 
-      // Ticket generation: if status just turned critical, create a ticket
-      if (comp.status === 'critical' && comp.lastStatus !== 'critical') {
-        const alreadyHasOpenTicket = this.tickets.some(
-          (t) => t.componentId === comp.id && t.status !== 'resolved'
-        );
+      // Ticket generation: for each critical trigger
+      for (const [alertName, severity] of Object.entries(comp.statusTriggers)) {
+        if (severity === 'critical') {
+          const alreadyHasOpenTicket = this.tickets.some(
+            (t) => t.componentId === comp.id && t.alertName === alertName && t.status !== 'resolved'
+          );
 
-        if (!alreadyHasOpenTicket) {
-          this.tickets.push({
-            id: Math.random().toString(36).substr(2, 9),
-            componentId: comp.id,
-            title: `CRITICAL: ${comp.name} failure`,
-            description: `${comp.name} has entered a critical state. Investigate metrics immediately.`,
-            status: 'open',
-            createdAt: this.tick
-          });
+          if (!alreadyHasOpenTicket) {
+            this.tickets.push({
+              id: Math.random().toString(36).substr(2, 9),
+              componentId: comp.id,
+              alertName: alertName,
+              title: `CRITICAL: ${comp.name} - ${alertName}`,
+              description: `${comp.name} alert '${alertName}' is in a critical state. Investigate immediately.`,
+              status: 'open',
+              createdAt: this.tick,
+              impactedMetric: alertName
+            });
+          }
         }
       }
       comp.lastStatus = comp.status;

@@ -17,11 +17,7 @@ export class DatabaseNode extends SystemComponent {
       consumption_rates: {
         storage: 0.0001
       },
-      noise_factor: 2,
-      status_thresholds: {
-        conn_util: { warning: 80, critical: 100 },
-        error_rate: { warning: 1, critical: 5 }
-      }
+      noise_factor: 2
     };
   }
 
@@ -93,19 +89,6 @@ export class DatabaseNode extends SystemComponent {
       this.metrics.incoming.update(traffic);
     }
 
-    this.updateStatus();
-  }
-
-  private updateStatus() {
-    const connUtil = this.attributes.connections.utilization;
-    const errorRate = this.metrics.error_rate?.value ?? 0;
-    const thresholds = this.physics.status_thresholds || {};
-
-    const connT = thresholds.conn_util || { warning: 80, critical: 100 };
-    const errT = thresholds.error_rate || { warning: 1, critical: 5 };
-
-    if (connUtil > connT.critical || errorRate > errT.critical) this.status = 'critical';
-    else if (connUtil > connT.warning || errorRate > errT.warning) this.status = 'warning';
-    else this.status = 'healthy';
+    this.checkAlerts();
   }
 }

@@ -14,7 +14,7 @@ This document tracks the roadmap and architectural direction for the Oncall Simu
 ## 1. Incident Management Side Effects (Next Priority)
 
 - **Objective**: Make ticket status (Open vs. Investigating) have a material impact on the game state.
-- **Reputation System (SLA)**: Introduce a "Reputation" metric (0-100). 
+- **Reputation System (SLA)**: Introduce a "Reputation" metric (0-100).
   - If a ticket remains `open` (unacknowledged) for more than N ticks, Reputation begins to drop.
   - Acknowledging (`investigating`) stops the reputation bleed but incurs a cost.
 - **Investigation Costs**: Active investigations represent engineer time. Deduct a small amount from the budget per tick for every ticket in the `investigating` state.

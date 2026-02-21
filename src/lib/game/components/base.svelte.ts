@@ -39,6 +39,8 @@ export abstract class SystemComponent {
   metrics = $state<Record<string, Metric>>({});
   status = $state<'healthy' | 'warning' | 'critical'>('healthy');
   lastStatus: 'healthy' | 'warning' | 'critical' = 'healthy';
+  statusTriggers = $state<Record<string, 'warning' | 'critical'>>({});
+  alerts: AlertConfig[] = [];
 
   /** Configuration for how traffic flows through and out of this component */
   trafficRoutes: TrafficRouteConfig[] = [];
@@ -57,6 +59,7 @@ export abstract class SystemComponent {
     this.id = config.id;
     this.name = config.name;
     this.trafficRoutes = config.traffic_routes;
+    this.alerts = config.alerts || [];
 
     // Merge provided physics with subclass defaults
     this.physics = { ...this.getDefaultPhysics(), ...(config.physics || {}) };
@@ -68,6 +71,47 @@ export abstract class SystemComponent {
     for (const [key, metricConfig] of Object.entries(config.metrics)) {
       this.metrics[key] = new Metric(metricConfig);
     }
+  }
+
+  /**
+   * Evaluates all alerts and updates component status and triggers.
+   */
+  protected checkAlerts() {
+    this.statusTriggers = {};
+    let newStatus: 'healthy' | 'warning' | 'critical' = 'healthy';
+
+    for (const alert of this.alerts) {
+      let value = 0;
+      // Get value from metrics or attributes
+      if (this.metrics[alert.metric]) {
+        value = this.metrics[alert.metric].value;
+      } else if (this.attributes[alert.metric]) {
+        // For attributes, we usually care about utilization (0-100)
+        value = this.attributes[alert.metric].utilization;
+      } else {
+        continue;
+      }
+
+      const isCritical =
+        alert.direction === 'above'
+          ? value >= alert.critical_threshold
+          : value <= alert.critical_threshold;
+
+      const isWarning =
+        alert.direction === 'above'
+          ? value >= alert.warning_threshold
+          : value <= alert.warning_threshold;
+
+      if (isCritical) {
+        this.statusTriggers[alert.name] = 'critical';
+        newStatus = 'critical';
+      } else if (isWarning) {
+        if (newStatus !== 'critical') newStatus = 'warning';
+        this.statusTriggers[alert.name] = 'warning';
+      }
+    }
+
+    this.status = newStatus;
   }
 
   /**

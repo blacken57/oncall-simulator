@@ -48,7 +48,7 @@ export class ScheduledJob {
         if (attr) {
           const targetProp = effect.target ?? 'limit';
           const baseValue = targetProp === 'limit' ? attr.limit : attr.current;
-          
+
           const multiplierEffect = baseValue * (effect.multiplier ?? 0);
           const offsetEffect = effect.offset ?? 0;
           const newValue = Math.max(0, baseValue + multiplierEffect + offsetEffect);

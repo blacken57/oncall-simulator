@@ -21,11 +21,7 @@ export class ComputeNode extends SystemComponent {
       consumption_rates: {
         ram: 0.005
       },
-      noise_factor: 0.5,
-      status_thresholds: {
-        gcu_util: { warning: 80, critical: 95 },
-        error_rate: { warning: 1, critical: 5 }
-      }
+      noise_factor: 0.5
     };
   }
 
@@ -100,19 +96,6 @@ export class ComputeNode extends SystemComponent {
       this.metrics.incoming.update(traffic);
     }
 
-    this.updateStatus();
-  }
-
-  private updateStatus() {
-    const gcuUtil = this.attributes.gcu.utilization;
-    const errorRate = this.metrics.error_rate.value;
-    const thresholds = this.physics.status_thresholds || {};
-
-    const gcuT = thresholds.gcu_util || { warning: 80, critical: 95 };
-    const errT = thresholds.error_rate || { warning: 1, critical: 5 };
-
-    if (gcuUtil > gcuT.critical || errorRate > errT.critical) this.status = 'critical';
-    else if (gcuUtil > gcuT.warning || errorRate > errT.warning) this.status = 'warning';
-    else this.status = 'healthy';
+    this.checkAlerts();
   }
 }
