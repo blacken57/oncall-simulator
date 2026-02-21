@@ -66,6 +66,7 @@
       "traffic_routes": [
         {
           "name": "initiatePurchase",
+          "base_latency_ms": 50,
           "outgoing_traffics": [
             {
               "name": "internal_db_queries",
@@ -79,6 +80,7 @@
         },
         {
           "name": "commitPurchase",
+          "base_latency_ms": 30,
           "outgoing_traffics": [
             {
               "name": "internal_db_queries",
@@ -152,6 +154,7 @@
       "traffic_routes": [
         {
           "name": "internal_db_queries",
+          "base_latency_ms": 10,
           "outgoing_traffics": []
         }
       ]
@@ -203,6 +206,7 @@
       "traffic_routes": [
         {
           "name": "internal_log_writes",
+          "base_latency_ms": 5,
           "outgoing_traffics": []
         }
       ]

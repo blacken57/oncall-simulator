@@ -216,11 +216,12 @@ export class GameEngine implements TrafficHandler {
     // proportional success/failure rates to all competing traffic flows.
     for (const work of externalWork) {
       const { traffic, volume, base } = work;
-      const success = this.handleTraffic(traffic.id, volume);
-      const fail = volume - success;
+      const result = this.handleTraffic(traffic.id, volume);
+      const { successfulVolume, averageLatency } = result;
+      const fail = volume - successfulVolume;
 
-      // Update traffic history
-      traffic.update(base, volume, success, fail);
+      // Update traffic history with the propagated latency
+      traffic.update(base, volume, successfulVolume, fail, averageLatency);
     }
 
     // 6. Tick each component to finalize metrics and handle physics

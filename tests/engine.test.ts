@@ -146,4 +146,109 @@ describe('GameEngine Integration', () => {
     // Multiplier -0.5: 10 + (10 * -0.5) = 5
     expect(server.attributes.gcu.limit).toBe(5);
   });
+
+  it('should propagate latency additively through dependency chains', () => {
+    const level: LevelConfig = {
+      id: 'latency-test',
+      name: 'Latency Test',
+      description: 'Testing latency propagation',
+      components: [
+        {
+          id: 'upstream',
+          name: 'Upstream',
+          type: 'compute',
+          attributes: {
+            gcu: {
+              name: 'GCU',
+              unit: 'GCU',
+              initialLimit: 10,
+              minLimit: 1,
+              maxLimit: 100,
+              costPerUnit: 1
+            },
+            ram: {
+              name: 'RAM',
+              unit: 'GB',
+              initialLimit: 8,
+              minLimit: 1,
+              maxLimit: 64,
+              costPerUnit: 1
+            }
+          },
+          metrics: {
+            latency: { name: 'Lat', unit: 'ms' },
+            error_rate: { name: 'Err', unit: '%' }
+          },
+          traffic_routes: [
+            {
+              name: 'request',
+              base_latency_ms: 100,
+              outgoing_traffics: [{ name: 'dependency', multiplier: 3 }]
+            }
+          ]
+        },
+        {
+          id: 'downstream',
+          name: 'Downstream',
+          type: 'compute',
+          attributes: {
+            gcu: {
+              name: 'GCU',
+              unit: 'GCU',
+              initialLimit: 10,
+              minLimit: 1,
+              maxLimit: 100,
+              costPerUnit: 1
+            },
+            ram: {
+              name: 'RAM',
+              unit: 'GB',
+              initialLimit: 8,
+              minLimit: 1,
+              maxLimit: 64,
+              costPerUnit: 1
+            }
+          },
+          metrics: {
+            latency: { name: 'Lat', unit: 'ms' },
+            error_rate: { name: 'Err', unit: '%' }
+          },
+          traffic_routes: [
+            {
+              name: 'dependency',
+              base_latency_ms: 20,
+              outgoing_traffics: []
+            }
+          ]
+        }
+      ],
+      traffics: [
+        {
+          type: 'external',
+          name: 'request',
+          target_component_name: 'Upstream',
+          value: 10,
+          base_variance: 0
+        },
+        {
+          type: 'internal',
+          name: 'dependency',
+          target_component_name: 'Downstream'
+        }
+      ],
+      statusEffects: []
+    };
+
+    const engine = new GameEngine();
+    engine.loadLevel(level);
+    engine.update();
+
+    // Downstream latency = 20ms
+    // Upstream latency = 100ms (base) + (3 calls * 20ms) = 160ms
+    const upstream = engine.components['upstream'];
+    const traffic = engine.traffics['request'];
+
+    expect(upstream.metrics.latency.value).toBe(160);
+    expect(traffic.latencyHistory[0]).toBe(160);
+  });
 });

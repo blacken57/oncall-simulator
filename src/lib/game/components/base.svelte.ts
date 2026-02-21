@@ -7,7 +7,10 @@ import { Attribute, Metric } from '../base.svelte';
  */
 export interface TrafficHandler {
   recordDemand(trafficName: string, value: number): void;
-  handleTraffic(trafficName: string, value: number): number;
+  handleTraffic(
+    trafficName: string,
+    value: number
+  ): { successfulVolume: number; averageLatency: number };
   statusEffects: StatusEffect[];
 }
 
@@ -39,6 +42,8 @@ export abstract class SystemComponent {
   totalExpectedVolume = 0;
   incomingTrafficVolume = 0;
   unsuccessfulTrafficVolume = 0;
+  totalLatencySum = 0;
+  totalSuccessfulRequests = 0;
 
   constructor(config: ComponentConfig) {
     this.id = config.id;
@@ -80,9 +85,13 @@ export abstract class SystemComponent {
   /**
    * Pass 2: Processes a specific traffic flow through this component.
    * Uses the pre-calculated totalExpectedVolume to ensure failures are distributed evenly.
-   * @returns successfulCalls
+   * @returns successfulVolume and averageLatency
    */
-  handleTraffic(trafficName: string, value: number, handler: TrafficHandler): number {
+  handleTraffic(
+    trafficName: string,
+    value: number,
+    handler: TrafficHandler
+  ): { successfulVolume: number; averageLatency: number } {
     this.incomingTrafficVolume += value;
 
     // Calculate global failure rate for this tick based on total demand
@@ -90,19 +99,23 @@ export abstract class SystemComponent {
     let successfulVolume = value * (1 - failureRate);
 
     const route = this.trafficRoutes.find((r) => r.name === trafficName);
+    let totalDependencyLatency = 0;
 
     // 1. Process outgoing traffic dependencies sequentially
     if (route && successfulVolume > 0) {
       for (const outgoing of route.outgoing_traffics) {
         // Only pass what hasn't already failed upstream in the chain
-        const subSuccess = handler.handleTraffic(
+        const subResult = handler.handleTraffic(
           outgoing.name,
           successfulVolume * outgoing.multiplier
         );
 
         // Scale success back to parent requests (conservative floor)
-        const parentEquivalentSuccess = Math.floor(subSuccess / outgoing.multiplier);
+        const parentEquivalentSuccess = Math.floor(subResult.successfulVolume / outgoing.multiplier);
         successfulVolume = Math.min(successfulVolume, parentEquivalentSuccess);
+
+        // Add to total dependency latency
+        totalDependencyLatency += outgoing.multiplier * subResult.averageLatency;
 
         if (successfulVolume <= 0) break; // Short-circuit
       }
@@ -111,7 +124,16 @@ export abstract class SystemComponent {
     const failed = value - successfulVolume;
     this.unsuccessfulTrafficVolume += failed;
 
-    return successfulVolume;
+    const baseLatency = route?.base_latency_ms ?? 0;
+    const finalLatency = baseLatency + totalDependencyLatency;
+
+    // Track aggregate latency for this component's metrics
+    if (successfulVolume > 0) {
+      this.totalLatencySum += finalLatency * successfulVolume;
+      this.totalSuccessfulRequests += successfulVolume;
+    }
+
+    return { successfulVolume, averageLatency: finalLatency };
   }
 
   /**
@@ -126,6 +148,8 @@ export abstract class SystemComponent {
     this.totalExpectedVolume = 0;
     this.incomingTrafficVolume = 0;
     this.unsuccessfulTrafficVolume = 0;
+    this.totalLatencySum = 0;
+    this.totalSuccessfulRequests = 0;
   }
 
   /**

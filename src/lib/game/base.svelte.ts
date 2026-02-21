@@ -15,6 +15,7 @@ export class Traffic {
   // History for tracking performance over time
   successHistory = $state<number[]>([]);
   failureHistory = $state<number[]>([]);
+  latencyHistory = $state<number[]>([]);
   maxHistory = 60;
 
   constructor(config: TrafficConfig) {
@@ -26,11 +27,18 @@ export class Traffic {
     this.baseVariance = config.base_variance ?? 5;
   }
 
-  update(baseValue: number, actualValue: number, successful: number, unsuccessful: number) {
+  update(
+    baseValue: number,
+    actualValue: number,
+    successful: number,
+    unsuccessful: number,
+    averageLatency: number
+  ) {
     this.value = baseValue;
     this.actualValue = actualValue;
     this.successHistory = [...this.successHistory, successful].slice(-this.maxHistory);
     this.failureHistory = [...this.failureHistory, unsuccessful].slice(-this.maxHistory);
+    this.latencyHistory = [...this.latencyHistory, averageLatency].slice(-this.maxHistory);
   }
 }
 

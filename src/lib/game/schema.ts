@@ -7,6 +7,7 @@ export interface OutgoingTrafficConfig {
 
 export interface TrafficRouteConfig {
   name: string; // The unique name of the incoming traffic
+  base_latency_ms?: number; // Base processing time for this specific route
   outgoing_traffics: OutgoingTrafficConfig[];
 }
 

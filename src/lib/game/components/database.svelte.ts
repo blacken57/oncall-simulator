@@ -47,16 +47,16 @@ export class DatabaseNode extends SystemComponent {
 
     const connUtil = this.attributes.connections.utilization;
 
-    let qLat =
-      (physics.latency_base_ms ?? 10) +
-      this.attributes.connections.current * (physics.latency_load_factor ?? 0.2);
+    // Aggregate latency from all routes
+    let avgLatency =
+      this.totalSuccessfulRequests > 0 ? this.totalLatencySum / this.totalSuccessfulRequests : 0;
 
     const satThreshold = physics.saturation_threshold_percent ?? 90;
     if (connUtil > satThreshold) {
-      qLat *= 1 + (physics.saturation_penalty_factor ?? 4);
+      avgLatency *= 1 + (physics.saturation_penalty_factor ?? 4);
     }
 
-    this.metrics.query_latency.update(qLat);
+    this.metrics.query_latency.update(avgLatency);
 
     if (this.metrics.error_rate) {
       const errorRate = traffic > 0 ? (this.unsuccessfulTrafficVolume / traffic) * 100 : 0;

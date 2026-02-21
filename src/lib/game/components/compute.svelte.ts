@@ -56,12 +56,14 @@ export class ComputeNode extends SystemComponent {
 
     const util = this.attributes.gcu.utilization;
 
-    // Latency calculation
-    let latency = (physics.latency_base_ms ?? 50) + traffic * (physics.latency_load_factor ?? 0.2);
+    // Aggregate latency from all routes processed this tick
+    let avgLatency =
+      this.totalSuccessfulRequests > 0 ? this.totalLatencySum / this.totalSuccessfulRequests : 0;
 
+    // Apply utilization-based penalty to the final average
     const satThreshold = physics.saturation_threshold_percent ?? 80;
     if (util > satThreshold) {
-      latency *= 1 + (util - satThreshold) * (physics.saturation_penalty_factor ?? 0.1);
+      avgLatency *= 1 + (util - satThreshold) * (physics.saturation_penalty_factor ?? 0.1);
     }
 
     // Apply status effect multipliers: (1 + sum(multipliers)) * base_value + sum(offsets)
@@ -78,9 +80,9 @@ export class ComputeNode extends SystemComponent {
       multiplierSum += e.multiplier;
       offsetSum += e.offset;
     }
-    latency = latency + latency * multiplierSum + offsetSum;
+    avgLatency = avgLatency + avgLatency * multiplierSum + offsetSum;
 
-    this.metrics.latency.update(latency);
+    this.metrics.latency.update(avgLatency);
 
     // Calculate Error Rate: (failed traffic / total traffic) * 100
     const baseFailureRate = traffic > 0 ? (this.unsuccessfulTrafficVolume / traffic) * 100 : 0;
