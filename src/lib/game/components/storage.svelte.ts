@@ -31,10 +31,9 @@ export class StorageNode extends SystemComponent {
     const physics = this.physics;
 
     const growth = traffic * (physics.consumption_rates?.storage_usage ?? 0.05);
-    this.attributes.storage_usage.update(Math.min(
-      this.attributes.storage_usage.limit,
-      this.attributes.storage_usage.current + growth
-    ));
+    this.attributes.storage_usage.update(
+      Math.min(this.attributes.storage_usage.limit, this.attributes.storage_usage.current + growth)
+    );
 
     this.metrics.fill_rate.update(growth);
 

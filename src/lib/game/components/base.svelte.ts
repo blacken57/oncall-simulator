@@ -1,9 +1,5 @@
 import type { StatusEffect } from '../statusEffects.svelte';
-import type { 
-  ComponentConfig, 
-  TrafficRouteConfig, 
-  ComponentPhysicsConfig
-} from '../schema';
+import type { ComponentConfig, TrafficRouteConfig, ComponentPhysicsConfig } from '../schema';
 import { Attribute, Metric } from '../base.svelte';
 
 /**
@@ -17,11 +13,11 @@ export interface TrafficHandler {
 
 /**
  * The base class for all simulated infrastructure components.
- * 
+ *
  * DESIGN PRINCIPLE: Two-Pass Resolution
  * To ensure fair traffic distribution, components use two passes:
  * 1. Demand Pass: recordDemand() collects total intended volume from all sources recursively.
- * 2. Resolution Pass: handleTraffic() uses the total demand to calculate a fair failure rate 
+ * 2. Resolution Pass: handleTraffic() uses the total demand to calculate a fair failure rate
  *    applied proportionally to all incoming flows, preventing "first-come-first-served" bias.
  */
 export abstract class SystemComponent {
@@ -32,7 +28,7 @@ export abstract class SystemComponent {
   attributes = $state<Record<string, Attribute>>({});
   metrics = $state<Record<string, Metric>>({});
   status = $state<'healthy' | 'warning' | 'critical'>('healthy');
-  
+
   /** Configuration for how traffic flows through and out of this component */
   trafficRoutes: TrafficRouteConfig[] = [];
 
@@ -48,7 +44,7 @@ export abstract class SystemComponent {
     this.id = config.id;
     this.name = config.name;
     this.trafficRoutes = config.traffic_routes;
-    
+
     // Merge provided physics with subclass defaults
     this.physics = { ...this.getDefaultPhysics(), ...(config.physics || {}) };
 
@@ -72,8 +68,8 @@ export abstract class SystemComponent {
    */
   recordDemand(trafficName: string, value: number, handler: TrafficHandler) {
     this.totalExpectedVolume += value;
-    const route = this.trafficRoutes.find(r => r.name === trafficName);
-    
+    const route = this.trafficRoutes.find((r) => r.name === trafficName);
+
     if (route && value > 0) {
       for (const outgoing of route.outgoing_traffics) {
         handler.recordDemand(outgoing.name, value * outgoing.multiplier);
@@ -88,23 +84,26 @@ export abstract class SystemComponent {
    */
   handleTraffic(trafficName: string, value: number, handler: TrafficHandler): number {
     this.incomingTrafficVolume += value;
-    
+
     // Calculate global failure rate for this tick based on total demand
     const failureRate = this.calculateFailureRate(this.totalExpectedVolume);
     let successfulVolume = value * (1 - failureRate);
 
-    const route = this.trafficRoutes.find(r => r.name === trafficName);
-    
+    const route = this.trafficRoutes.find((r) => r.name === trafficName);
+
     // 1. Process outgoing traffic dependencies sequentially
     if (route && successfulVolume > 0) {
       for (const outgoing of route.outgoing_traffics) {
         // Only pass what hasn't already failed upstream in the chain
-        const subSuccess = handler.handleTraffic(outgoing.name, successfulVolume * outgoing.multiplier);
-        
+        const subSuccess = handler.handleTraffic(
+          outgoing.name,
+          successfulVolume * outgoing.multiplier
+        );
+
         // Scale success back to parent requests (conservative floor)
         const parentEquivalentSuccess = Math.floor(subSuccess / outgoing.multiplier);
         successfulVolume = Math.min(successfulVolume, parentEquivalentSuccess);
-        
+
         if (successfulVolume <= 0) break; // Short-circuit
       }
     }
@@ -129,7 +128,7 @@ export abstract class SystemComponent {
     this.unsuccessfulTrafficVolume = 0;
   }
 
-  /** 
+  /**
    * Updates component internal state (utilization, etc.) based on total traffic seen this tick.
    */
   abstract tick(handler: TrafficHandler): void;

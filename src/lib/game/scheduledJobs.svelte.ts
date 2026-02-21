@@ -1,4 +1,8 @@
-import type { ScheduledJobConfig, StatusEffectTargetAttribute, StatusEffectTargetTraffic } from './schema';
+import type {
+  ScheduledJobConfig,
+  StatusEffectTargetAttribute,
+  StatusEffectTargetTraffic
+} from './schema';
 import type { TrafficHandler } from './components/base.svelte';
 
 export class ScheduledJob {

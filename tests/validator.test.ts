@@ -60,14 +60,14 @@ describe('Level Validator', () => {
     const invalid = JSON.parse(JSON.stringify(baseLevel));
     invalid.components[1].id = 'comp-1';
     const errors = validateLevel(invalid);
-    expect(errors.some(e => e.message.includes('Duplicate component ID'))).toBe(true);
+    expect(errors.some((e) => e.message.includes('Duplicate component ID'))).toBe(true);
   });
 
   it('catches non-existent traffic targets', () => {
     const invalid = JSON.parse(JSON.stringify(baseLevel));
     invalid.traffics[0].target_component_name = 'Non-Existent';
     const errors = validateLevel(invalid);
-    expect(errors.some(e => e.message.includes('targets non-existent component'))).toBe(true);
+    expect(errors.some((e) => e.message.includes('targets non-existent component'))).toBe(true);
   });
 
   it('catches orphaned internal traffic', () => {
@@ -75,7 +75,9 @@ describe('Level Validator', () => {
     // Remove the outgoing traffic link
     invalid.components[0].traffic_routes[0].outgoing_traffics = [];
     const errors = validateLevel(invalid);
-    expect(errors.some(e => e.message.includes('Internal traffic "internal-1" is never emitted'))).toBe(true);
+    expect(
+      errors.some((e) => e.message.includes('Internal traffic "internal-1" is never emitted'))
+    ).toBe(true);
   });
 
   it('catches components missing routes for traffic targeting them', () => {
@@ -83,6 +85,10 @@ describe('Level Validator', () => {
     // Remove the route for internal-1 in Component 2
     invalid.components[1].traffic_routes = [];
     const errors = validateLevel(invalid);
-    expect(errors.some(e => e.message.includes('receives traffic "internal-1" but has no route defined'))).toBe(true);
+    expect(
+      errors.some((e) =>
+        e.message.includes('receives traffic "internal-1" but has no route defined')
+      )
+    ).toBe(true);
   });
 });

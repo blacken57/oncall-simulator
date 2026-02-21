@@ -1,8 +1,4 @@
-import type { 
-  AttributeConfig, 
-  MetricConfig, 
-  TrafficConfig 
-} from './schema';
+import type { AttributeConfig, MetricConfig, TrafficConfig } from './schema';
 
 /**
  * Represents a specific flow of traffic within the system.
@@ -15,7 +11,7 @@ export class Traffic {
   value = $state(0); // Current tick's base value (with noise)
   actualValue = $state(0); // Total volume after multipliers/effects
   baseVariance: number;
-  
+
   // History for tracking performance over time
   successHistory = $state<number[]>([]);
   failureHistory = $state<number[]>([]);

@@ -1,7 +1,7 @@
-import type { 
-  ComponentStatusEffectConfig, 
-  TrafficStatusEffectConfig, 
-  ResolutionConditionConfig 
+import type {
+  ComponentStatusEffectConfig,
+  TrafficStatusEffectConfig,
+  ResolutionConditionConfig
 } from './schema';
 
 /**
@@ -19,7 +19,7 @@ export class ComponentStatusEffect {
   materializationProbability: number;
   resolutionCondition: ResolutionConditionConfig;
   maxInstancesAtOnce: number;
-  
+
   // Runtime state
   isActive = $state(false);
   turnsRemaining = $state<number | undefined>(undefined);
@@ -33,7 +33,7 @@ export class ComponentStatusEffect {
     this.materializationProbability = config.materialization_probability;
     this.resolutionCondition = config.resolution_condition;
     this.maxInstancesAtOnce = config.max_instances_at_once;
-    
+
     if (config.resolution_condition.turnsRemaining !== undefined) {
       this.turnsRemaining = config.resolution_condition.turnsRemaining;
     }
@@ -51,7 +51,7 @@ export class ComponentStatusEffect {
           this.isActive = false;
           // Reset turns if it can materialize again
           if (this.resolutionCondition.turnsRemaining !== undefined) {
-             this.turnsRemaining = this.resolutionCondition.turnsRemaining;
+            this.turnsRemaining = this.resolutionCondition.turnsRemaining;
           }
         }
       }
@@ -85,4 +85,3 @@ export class TrafficStatusEffect {
     }
   }
 }
-

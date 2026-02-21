@@ -36,23 +36,24 @@ export class DatabaseNode extends SystemComponent {
   tick(handler: TrafficHandler) {
     const traffic = this.incomingTrafficVolume;
     const physics = this.physics;
-    
+
     // Connections update
-    this.attributes.connections.update(traffic + (Math.random() * (physics.noise_factor ?? 2)));
+    this.attributes.connections.update(traffic + Math.random() * (physics.noise_factor ?? 2));
 
     const growth = traffic * (physics.consumption_rates?.storage ?? 0.0001);
-    this.attributes.storage.update(Math.min(
-      this.attributes.storage.limit,
-      this.attributes.storage.current + growth
-    ));
+    this.attributes.storage.update(
+      Math.min(this.attributes.storage.limit, this.attributes.storage.current + growth)
+    );
 
     const connUtil = this.attributes.connections.utilization;
-    
-    let qLat = (physics.latency_base_ms ?? 10) + (this.attributes.connections.current * (physics.latency_load_factor ?? 0.2));
-    
+
+    let qLat =
+      (physics.latency_base_ms ?? 10) +
+      this.attributes.connections.current * (physics.latency_load_factor ?? 0.2);
+
     const satThreshold = physics.saturation_threshold_percent ?? 90;
     if (connUtil > satThreshold) {
-      qLat *= (1 + (physics.saturation_penalty_factor ?? 4));
+      qLat *= 1 + (physics.saturation_penalty_factor ?? 4);
     }
 
     this.metrics.query_latency.update(qLat);
@@ -67,7 +68,7 @@ export class DatabaseNode extends SystemComponent {
     }
 
     this.updateStatus();
-    
+
     this.incomingTrafficVolume = 0;
     this.unsuccessfulTrafficVolume = 0;
   }

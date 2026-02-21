@@ -3,24 +3,24 @@ import path from 'path';
 import { validateLevel } from '../src/lib/game/validator';
 
 const DATA_DIR = path.resolve('src/data');
-const files = fs.readdirSync(DATA_DIR).filter(f => f.endsWith('.json'));
+const files = fs.readdirSync(DATA_DIR).filter((f) => f.endsWith('.json'));
 
 let hasErrors = false;
 
 console.log('🔍 Validating level configurations...');
 
-files.forEach(file => {
+files.forEach((file) => {
   const filePath = path.join(DATA_DIR, file);
   const content = fs.readFileSync(filePath, 'utf-8');
-  
+
   try {
     const config = JSON.parse(content);
     const errors = validateLevel(config);
-    
+
     if (errors.length > 0) {
       hasErrors = true;
       console.error(`\n❌ Errors in ${file}:`);
-      errors.forEach(err => {
+      errors.forEach((err) => {
         console.error(`  - [${err.path}]: ${err.message}`);
       });
     } else {

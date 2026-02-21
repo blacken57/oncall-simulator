@@ -64,16 +64,16 @@ export interface MetricConfig {
 export interface ComponentPhysicsConfig {
   /** How many requests 1 unit of the primary attribute can handle (e.g., 20 reqs/GCU) */
   request_capacity_per_unit?: number;
-  
+
   /** Base latency in milliseconds */
   latency_base_ms?: number;
-  
+
   /** Latency increase per request (ms/req) */
   latency_load_factor?: number;
-  
+
   /** Utilization % (0-100) where non-linear degradation begins */
   saturation_threshold_percent?: number;
-  
+
   /** How aggressively latency spikes after the saturation threshold */
   saturation_penalty_factor?: number;
 
@@ -85,7 +85,7 @@ export interface ComponentPhysicsConfig {
 
   /** Random variance applied to metrics (0-1) */
   noise_factor?: number;
-  
+
   /** Thresholds for status changes (metric/attribute -> { warning, critical }) */
   status_thresholds?: Record<string, { warning: number; critical: number }>;
 }
