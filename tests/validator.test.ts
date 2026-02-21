@@ -91,4 +91,28 @@ describe('Level Validator', () => {
       )
     ).toBe(true);
   });
+
+  it('catches circular traffic dependencies', () => {
+    const invalid = JSON.parse(JSON.stringify(baseLevel));
+    // C1 calls C2. Let's make C2 call C1.
+    invalid.traffics.push({
+      type: 'internal',
+      name: 'back-to-1',
+      target_component_name: 'Component 1'
+    });
+    invalid.components[1].traffic_routes[0].outgoing_traffics.push({
+      name: 'back-to-1',
+      multiplier: 1
+    });
+    // Add the missing route for back-to-1 in Component 1
+    invalid.components[0].traffic_routes.push({
+      name: 'back-to-1',
+      outgoing_traffics: []
+    });
+
+    const errors = validateLevel(invalid);
+    expect(errors.some((e) => e.message.includes('Circular traffic dependency detected'))).toBe(
+      true
+    );
+  });
 });

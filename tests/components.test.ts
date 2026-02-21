@@ -7,8 +7,10 @@ import type { ComponentConfig } from '../src/lib/game/schema';
 describe('Component Physics', () => {
   const mockHandler = {
     recordDemand: () => {},
-    handleTraffic: () => 100,
-    statusEffects: []
+    handleTraffic: () => ({ successfulVolume: 100, averageLatency: 10 }),
+    statusEffects: [],
+    getActiveComponentEffects: () => [],
+    getActiveTrafficEffects: () => []
   };
 
   describe('ComputeNode', () => {
@@ -50,6 +52,56 @@ describe('Component Physics', () => {
       node.recordDemand('test', 200, mockHandler as any);
       // @ts-ignore
       expect(node.calculateFailureRate(200)).toBe(0.5);
+    });
+
+    it('should apply non-linear latency penalty when over saturation threshold', () => {
+      const node = new ComputeNode({
+        ...config,
+        physics: {
+          ...config.physics,
+          request_capacity_per_unit: 20,
+          saturation_threshold_percent: 50,
+          saturation_penalty_factor: 1.0, // Latency doubles for every % over threshold
+          resource_base_usage: { gcu: 0 },
+          noise_factor: 0
+        }
+      });
+
+      // 1. Under threshold: 40% utilization
+      // 10 GCU * 20 req/GCU = 200 total capacity.
+      // 80 incoming / 200 capacity = 40% util.
+      node.attributes.gcu.limit = 10;
+      node.incomingTrafficVolume = 80; 
+      node.totalLatencySum = 100 * 80;
+      node.totalSuccessfulRequests = 80;
+      node.tick(mockHandler as any);
+      expect(node.metrics.latency.value).toBe(100);
+
+      // 2. Over threshold: 60% utilization (10% over threshold of 50%)
+      // 120 incoming / 200 capacity = 60% util.
+      // Penalty: 100 * (1 + (60-50) * 1.0) = 1100ms
+      node.incomingTrafficVolume = 120;
+      node.totalLatencySum = 100 * 120;
+      node.totalSuccessfulRequests = 120;
+      node.tick(mockHandler as any);
+      expect(node.metrics.latency.value).toBe(1100);
+    });
+
+    it('should consume resources proportionally to traffic', () => {
+      const node = new ComputeNode({
+        ...config,
+        physics: {
+          ...config.physics,
+          resource_base_usage: { ram: 1.0 },
+          consumption_rates: { ram: 0.1 },
+          noise_factor: 0
+        }
+      });
+
+      // Traffic of 10 should use: 1.0 (base) + 10 * 0.1 (consumption) = 2.0 RAM
+      node.incomingTrafficVolume = 10;
+      node.tick(mockHandler as any);
+      expect(node.attributes.ram.current).toBe(2.0);
     });
   });
 

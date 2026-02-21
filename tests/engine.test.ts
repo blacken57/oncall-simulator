@@ -261,6 +261,25 @@ describe('GameEngine Integration', () => {
     expect(server.attributes.gcu.limit).toBe(17);
   });
 
+  it('should enforce maxHistory limit on all telemetry arrays', () => {
+    const engine = new GameEngine();
+    engine.loadLevel(baseLevel);
+    
+    const traffic = engine.traffics['inflow'];
+    const server = engine.components['server'];
+    const latencyMetric = server.metrics.latency;
+
+    // Run 70 ticks (maxHistory is 60)
+    for (let i = 0; i < 70; i++) {
+      engine.update();
+    }
+
+    expect(traffic.successHistory.length).toBe(60);
+    expect(traffic.failureHistory.length).toBe(60);
+    expect(traffic.latencyHistory.length).toBe(60);
+    expect(latencyMetric.history.length).toBe(60);
+  });
+
   it('should propagate latency additively through dependency chains', () => {
     const level: LevelConfig = {
       id: 'latency-test',

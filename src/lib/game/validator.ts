@@ -113,5 +113,51 @@ export function validateLevel(config: LevelConfig): ValidationError[] {
     });
   }
 
+  // 7. Cycle Detection (Traffic Dependency Graph)
+  // Build a map of component name -> set of component names it calls
+  const adjacency: Record<string, Set<string>> = {};
+  for (const comp of config.components) {
+    const targets = new Set<string>();
+    for (const route of comp.traffic_routes) {
+      for (const outgoing of route.outgoing_traffics) {
+        const trafficDef = config.traffics.find((t) => t.name === outgoing.name);
+        if (trafficDef && trafficDef.target_component_name) {
+          targets.add(trafficDef.target_component_name);
+        }
+      }
+    }
+    adjacency[comp.name] = targets;
+  }
+
+  const visited = new Set<string>();
+  const recStack = new Set<string>();
+
+  function hasCycle(name: string, path: string[]): boolean {
+    visited.add(name);
+    recStack.add(name);
+
+    const neighbors = adjacency[name] || new Set();
+    for (const neighbor of neighbors) {
+      if (!visited.has(neighbor)) {
+        if (hasCycle(neighbor, [...path, neighbor])) return true;
+      } else if (recStack.has(neighbor)) {
+        errors.push({
+          path: 'components',
+          message: `Circular traffic dependency detected: ${[...path, neighbor].join(' -> ')}`
+        });
+        return true;
+      }
+    }
+
+    recStack.delete(name);
+    return false;
+  }
+
+  for (const comp of config.components) {
+    if (!visited.has(comp.name)) {
+      hasCycle(comp.name, [comp.name]);
+    }
+  }
+
   return errors;
 }
