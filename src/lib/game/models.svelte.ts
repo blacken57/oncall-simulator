@@ -5,7 +5,8 @@ import type {
   ComponentConfig, 
   TrafficConfig, 
   TrafficRouteConfig, 
-  OutgoingTrafficConfig 
+  OutgoingTrafficConfig,
+  ComponentPhysicsConfig
 } from './schema';
 
 /**
@@ -123,6 +124,9 @@ export abstract class SystemComponent {
   /** Configuration for how traffic flows through and out of this component */
   trafficRoutes: TrafficRouteConfig[] = [];
 
+  /** Physics constants for this component's behavior */
+  physics: ComponentPhysicsConfig;
+
   // Temporary state for the current tick
   incomingTrafficVolume = 0;
   unsuccessfulTrafficVolume = 0;
@@ -131,6 +135,9 @@ export abstract class SystemComponent {
     this.id = config.id;
     this.name = config.name;
     this.trafficRoutes = config.traffic_routes;
+    
+    // Merge provided physics with subclass defaults
+    this.physics = { ...this.getDefaultPhysics(), ...(config.physics || {}) };
 
     for (const [key, attrConfig] of Object.entries(config.attributes)) {
       this.attributes[key] = new Attribute(attrConfig);
@@ -140,6 +147,11 @@ export abstract class SystemComponent {
       this.metrics[key] = new Metric(metricConfig);
     }
   }
+
+  /**
+   * Subclasses must provide default physics constants.
+   */
+  protected abstract getDefaultPhysics(): ComponentPhysicsConfig;
 
     /**
      * Processes a specific traffic flow through this component.
@@ -196,9 +208,29 @@ export abstract class SystemComponent {
 export class ComputeNode extends SystemComponent {
   type = 'compute';
 
+  protected getDefaultPhysics(): ComponentPhysicsConfig {
+    return {
+      request_capacity_per_unit: 20,
+      latency_base_ms: 50,
+      latency_load_factor: 0.2,
+      saturation_threshold_percent: 80,
+      saturation_penalty_factor: 0.1,
+      resource_base_usage: {
+        ram: 1.2
+      },
+      consumption_rates: {
+        ram: 0.005
+      },
+      noise_factor: 0.5,
+      status_thresholds: {
+        gcu_util: { warning: 80, critical: 95 },
+        error_rate: { warning: 1, critical: 5 }
+      }
+    };
+  }
+
   protected calculateInternalFailures(value: number): number {
-    // 1 GCU handles 20 requests (based on tick logic below)
-    const capacity = this.attributes.gcu.limit * 20;
+    const capacity = this.attributes.gcu.limit * (this.physics.request_capacity_per_unit ?? 20);
     if (value > capacity) {
       return value - capacity;
     }
@@ -207,14 +239,27 @@ export class ComputeNode extends SystemComponent {
 
   tick(handler: TrafficHandler) {
     const traffic = this.incomingTrafficVolume;
-    this.attributes.gcu.update((traffic / 20) + (Math.random() * 0.5));
-    this.attributes.ram.update(1.2 + (traffic / 200) + (Math.random() * 0.1 - 0.05));
+    const physics = this.physics;
+    const noise = (Math.random() - 0.5) * (physics.noise_factor ?? 0);
+    
+    // GCU Usage
+    const capPerUnit = physics.request_capacity_per_unit ?? 20;
+    const gcuBase = physics.resource_base_usage?.gcu ?? 0;
+    this.attributes.gcu.update(gcuBase + (traffic / capPerUnit) + (Math.random() * (physics.noise_factor ?? 0.5)));
+    
+    // RAM Usage
+    const ramBase = physics.resource_base_usage?.ram ?? 0;
+    const ramUsagePerReq = physics.consumption_rates?.ram ?? 0;
+    this.attributes.ram.update(ramBase + (traffic * ramUsagePerReq) + noise * 0.2);
 
     const util = this.attributes.gcu.utilization;
-    let latency = 50 + (traffic / 5);
     
-    if (util > 80) {
-      latency *= (1 + (util - 80) / 10);
+    // Latency calculation
+    let latency = (physics.latency_base_ms ?? 50) + (traffic * (physics.latency_load_factor ?? 0.2));
+    
+    const satThreshold = physics.saturation_threshold_percent ?? 80;
+    if (util > satThreshold) {
+      latency *= (1 + (util - satThreshold) * (physics.saturation_penalty_factor ?? 0.1));
     }
 
     // Apply status effect multipliers: (1 + sum(multipliers)) * base_value
@@ -252,9 +297,13 @@ export class ComputeNode extends SystemComponent {
   private updateStatus() {
     const gcuUtil = this.attributes.gcu.utilization;
     const errorRate = this.metrics.error_rate.value;
+    const thresholds = this.physics.status_thresholds || {};
     
-    if (gcuUtil > 95 || errorRate > 5) this.status = 'critical';
-    else if (gcuUtil > 80 || errorRate > 1) this.status = 'warning';
+    const gcuT = thresholds.gcu_util || { warning: 80, critical: 95 };
+    const errT = thresholds.error_rate || { warning: 1, critical: 5 };
+
+    if (gcuUtil > gcuT.critical || errorRate > errT.critical) this.status = 'critical';
+    else if (gcuUtil > gcuT.warning || errorRate > errT.warning) this.status = 'warning';
     else this.status = 'healthy';
   }
 }
@@ -264,10 +313,26 @@ export class ComputeNode extends SystemComponent {
  */
 export class DatabaseNode extends SystemComponent {
   type = 'database';
-  fillRate = 0.0001;
+
+  protected getDefaultPhysics(): ComponentPhysicsConfig {
+    return {
+      request_capacity_per_unit: 1, // 1 connection = 1 request
+      latency_base_ms: 10,
+      latency_load_factor: 0.2,
+      saturation_threshold_percent: 90,
+      saturation_penalty_factor: 4, // Sharp latency spike
+      consumption_rates: {
+        storage: 0.0001
+      },
+      noise_factor: 2,
+      status_thresholds: {
+        conn_util: { warning: 80, critical: 100 },
+        error_rate: { warning: 1, critical: 5 }
+      }
+    };
+  }
 
   protected calculateInternalFailures(value: number): number {
-    // Enforce hard cap: 1 request = 1 connection
     const limit = this.attributes.connections.limit;
     if (value > limit) {
       return value - limit;
@@ -277,20 +342,24 @@ export class DatabaseNode extends SystemComponent {
 
   tick(handler: TrafficHandler) {
     const traffic = this.incomingTrafficVolume;
-    // Update connections to reflect current 1:1 traffic load
-    this.attributes.connections.update(traffic + (Math.random() * 2));
+    const physics = this.physics;
+    
+    // Connections update
+    this.attributes.connections.update(traffic + (Math.random() * (physics.noise_factor ?? 2)));
 
-    const growth = traffic * this.fillRate;
+    const growth = traffic * (physics.consumption_rates?.storage ?? 0.0001);
     this.attributes.storage.update(Math.min(
       this.attributes.storage.limit,
       this.attributes.storage.current + growth
     ));
 
     const connUtil = this.attributes.connections.utilization;
-    let qLat = 10 + (this.attributes.connections.current / 5);
     
-    if (connUtil > 90) {
-      qLat *= 5;
+    let qLat = (physics.latency_base_ms ?? 10) + (this.attributes.connections.current * (physics.latency_load_factor ?? 0.2));
+    
+    const satThreshold = physics.saturation_threshold_percent ?? 90;
+    if (connUtil > satThreshold) {
+      qLat *= (1 + (physics.saturation_penalty_factor ?? 4));
     }
 
     this.metrics.query_latency.update(qLat);
@@ -304,13 +373,23 @@ export class DatabaseNode extends SystemComponent {
       this.metrics.incoming.update(traffic);
     }
 
-    const errorRate = this.metrics.error_rate?.value ?? 0;
-    if (connUtil > 100 || errorRate > 5) this.status = 'critical';
-    else if (connUtil > 80 || errorRate > 1) this.status = 'warning';
-    else this.status = 'healthy';
+    this.updateStatus();
     
     this.incomingTrafficVolume = 0;
     this.unsuccessfulTrafficVolume = 0;
+  }
+
+  private updateStatus() {
+    const connUtil = this.attributes.connections.utilization;
+    const errorRate = this.metrics.error_rate?.value ?? 0;
+    const thresholds = this.physics.status_thresholds || {};
+
+    const connT = thresholds.conn_util || { warning: 80, critical: 100 };
+    const errT = thresholds.error_rate || { warning: 1, critical: 5 };
+
+    if (connUtil > connT.critical || errorRate > errT.critical) this.status = 'critical';
+    else if (connUtil > connT.warning || errorRate > errT.warning) this.status = 'warning';
+    else this.status = 'healthy';
   }
 }
 
@@ -319,7 +398,19 @@ export class DatabaseNode extends SystemComponent {
  */
 export class StorageNode extends SystemComponent {
   type = 'storage';
-  fillRate = 0.05;
+
+  protected getDefaultPhysics(): ComponentPhysicsConfig {
+    return {
+      consumption_rates: {
+        storage_usage: 0.05
+      },
+      saturation_threshold_percent: 100,
+      status_thresholds: {
+        storage_util: { warning: 85, critical: 100 },
+        error_rate: { warning: 1, critical: 5 }
+      }
+    };
+  }
 
   protected calculateInternalFailures(): number {
     const util = this.attributes.storage_usage.utilization;
@@ -329,7 +420,9 @@ export class StorageNode extends SystemComponent {
 
   tick(handler: TrafficHandler) {
     const traffic = this.incomingTrafficVolume;
-    const growth = traffic * this.fillRate;
+    const physics = this.physics;
+
+    const growth = traffic * (physics.consumption_rates?.storage_usage ?? 0.05);
     this.attributes.storage_usage.update(Math.min(
       this.attributes.storage_usage.limit,
       this.attributes.storage_usage.current + growth
@@ -346,14 +439,23 @@ export class StorageNode extends SystemComponent {
       this.metrics.incoming.update(traffic);
     }
 
-    const util = this.attributes.storage_usage.utilization;
-    const errorRate = this.metrics.error_rate?.value ?? 0;
-    if (util >= 100 || errorRate > 5) this.status = 'critical';
-    else if (util > 85 || errorRate > 1) this.status = 'warning';
-    else this.status = 'healthy';
+    this.updateStatus();
 
     this.incomingTrafficVolume = 0;
     this.unsuccessfulTrafficVolume = 0;
+  }
+
+  private updateStatus() {
+    const util = this.attributes.storage_usage.utilization;
+    const errorRate = this.metrics.error_rate?.value ?? 0;
+    const thresholds = this.physics.status_thresholds || {};
+
+    const utilT = thresholds.storage_util || { warning: 85, critical: 100 };
+    const errT = thresholds.error_rate || { warning: 1, critical: 5 };
+
+    if (util >= utilT.critical || errorRate > errT.critical) this.status = 'critical';
+    else if (util > utilT.warning || errorRate > errT.warning) this.status = 'warning';
+    else this.status = 'healthy';
   }
 }
 

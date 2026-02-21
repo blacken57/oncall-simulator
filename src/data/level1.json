@@ -7,6 +7,20 @@
       "id": "checkout-server",
       "name": "Checkout Server",
       "type": "compute",
+      "physics": {
+        "request_capacity_per_unit": 20,
+        "latency_base_ms": 50,
+        "latency_load_factor": 0.2,
+        "saturation_threshold_percent": 80,
+        "saturation_penalty_factor": 0.1,
+        "resource_base_usage": { "ram": 1.2 },
+        "consumption_rates": { "ram": 0.005 },
+        "noise_factor": 0.5,
+        "status_thresholds": {
+          "gcu_util": { "warning": 80, "critical": 95 },
+          "error_rate": { "warning": 1, "critical": 5 }
+        }
+      },
       "attributes": {
         "ram": { "name": "Memory", "unit": "GB", "initialLimit": 8, "minLimit": 2, "maxLimit": 64, "costPerUnit": 10 },
         "gcu": { "name": "GCU", "unit": "GCU", "initialLimit": 20, "minLimit": 1, "maxLimit": 32, "costPerUnit": 25 }
@@ -30,6 +44,19 @@
       "id": "checkout-db",
       "name": "Checkout DB",
       "type": "database",
+      "physics": {
+        "request_capacity_per_unit": 1,
+        "latency_base_ms": 10,
+        "latency_load_factor": 0.2,
+        "saturation_threshold_percent": 90,
+        "saturation_penalty_factor": 4,
+        "consumption_rates": { "storage": 0.0001 },
+        "noise_factor": 2,
+        "status_thresholds": {
+          "conn_util": { "warning": 80, "critical": 100 },
+          "error_rate": { "warning": 1, "critical": 5 }
+        }
+      },
       "attributes": {
         "connections": { "name": "Max Connections", "unit": "count", "initialLimit": 100, "minLimit": 10, "maxLimit": 1000, "costPerUnit": 1 },
         "storage": { "name": "Storage", "unit": "GB", "initialLimit": 500, "minLimit": 50, "maxLimit": 5000, "costPerUnit": 0.5 }
@@ -50,6 +77,14 @@
       "id": "log-storage",
       "name": "Log Block Storage",
       "type": "storage",
+      "physics": {
+        "consumption_rates": { "storage_usage": 0.05 },
+        "saturation_threshold_percent": 100,
+        "status_thresholds": {
+          "storage_util": { "warning": 85, "critical": 100 },
+          "error_rate": { "warning": 1, "critical": 5 }
+        }
+      },
       "attributes": {
         "storage_usage": { "name": "Storage Usage", "unit": "GB", "initialLimit": 1000, "minLimit": 100, "maxLimit": 10000, "costPerUnit": 0.1 }
       },

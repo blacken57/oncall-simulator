@@ -59,6 +59,35 @@ export interface MetricConfig {
   maxHistory?: number;
 }
 
+export interface ComponentPhysicsConfig {
+  /** How many requests 1 unit of the primary attribute can handle (e.g., 20 reqs/GCU) */
+  request_capacity_per_unit?: number;
+  
+  /** Base latency in milliseconds */
+  latency_base_ms?: number;
+  
+  /** Latency increase per request (ms/req) */
+  latency_load_factor?: number;
+  
+  /** Utilization % (0-100) where non-linear degradation begins */
+  saturation_threshold_percent?: number;
+  
+  /** How aggressively latency spikes after the saturation threshold */
+  saturation_penalty_factor?: number;
+
+  /** Base resource consumption regardless of load (attribute_key -> base_value) */
+  resource_base_usage?: Record<string, number>;
+
+  /** Rate at which attributes are consumed per request (attribute_key -> usage_per_req) */
+  consumption_rates?: Record<string, number>;
+
+  /** Random variance applied to metrics (0-1) */
+  noise_factor?: number;
+  
+  /** Thresholds for status changes (metric/attribute -> { warning, critical }) */
+  status_thresholds?: Record<string, { warning: number; critical: number }>;
+}
+
 export interface ComponentConfig {
   id: string;
   name: string;
@@ -66,6 +95,7 @@ export interface ComponentConfig {
   attributes: Record<string, AttributeConfig>;
   metrics: Record<string, MetricConfig>;
   traffic_routes: TrafficRouteConfig[];
+  physics?: ComponentPhysicsConfig;
 }
 
 export interface LevelConfig {
