@@ -46,10 +46,10 @@ export class ScheduledJob {
       for (const effect of this.affectedAttributes) {
         const attr = target.attributes[effect.name];
         if (attr) {
-          // Apply additive multiplier and/or static offset
-          const multiplierEffect = attr.current * (effect.multiplier ?? 0);
+          // Apply additive multiplier and/or static offset to the LIMIT
+          const multiplierEffect = attr.limit * (effect.multiplier ?? 0);
           const offsetEffect = effect.offset ?? 0;
-          attr.update(attr.current + multiplierEffect + offsetEffect);
+          attr.limit = attr.limit + multiplierEffect + offsetEffect;
         }
       }
     }
