@@ -1,15 +1,21 @@
 <script lang="ts">
   import snarkdown from 'snarkdown';
-  import { onMount } from 'svelte';
 
   // Load all markdown files from the docs directory as raw strings
-  const docs = import.meta.glob('../../data/docs/*.md', { query: '?raw', eager: true });
+  // 'as: raw' is more reliable in Vite 5 for production builds
+  const docs = import.meta.glob('../../data/docs/*.md', { as: 'raw', eager: true });
 
   let currentDoc = $state('index.md');
   let htmlContent = $derived.by(() => {
     // Find the key that matches our current filename
-    const key = Object.keys(docs).find(k => k.endsWith(currentDoc));
-    const raw = key ? (docs[key] as any).default : '# Error\nDocument not found.';
+    const key = Object.keys(docs).find((k) => k.endsWith(currentDoc));
+    if (!key) return '# Error\nDocument not found.';
+
+    // In production, 'as: raw' usually returns the string directly.
+    // In dev or with other configs, it might be { default: string }.
+    const val = docs[key];
+    const raw = typeof val === 'string' ? val : (val as any).default || '';
+
     return snarkdown(raw);
   });
 
@@ -28,23 +34,27 @@
   }
 
   // Sidebar list
-  const docList = Object.keys(docs).map(path => {
+  const docList = Object.keys(docs).map((path) => {
     const filename = path.split('/').pop() || '';
     return {
-        filename,
-        label: filename.replace('.md', '').split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
+      filename,
+      label: filename
+        .replace('.md', '')
+        .split('-')
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ')
     };
   });
 </script>
 
 <div class="docs-view">
   <aside class="docs-sidebar">
-    <header>DOCUMENTATION</header>
+    <header>DOCUMENTATION ({docList.length})</header>
     <nav>
       {#each docList as doc}
-        <button 
+        <button
           class="doc-nav-item {currentDoc === doc.filename ? 'active' : ''}"
-          onclick={() => currentDoc = doc.filename}
+          onclick={() => (currentDoc = doc.filename)}
         >
           {doc.label}
         </button>
