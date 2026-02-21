@@ -25,10 +25,10 @@ export class DatabaseNode extends SystemComponent {
     };
   }
 
-  protected calculateInternalFailures(value: number): number {
+  protected calculateFailureRate(totalDemand: number): number {
     const limit = this.attributes.connections.limit;
-    if (value > limit) {
-      return value - limit;
+    if (totalDemand > limit) {
+      return (totalDemand - limit) / totalDemand;
     }
     return 0;
   }

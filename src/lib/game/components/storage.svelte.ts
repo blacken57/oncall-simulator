@@ -20,9 +20,9 @@ export class StorageNode extends SystemComponent {
     };
   }
 
-  protected calculateInternalFailures(): number {
+  protected calculateFailureRate(totalDemand: number): number {
     const util = this.attributes.storage_usage.utilization;
-    if (util >= 100) return 1000000; // Total failure
+    if (util >= 100) return 1; // Total failure
     return 0;
   }
 

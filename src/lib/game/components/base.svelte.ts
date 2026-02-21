@@ -10,6 +10,7 @@ import { Attribute, Metric } from '../base.svelte';
  * Interface to avoid circular dependency with GameEngine
  */
 export interface TrafficHandler {
+  recordDemand(trafficName: string, value: number): void;
   handleTraffic(trafficName: string, value: number): number;
   statusEffects: StatusEffect[];
 }
@@ -33,6 +34,7 @@ export abstract class SystemComponent {
   physics: ComponentPhysicsConfig;
 
   // Temporary state for the current tick
+  totalExpectedVolume = 0;
   incomingTrafficVolume = 0;
   unsuccessfulTrafficVolume = 0;
 
@@ -58,44 +60,66 @@ export abstract class SystemComponent {
    */
   protected abstract getDefaultPhysics(): ComponentPhysicsConfig;
 
-    /**
-     * Processes a specific traffic flow through this component.
-     * @returns successfulCalls
-     */
-    handleTraffic(trafficName: string, value: number, handler: TrafficHandler): number {
-      this.incomingTrafficVolume += value;
-      
-      let successfulVolume = value;
-      const route = this.trafficRoutes.find(r => r.name === trafficName);
-      
-      // 1. Process outgoing traffic dependencies sequentially
-      if (route && value > 0) {
-        for (const outgoing of route.outgoing_traffics) {
-          // Only pass what hasn't already failed upstream in the chain
-          const subSuccess = handler.handleTraffic(outgoing.name, successfulVolume * outgoing.multiplier);
-          
-          // Scale success back to parent requests (conservative floor)
-          const parentEquivalentSuccess = Math.floor(subSuccess / outgoing.multiplier);
-          successfulVolume = Math.min(successfulVolume, parentEquivalentSuccess);
-          
-          if (successfulVolume <= 0) break; // Short-circuit: nothing left to process
-        }
+  /**
+   * Pass 1: Records the intended traffic volume to calculate total demand.
+   */
+  recordDemand(trafficName: string, value: number, handler: TrafficHandler) {
+    this.totalExpectedVolume += value;
+    const route = this.trafficRoutes.find(r => r.name === trafficName);
+    
+    if (route && value > 0) {
+      for (const outgoing of route.outgoing_traffics) {
+        handler.recordDemand(outgoing.name, value * outgoing.multiplier);
       }
-  
-      // 2. Add internal failures (e.g. saturation)
-      const internalFails = this.calculateInternalFailures(successfulVolume);
-      successfulVolume = Math.max(0, successfulVolume - internalFails);
-      
-      const failed = value - successfulVolume;
-      this.unsuccessfulTrafficVolume += failed;
-  
-      return successfulVolume;
     }
+  }
 
   /**
-   * Subclasses should implement this to define failure logic based on utilization.
+   * Processes a specific traffic flow through this component using total demand for fairness.
+   * @returns successfulCalls
    */
-  protected abstract calculateInternalFailures(value: number): number;
+  handleTraffic(trafficName: string, value: number, handler: TrafficHandler): number {
+    this.incomingTrafficVolume += value;
+    
+    // Calculate global failure rate for this tick based on total demand
+    const failureRate = this.calculateFailureRate(this.totalExpectedVolume);
+    let successfulVolume = value * (1 - failureRate);
+
+    const route = this.trafficRoutes.find(r => r.name === trafficName);
+    
+    // 1. Process outgoing traffic dependencies sequentially
+    if (route && successfulVolume > 0) {
+      for (const outgoing of route.outgoing_traffics) {
+        // Only pass what hasn't already failed upstream in the chain
+        const subSuccess = handler.handleTraffic(outgoing.name, successfulVolume * outgoing.multiplier);
+        
+        // Scale success back to parent requests (conservative floor)
+        const parentEquivalentSuccess = Math.floor(subSuccess / outgoing.multiplier);
+        successfulVolume = Math.min(successfulVolume, parentEquivalentSuccess);
+        
+        if (successfulVolume <= 0) break; // Short-circuit
+      }
+    }
+
+    const failed = value - successfulVolume;
+    this.unsuccessfulTrafficVolume += failed;
+
+    return successfulVolume;
+  }
+
+  /**
+   * Subclasses should implement this to define a failure rate (0-1) based on total demand.
+   */
+  protected abstract calculateFailureRate(totalDemand: number): number;
+
+  /**
+   * Resets tick-based accumulators.
+   */
+  resetTick() {
+    this.totalExpectedVolume = 0;
+    this.incomingTrafficVolume = 0;
+    this.unsuccessfulTrafficVolume = 0;
+  }
 
   /** 
    * Updates component internal state (utilization, etc.) based on total traffic seen this tick.

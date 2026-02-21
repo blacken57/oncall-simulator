@@ -88,6 +88,19 @@ export class GameEngine implements TrafficHandler {
   }
 
   /**
+   * Pass 1: Recursive demand collection.
+   */
+  recordDemand(trafficName: string, value: number) {
+    const traffic = this.traffics[trafficName];
+    if (!traffic) return;
+
+    const targetComponent = Object.values(this.components).find(c => c.name === traffic.targetComponentName);
+    if (!targetComponent) return;
+
+    targetComponent.recordDemand(trafficName, value, this);
+  }
+
+  /**
    * Main recursive entry point for handling traffic.
    * Returns successfulCalls
    */
@@ -131,67 +144,77 @@ export class GameEngine implements TrafficHandler {
     }
   }
 
-  update() {
-    this.tick++;
-
-    // 0. Process Scheduled Jobs
-    for (const job of this.scheduledJobs) {
-      if (job.shouldRun(this.tick)) {
-        job.run(this, this.tick);
-      }
-    }
-
-    // 1. Update Status Effects (Materialization & Resolution)
-    for (const effect of this.statusEffects) {
-      effect.tick();
-    }
-
-    // 2. Process Pending Actions
-    this.pendingActions.forEach(action => {
-      if (action.status === 'pending') {
-        action.ticksRemaining--;
-        if (action.ticksRemaining <= 0) {
-          this.applyAction(action);
+    update() {
+      this.tick++;
+  
+      // 0. Reset Components for the new tick
+      Object.values(this.components).forEach(comp => comp.resetTick());
+  
+      // 1. Process Scheduled Jobs
+      for (const job of this.scheduledJobs) {
+        if (job.shouldRun(this.tick)) {
+          job.run(this, this.tick);
         }
       }
-    });
-    this.pendingActions = this.pendingActions.filter(a => a.status === 'pending');
-
-    // 3. Initiate External Traffic
-    for (const traffic of Object.values(this.traffics)) {
-      if (traffic.type === 'external') {
-        const noise = (Math.random() * traffic.baseVariance * 2) - traffic.baseVariance;
-        // Update the base value with noise only (natural drift)
-        const newBaseValue = Math.max(0, traffic.value + noise);
-        traffic.value = newBaseValue;
-
-        let multiplierSum = 0;
-        let offsetSum = 0;
-        // Apply traffic-specific status effects to the CURRENT tick
-        for (const effect of this.statusEffects) {
-          if (effect instanceof TrafficStatusEffect && effect.isActive && effect.trafficAffected === traffic.id) {
-            multiplierSum += effect.multiplier;
-            offsetSum += effect.offset;
+  
+      // 2. Update Status Effects (Materialization & Resolution)
+      for (const effect of this.statusEffects) {
+        effect.tick();
+      }
+  
+      // 3. Process Pending Actions
+      this.pendingActions.forEach(action => {
+        if (action.status === 'pending') {
+          action.ticksRemaining--;
+          if (action.ticksRemaining <= 0) {
+            this.applyAction(action);
           }
         }
-
-        const currentVolume = Math.round(newBaseValue + (newBaseValue * multiplierSum) + offsetSum);
-        				
-        				// Recursive call chain
-        				const success = this.handleTraffic(traffic.id, currentVolume);
-        				const fail = currentVolume - success;
-        				
-        				// Update traffic history
-        				traffic.update(newBaseValue, currentVolume, success, fail);      }
+      });
+      this.pendingActions = this.pendingActions.filter(a => a.status === 'pending');
+  
+      // 4. PRE-PASS: Calculate External Volumes and Record Demand
+      const externalWork: { traffic: Traffic, volume: number, base: number }[] = [];
+      
+      for (const traffic of Object.values(this.traffics)) {
+        if (traffic.type === 'external') {
+          const noise = (Math.random() * traffic.baseVariance * 2) - traffic.baseVariance;
+          const newBaseValue = Math.max(0, traffic.value + noise);
+          traffic.value = newBaseValue;
+  
+          let multiplierSum = 0;
+          let offsetSum = 0;
+          for (const effect of this.statusEffects) {
+            if (effect instanceof TrafficStatusEffect && effect.isActive && effect.trafficAffected === traffic.id) {
+              multiplierSum += effect.multiplier;
+              offsetSum += effect.offset;
+            }
+          }
+  
+          const currentVolume = Math.round(newBaseValue + (newBaseValue * multiplierSum) + offsetSum);
+          externalWork.push({ traffic, volume: currentVolume, base: newBaseValue });
+          
+          // Pass 1: Recursive demand collection
+          this.recordDemand(traffic.id, currentVolume);
+        }
+      }
+  
+      // 5. RESOLUTION-PASS: Process External Traffic with known total demand
+      for (const work of externalWork) {
+        const { traffic, volume, base } = work;
+        const success = this.handleTraffic(traffic.id, volume);
+        const fail = volume - success;
+        
+        // Update traffic history
+        traffic.update(base, volume, success, fail);
+      }
+  
+      // 6. Tick each component to finalize metrics and handle physics
+      Object.values(this.components).forEach(comp => {
+        comp.tick(this);
+      });
     }
-
-    // 4. Tick each component to finalize metrics and handle physics
-    Object.values(this.components).forEach(comp => {
-      comp.tick(this);
-    });
-  }
-
-  private applyAction(action: QueuedAction) {
+    private applyAction(action: QueuedAction) {
     const component = this.components[action.componentId];
     if (component && component.attributes[action.attributeId]) {
       component.attributes[action.attributeId].limit = action.newValue;

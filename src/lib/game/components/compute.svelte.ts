@@ -29,10 +29,10 @@ export class ComputeNode extends SystemComponent {
     };
   }
 
-  protected calculateInternalFailures(value: number): number {
+  protected calculateFailureRate(totalDemand: number): number {
     const capacity = this.attributes.gcu.limit * (this.physics.request_capacity_per_unit ?? 20);
-    if (value > capacity) {
-      return value - capacity;
+    if (totalDemand > capacity) {
+      return (totalDemand - capacity) / totalDemand;
     }
     return 0;
   }

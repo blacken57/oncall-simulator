@@ -32,10 +32,17 @@
       },
       "traffic_routes": [
         {
-          "name": "external_checkout_requests",
+          "name": "initiatePurchase",
           "outgoing_traffics": [
             { "name": "internal_db_queries", "multiplier": 2 },
-            { "name": "internal_log_writes", "multiplier": 5 }
+            { "name": "internal_log_writes", "multiplier": 3 }
+          ]
+        },
+        {
+          "name": "commitPurchase",
+          "outgoing_traffics": [
+            { "name": "internal_db_queries", "multiplier": 1 },
+            { "name": "internal_log_writes", "multiplier": 2 }
           ]
         }
       ]
@@ -104,10 +111,17 @@
   "traffics": [
     {
       "type": "external",
-      "name": "external_checkout_requests",
+      "name": "initiatePurchase",
       "target_component_name": "Checkout Server",
-      "value": 100,
-      "base_variance": 10
+      "value": 60,
+      "base_variance": 5
+    },
+    {
+      "type": "external",
+      "name": "commitPurchase",
+      "target_component_name": "Checkout Server",
+      "value": 40,
+      "base_variance": 5
     },
     {
       "type": "internal",
@@ -124,7 +138,7 @@
     {
       "type": "traffic",
       "name": "Viral Post",
-      "traffic_affected": "external_checkout_requests",
+      "traffic_affected": "initiatePurchase",
       "multiplier": 3.0,
       "turnsRemaining": 30
     },
