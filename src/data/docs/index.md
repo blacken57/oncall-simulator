@@ -18,6 +18,7 @@ Our system is a highly complex, "battle-tested" (meaning we haven't restarted it
 
 - [Infrastructure Hierarchy](infrastructure.md)
 - [How to (maybe) fix things](incident-response.md)
+- [Operational Events](events.md)
 - [The Coffee Machine Manual](coffee-machine.md) (Crucial during outages)
 
 ---

@@ -2,6 +2,14 @@
 
 If your pager goes off, follow these steps in order. Deviation from the protocol may result in "Strongly Worded Feedback" during the weekly post-mortem.
 
+## Step 0: The Warning Phase (Upcoming Events)
+
+Not all outages are sudden. Some are preceded by a **Warning Ticket**.
+
+- **Acknowledge**: Check the ticket description for the "Delay" (how many cycles until the event starts).
+- **Proactive Scaling**: Use this time to provision extra RAM or GCU. Scaling takes time—if you wait until the event is active, it will be too late.
+- **Cost/Benefit**: Is it worth scaling up for a 2-cycle event? Maybe not. Use your judgment.
+
 ## Step 1: Acknowledge
 
 Don't just stare at the screen. Move the ticket to "Investigating." This signals to the rest of the team (and the system) that you are on it. Ignoring an alert for too long will tank our department's reputation.
