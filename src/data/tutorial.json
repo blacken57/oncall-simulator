@@ -1,7 +1,7 @@
 {
   "id": "tutorial",
-  "name": "Simple Service",
-  "description": "A basic service with a single point of failure. Monitor the CPU.",
+  "name": "Tutorial: Basic Monitoring",
+  "description": "Learn the basics of monitoring and resource management.",
   "components": [
     {
       "id": "basic-server",

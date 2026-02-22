@@ -1,6 +1,6 @@
 {
   "id": "level-1",
-  "name": "Standard Operations",
+  "name": "Simple Checkout System",
   "description": "Keep the checkout system healthy under normal load.",
   "components": [
     {
