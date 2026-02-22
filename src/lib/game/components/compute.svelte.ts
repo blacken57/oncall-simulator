@@ -48,7 +48,9 @@ export class ComputeNode extends SystemComponent {
       const capPerUnit = physics.request_capacity_per_unit ?? 20;
       const resourceBase =
         physics.resource_base_usage?.gcu ?? physics.resource_base_usage?.cpu ?? 0;
-      primaryAttr.update(resourceBase + traffic / capPerUnit + Math.random() * noiseFactor);
+      const calculatedValue = resourceBase + traffic / capPerUnit + Math.random() * noiseFactor;
+      // Cap at limit to avoid > 100% utilization in metrics
+      primaryAttr.update(Math.min(primaryAttr.limit, calculatedValue));
     }
 
     // RAM Usage

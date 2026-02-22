@@ -31,7 +31,13 @@ export class ScheduledJob {
    * Executes the job, applying attribute changes and emitting traffic.
    */
   run(handler: TrafficHandler, tick: number) {
-    // 1. Emit traffic
+    // 1. Emit traffic (Two-pass approach)
+    // Pass 1: Record demand
+    for (const traffic of this.emittedTraffic) {
+      handler.recordDemand(traffic.name, traffic.value);
+    }
+
+    // Pass 2: Handle traffic
     for (const traffic of this.emittedTraffic) {
       handler.handleTraffic(traffic.name, traffic.value);
     }

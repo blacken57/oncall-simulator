@@ -1,0 +1,524 @@
+{
+  "id": "ecommerce-megastore",
+  "name": "E-commerce Megastore",
+  "description": "Manage a high-traffic e-commerce platform during peak sales events.",
+  "components": [
+    {
+      "id": "api-gateway",
+      "name": "API Gateway",
+      "type": "compute",
+      "physics": {
+        "request_capacity_per_unit": 250,
+        "latency_base_ms": 10,
+        "latency_load_factor": 0.05,
+        "saturation_threshold_percent": 75,
+        "saturation_penalty_factor": 0.2,
+        "resource_base_usage": { "cpu": 2.0 },
+        "consumption_rates": { "cpu": 0.001 },
+        "noise_factor": 0.1
+      },
+      "attributes": {
+        "cpu": {
+          "name": "CPU Cores",
+          "unit": "cores",
+          "initialLimit": 16,
+          "minLimit": 4,
+          "maxLimit": 128,
+          "costPerUnit": 20,
+          "apply_delay": 3
+        }
+      },
+      "metrics": {
+        "incoming": { "name": "Requests", "unit": "req/s" },
+        "latency": { "name": "P99 Latency", "unit": "ms" },
+        "error_rate": { "name": "Error Rate", "unit": "%" }
+      },
+      "alerts": [
+        {
+          "name": "Gateway Latency Spike",
+          "metric": "latency",
+          "warning_threshold": 150,
+          "critical_threshold": 300,
+          "direction": "above"
+        }
+      ],
+      "traffic_routes": [
+        {
+          "name": "search_request",
+          "base_latency_ms": 5,
+          "outgoing_traffics": [{ "name": "internal_search", "multiplier": 1 }]
+        },
+        {
+          "name": "cart_request",
+          "base_latency_ms": 5,
+          "outgoing_traffics": [{ "name": "internal_cart", "multiplier": 1 }]
+        },
+        {
+          "name": "checkout_request",
+          "base_latency_ms": 10,
+          "outgoing_traffics": [{ "name": "internal_order", "multiplier": 1 }]
+        }
+      ]
+    },
+    {
+      "id": "search-service",
+      "name": "Search Service",
+      "type": "compute",
+      "physics": {
+        "request_capacity_per_unit": 100,
+        "latency_base_ms": 20,
+        "latency_load_factor": 0.1,
+        "saturation_threshold_percent": 80,
+        "saturation_penalty_factor": 0.5,
+        "resource_base_usage": { "cpu": 4.0 },
+        "consumption_rates": { "cpu": 0.005 },
+        "noise_factor": 0.2
+      },
+      "attributes": {
+        "cpu": {
+          "name": "CPU Cores",
+          "unit": "cores",
+          "initialLimit": 32,
+          "minLimit": 4,
+          "maxLimit": 256,
+          "costPerUnit": 20,
+          "apply_delay": 5
+        }
+      },
+      "metrics": {
+        "incoming": { "name": "Search Requests", "unit": "req/s" },
+        "latency": { "name": "P99 Latency", "unit": "ms" },
+        "error_rate": { "name": "Error Rate", "unit": "%" }
+      },
+      "alerts": [
+        {
+          "name": "Search Service Slow",
+          "metric": "latency",
+          "warning_threshold": 200,
+          "critical_threshold": 500,
+          "direction": "above"
+        }
+      ],
+      "traffic_routes": [
+        {
+          "name": "internal_search",
+          "base_latency_ms": 20,
+          "outgoing_traffics": [{ "name": "search_db_io", "multiplier": 3 }]
+        }
+      ]
+    },
+    {
+      "id": "search-db",
+      "name": "Search Database",
+      "type": "storage",
+      "physics": {
+        "consumption_rates": { "storage_usage": 0.01 },
+        "saturation_threshold_percent": 90,
+        "noise_factor": 1.0
+      },
+      "attributes": {
+        "storage_usage": {
+          "name": "Disk Usage",
+          "unit": "GB",
+          "initialLimit": 2000,
+          "minLimit": 500,
+          "maxLimit": 10000,
+          "costPerUnit": 0.05
+        }
+      },
+      "metrics": {
+        "incoming": { "name": "Disk IOPS", "unit": "iops" },
+        "fill_rate": { "name": "Fill Rate", "unit": "GB/s" },
+        "error_rate": { "name": "Error Rate", "unit": "%" }
+      },
+      "alerts": [
+        {
+          "name": "Search DB Full",
+          "metric": "storage_usage",
+          "warning_threshold": 80,
+          "critical_threshold": 95,
+          "direction": "above"
+        }
+      ],
+      "traffic_routes": [
+        {
+          "name": "search_db_io",
+          "base_latency_ms": 50,
+          "outgoing_traffics": []
+        }
+      ]
+    },
+    {
+      "id": "cart-service",
+      "name": "Cart Service",
+      "type": "compute",
+      "physics": {
+        "request_capacity_per_unit": 200,
+        "latency_base_ms": 5,
+        "latency_load_factor": 0.01,
+        "saturation_threshold_percent": 90,
+        "saturation_penalty_factor": 0.1,
+        "resource_base_usage": { "cpu": 2.0 },
+        "consumption_rates": { "cpu": 0.0005 },
+        "noise_factor": 0.05
+      },
+      "attributes": {
+        "cpu": {
+          "name": "CPU Cores",
+          "unit": "cores",
+          "initialLimit": 4,
+          "minLimit": 2,
+          "maxLimit": 64,
+          "costPerUnit": 20,
+          "apply_delay": 2
+        }
+      },
+      "metrics": {
+        "incoming": { "name": "Cart Actions", "unit": "req/s" },
+        "latency": { "name": "P99 Latency", "unit": "ms" },
+        "error_rate": { "name": "Error Rate", "unit": "%" }
+      },
+      "alerts": [],
+      "traffic_routes": [
+        {
+          "name": "internal_cart",
+          "base_latency_ms": 5,
+          "outgoing_traffics": [{ "name": "cart_cache_queries", "multiplier": 2 }]
+        }
+      ]
+    },
+    {
+      "id": "cart-cache",
+      "name": "Cart Cache",
+      "type": "database",
+      "physics": {
+        "request_capacity_per_unit": 1,
+        "latency_base_ms": 1,
+        "latency_load_factor": 0.01,
+        "saturation_threshold_percent": 95,
+        "saturation_penalty_factor": 10,
+        "consumption_rates": { "storage": 0.00001 },
+        "noise_factor": 0.1
+      },
+      "attributes": {
+        "connections": {
+          "name": "Active Connections",
+          "unit": "count",
+          "initialLimit": 5000,
+          "minLimit": 1000,
+          "maxLimit": 50000,
+          "costPerUnit": 0.01,
+          "apply_delay": 5
+        },
+        "storage": {
+          "name": "Memory Usage",
+          "unit": "MB",
+          "initialLimit": 8192,
+          "minLimit": 1024,
+          "maxLimit": 65536,
+          "costPerUnit": 0.1
+        }
+      },
+      "metrics": {
+        "incoming": { "name": "Cache Queries", "unit": "qps" },
+        "query_latency": { "name": "Query Latency", "unit": "ms" },
+        "error_rate": { "name": "Error Rate", "unit": "%" }
+      },
+      "alerts": [
+        {
+          "name": "Cache Connection Limit",
+          "metric": "connections",
+          "warning_threshold": 80,
+          "critical_threshold": 95,
+          "direction": "above"
+        }
+      ],
+      "traffic_routes": [
+        {
+          "name": "cart_cache_queries",
+          "base_latency_ms": 1,
+          "outgoing_traffics": []
+        }
+      ]
+    },
+    {
+      "id": "order-service",
+      "name": "Order Service",
+      "type": "compute",
+      "physics": {
+        "request_capacity_per_unit": 20,
+        "latency_base_ms": 100,
+        "latency_load_factor": 0.5,
+        "saturation_threshold_percent": 70,
+        "saturation_penalty_factor": 0.5,
+        "resource_base_usage": { "cpu": 8.0 },
+        "consumption_rates": { "cpu": 0.05 },
+        "noise_factor": 0.5
+      },
+      "attributes": {
+        "cpu": {
+          "name": "CPU Cores",
+          "unit": "cores",
+          "initialLimit": 32,
+          "minLimit": 8,
+          "maxLimit": 512,
+          "costPerUnit": 20,
+          "apply_delay": 10
+        }
+      },
+      "metrics": {
+        "incoming": { "name": "Checkouts", "unit": "req/s" },
+        "latency": { "name": "P99 Latency", "unit": "ms" },
+        "error_rate": { "name": "Error Rate", "unit": "%" }
+      },
+      "alerts": [
+        {
+          "name": "Checkout Error Rate",
+          "metric": "error_rate",
+          "warning_threshold": 2,
+          "critical_threshold": 10,
+          "direction": "above"
+        }
+      ],
+      "traffic_routes": [
+        {
+          "name": "internal_order",
+          "base_latency_ms": 100,
+          "outgoing_traffics": [
+            { "name": "order_db_queries", "multiplier": 4 },
+            { "name": "inventory_updates", "multiplier": 1 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "order-db",
+      "name": "Order Database",
+      "type": "database",
+      "physics": {
+        "request_capacity_per_unit": 1,
+        "latency_base_ms": 20,
+        "latency_load_factor": 0.2,
+        "saturation_threshold_percent": 85,
+        "saturation_penalty_factor": 5,
+        "consumption_rates": { "storage": 0.001 },
+        "noise_factor": 1.0
+      },
+      "attributes": {
+        "connections": {
+          "name": "Max Connections",
+          "unit": "count",
+          "initialLimit": 1000,
+          "minLimit": 100,
+          "maxLimit": 10000,
+          "costPerUnit": 1,
+          "apply_delay": 20
+        },
+        "storage": {
+          "name": "Storage",
+          "unit": "GB",
+          "initialLimit": 1000,
+          "minLimit": 100,
+          "maxLimit": 50000,
+          "costPerUnit": 0.5
+        }
+      },
+      "metrics": {
+        "incoming": { "name": "SQL Queries", "unit": "qps" },
+        "query_latency": { "name": "Query Latency", "unit": "ms" },
+        "error_rate": { "name": "Error Rate", "unit": "%" }
+      },
+      "alerts": [
+        {
+          "name": "Order DB Saturation",
+          "metric": "connections",
+          "warning_threshold": 90,
+          "critical_threshold": 100,
+          "direction": "above"
+        }
+      ],
+      "traffic_routes": [
+        {
+          "name": "order_db_queries",
+          "base_latency_ms": 20,
+          "outgoing_traffics": []
+        }
+      ]
+    },
+    {
+      "id": "inventory-service",
+      "name": "Inventory Service",
+      "type": "compute",
+      "physics": {
+        "request_capacity_per_unit": 200,
+        "latency_base_ms": 10,
+        "latency_load_factor": 0.1,
+        "saturation_threshold_percent": 90,
+        "saturation_penalty_factor": 0.1,
+        "resource_base_usage": { "cpu": 4.0 },
+        "consumption_rates": { "cpu": 0.001 },
+        "noise_factor": 0.1
+      },
+      "attributes": {
+        "cpu": {
+          "name": "CPU Cores",
+          "unit": "cores",
+          "initialLimit": 16,
+          "minLimit": 2,
+          "maxLimit": 128,
+          "costPerUnit": 20,
+          "apply_delay": 5
+        }
+      },
+      "metrics": {
+        "incoming": { "name": "Inventory Ops", "unit": "req/s" },
+        "latency": { "name": "P99 Latency", "unit": "ms" },
+        "error_rate": { "name": "Error Rate", "unit": "%" }
+      },
+      "alerts": [],
+      "traffic_routes": [
+        {
+          "name": "inventory_updates",
+          "base_latency_ms": 10,
+          "outgoing_traffics": [{ "name": "inventory_db_queries", "multiplier": 1 }]
+        },
+        {
+          "name": "inventory_sync_traffic",
+          "base_latency_ms": 50,
+          "outgoing_traffics": [{ "name": "inventory_db_queries", "multiplier": 10 }]
+        }
+      ]
+    },
+    {
+      "id": "inventory-db",
+      "name": "Inventory Database",
+      "type": "database",
+      "physics": {
+        "request_capacity_per_unit": 1,
+        "latency_base_ms": 5,
+        "latency_load_factor": 0.1,
+        "saturation_threshold_percent": 95,
+        "saturation_penalty_factor": 2,
+        "consumption_rates": { "storage": 0.0001 },
+        "noise_factor": 0.5
+      },
+      "attributes": {
+        "connections": {
+          "name": "Connections",
+          "unit": "count",
+          "initialLimit": 500,
+          "minLimit": 50,
+          "maxLimit": 5000,
+          "costPerUnit": 1,
+          "apply_delay": 10
+        },
+        "storage": {
+          "name": "Storage",
+          "unit": "GB",
+          "initialLimit": 500,
+          "minLimit": 100,
+          "maxLimit": 10000,
+          "costPerUnit": 0.2
+        }
+      },
+      "metrics": {
+        "incoming": { "name": "DB Queries", "unit": "qps" },
+        "query_latency": { "name": "Query Latency", "unit": "ms" },
+        "error_rate": { "name": "Error Rate", "unit": "%" }
+      },
+      "alerts": [],
+      "traffic_routes": [
+        {
+          "name": "inventory_db_queries",
+          "base_latency_ms": 5,
+          "outgoing_traffics": []
+        }
+      ]
+    }
+  ],
+  "traffics": [
+    {
+      "type": "external",
+      "name": "search_request",
+      "target_component_name": "API Gateway",
+      "value": 1000,
+      "base_variance": 100
+    },
+    {
+      "type": "external",
+      "name": "cart_request",
+      "target_component_name": "API Gateway",
+      "value": 500,
+      "base_variance": 50
+    },
+    {
+      "type": "external",
+      "name": "checkout_request",
+      "target_component_name": "API Gateway",
+      "value": 100,
+      "base_variance": 10
+    },
+    { "type": "internal", "name": "internal_search", "target_component_name": "Search Service" },
+    { "type": "internal", "name": "internal_cart", "target_component_name": "Cart Service" },
+    { "type": "internal", "name": "internal_order", "target_component_name": "Order Service" },
+    { "type": "internal", "name": "search_db_io", "target_component_name": "Search Database" },
+    { "type": "internal", "name": "cart_cache_queries", "target_component_name": "Cart Cache" },
+    { "type": "internal", "name": "order_db_queries", "target_component_name": "Order Database" },
+    {
+      "type": "internal",
+      "name": "inventory_updates",
+      "target_component_name": "Inventory Service"
+    },
+    {
+      "type": "internal",
+      "name": "inventory_db_queries",
+      "target_component_name": "Inventory Database"
+    },
+    {
+      "type": "internal",
+      "name": "inventory_sync_traffic",
+      "target_component_name": "Inventory Service"
+    }
+  ],
+  "statusEffects": [
+    {
+      "type": "traffic",
+      "name": "Cyber Monday Sale",
+      "traffic_affected": "search_request",
+      "multiplier": 10.0,
+      "materialization_probability": 0.001,
+      "turnsRemaining": 20,
+      "warning_config": {
+        "delay_ticks": 10,
+        "ticket_title": "Upcoming: Cyber Monday Sale",
+        "ticket_description": "Massive traffic surge expected in 10 ticks. Scale everything!"
+      }
+    },
+    {
+      "type": "component",
+      "name": "Search DB Reindexing",
+      "component_affected": "search-db",
+      "metric_affected": "latency",
+      "multiplier": 2.0,
+      "materialization_probability": 0.02,
+      "resolution_condition": { "turnsRemaining": 5 },
+      "max_instances_at_once": 1
+    }
+  ],
+  "scheduledJobs": [
+    {
+      "name": "Inventory Batch Sync",
+      "targetName": "Inventory Service",
+      "schedule": { "interval": 60 },
+      "affectedAttributes": [],
+      "emittedTraffic": [{ "name": "inventory_sync_traffic", "value": 2000 }]
+    },
+    {
+      "name": "Search DB Cleanup",
+      "targetName": "Search Database",
+      "schedule": { "interval": 120 },
+      "affectedAttributes": [{ "name": "storage_usage", "target": "value", "multiplier": -0.2 }],
+      "emittedTraffic": []
+    }
+  ]
+}

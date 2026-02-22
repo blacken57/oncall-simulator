@@ -75,6 +75,7 @@ Preview the build with `npm run preview`.
 - `src/lib/game/`: Core engine logic, reactive models, and scenario definitions.
 - `src/components/`: Reusable Svelte components for Dashboards, Tickets, and Action panels.
 - `src/data/`: JSON templates for tickets, documentation, and status effects.
+- `docs/LEVEL_CREATION.md`: [**Guide for creating and configuring new levels**](docs/LEVEL_CREATION.md).
 - `src/routes/`: Main application layouts and pages.
 
 ## 🗺️ Roadmap

@@ -11,9 +11,10 @@ describe('Level System & Engine Integration', () => {
 
   it('should list all available levels', () => {
     const levels = getAllLevels();
-    expect(levels.length).toBeGreaterThanOrEqual(2);
+    expect(levels.length).toBeGreaterThanOrEqual(3);
     expect(levels.map((l) => l.id)).toContain('tutorial');
     expect(levels.map((l) => l.id)).toContain('level-1');
+    expect(levels.map((l) => l.id)).toContain('ecommerce-megastore');
   });
 
   it('should load a level from registry', () => {
@@ -22,6 +23,17 @@ describe('Level System & Engine Integration', () => {
     engine.loadLevel(tutorial!);
     expect(engine.currentLevelId).toBe('tutorial');
     expect(Object.keys(engine.components).length).toBe(1);
+  });
+
+  it('should load the ecommerce-megastore level correctly', () => {
+    const level = getLevel('ecommerce-megastore');
+    expect(level).toBeDefined();
+    engine.loadLevel(level!);
+    expect(engine.currentLevelId).toBe('ecommerce-megastore');
+    expect(Object.keys(engine.components).length).toBe(9);
+    expect(engine.components['api-gateway']).toBeDefined();
+    expect(engine.components['search-service']).toBeDefined();
+    expect(engine.components['order-service']).toBeDefined();
   });
 
   it('should handle switching levels correctly', () => {

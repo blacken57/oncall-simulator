@@ -79,10 +79,20 @@ export function validateLevel(config: LevelConfig): ValidationError[] {
   });
 
   internalTraffics.forEach((name) => {
-    if (!allOutgoingTrafficNames.has(name)) {
+    // Check if emitted by a component route
+    let isEmitted = allOutgoingTrafficNames.has(name);
+
+    // Also check if emitted by a scheduled job
+    if (!isEmitted && config.scheduledJobs) {
+      isEmitted = config.scheduledJobs.some((job) =>
+        job.emittedTraffic.some((et) => et.name === name)
+      );
+    }
+
+    if (!isEmitted) {
       errors.push({
         path: 'traffics',
-        message: `Internal traffic "${name}" is never emitted by any component route.`
+        message: `Internal traffic "${name}" is never emitted by any component route or scheduled job.`
       });
     }
   });
