@@ -105,6 +105,14 @@ describe('GameEngine Integration', () => {
     ]
   };
 
+  it('should throw an error when loading a level with an unknown component type', () => {
+    const engine = new GameEngine();
+    const invalidLevel = JSON.parse(JSON.stringify(baseLevel));
+    invalidLevel.components[0].type = 'unknown-type';
+
+    expect(() => engine.loadLevel(invalidLevel)).toThrow('Unknown component type: unknown-type');
+  });
+
   it('should apply fair proportional failure using two-pass logic', () => {
     const engine = new GameEngine();
     engine.loadLevel(baseLevel);

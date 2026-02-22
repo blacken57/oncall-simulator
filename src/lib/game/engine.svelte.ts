@@ -103,7 +103,7 @@ export class GameEngine implements TrafficHandler {
           component = new StorageNode(compConfig);
           break;
         default:
-          component = new ComputeNode(compConfig);
+          throw new Error(`Unknown component type: ${compConfig.type}`);
       }
       this.components[compConfig.id] = component;
     }

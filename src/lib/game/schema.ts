@@ -100,10 +100,13 @@ export interface AlertConfig {
   direction: 'above' | 'below'; // 'above' means value > threshold is bad
 }
 
+export const VALID_COMPONENT_TYPES = ['compute', 'database', 'storage'] as const;
+export type ComponentType = (typeof VALID_COMPONENT_TYPES)[number];
+
 export interface ComponentConfig {
   id: string;
   name: string;
-  type: 'compute' | 'database' | 'storage' | string;
+  type: ComponentType;
   attributes: Record<string, AttributeConfig>;
   metrics: Record<string, MetricConfig>;
   traffic_routes: TrafficRouteConfig[];

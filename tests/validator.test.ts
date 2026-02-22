@@ -56,6 +56,13 @@ describe('Level Validator', () => {
     expect(errors).toHaveLength(0);
   });
 
+  it('catches invalid component types', () => {
+    const invalid = JSON.parse(JSON.stringify(baseLevel));
+    invalid.components[0].type = 'invalid-type';
+    const errors = validateLevel(invalid);
+    expect(errors.some((e) => e.message.includes('Unknown component type'))).toBe(true);
+  });
+
   it('catches duplicate component IDs', () => {
     const invalid = JSON.parse(JSON.stringify(baseLevel));
     invalid.components[1].id = 'comp-1';

@@ -1,4 +1,9 @@
-import type { LevelConfig, ComponentConfig, TrafficConfig } from './schema';
+import {
+  VALID_COMPONENT_TYPES,
+  type LevelConfig,
+  type ComponentConfig,
+  type TrafficConfig
+} from './schema';
 
 export interface ValidationError {
   path: string;
@@ -11,7 +16,7 @@ export function validateLevel(config: LevelConfig): ValidationError[] {
   const componentNames = new Set<string>();
   const trafficNames = new Set<string>();
 
-  // 1. Unique component IDs and names
+  // 1. Unique component IDs and names, and valid component types
   config.components.forEach((comp, i) => {
     if (componentIds.has(comp.id)) {
       errors.push({ path: `components[${i}].id`, message: `Duplicate component ID: ${comp.id}` });
@@ -25,6 +30,13 @@ export function validateLevel(config: LevelConfig): ValidationError[] {
       });
     }
     componentNames.add(comp.name);
+
+    if (!VALID_COMPONENT_TYPES.includes(comp.type as any)) {
+      errors.push({
+        path: `components[${i}].type`,
+        message: `Unknown component type: ${comp.type}`
+      });
+    }
   });
 
   // 2. Unique traffic names
