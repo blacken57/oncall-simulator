@@ -258,8 +258,21 @@
       "name": "Flash Sale",
       "traffic_affected": "initiatePurchase",
       "multiplier": 4.0,
-      "materialization_probability": 0.1,
+      "materialization_probability": 0.0001,
       "turnsRemaining": 3
+    },
+    {
+      "type": "traffic",
+      "name": "Scheduled Load Test",
+      "traffic_affected": "initiatePurchase",
+      "multiplier": 2.0,
+      "materialization_probability": 0.05,
+      "turnsRemaining": 10,
+      "warning_config": {
+        "delay_ticks": 5,
+        "ticket_title": "Upcoming: Scheduled Load Test",
+        "ticket_description": "The QA team has scheduled a synthetic load test on the checkout flow. Expect a 3x increase in traffic starting in 5 ticks."
+      }
     }
   ],
   "scheduledJobs": [

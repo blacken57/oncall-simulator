@@ -23,6 +23,12 @@ export interface ResolutionConditionConfig {
   turnsRemaining?: number;
 }
 
+export interface StatusEffectWarningConfig {
+  delay_ticks: number;
+  ticket_title: string;
+  ticket_description: string;
+}
+
 export interface ComponentStatusEffectConfig {
   type: 'component';
   name: string; // Unique readable id
@@ -33,6 +39,7 @@ export interface ComponentStatusEffectConfig {
   materialization_probability: number; // Probability each tick (0-1)
   resolution_condition: ResolutionConditionConfig;
   max_instances_at_once: number;
+  warning_config?: StatusEffectWarningConfig;
 }
 
 export interface TrafficStatusEffectConfig {
@@ -44,6 +51,7 @@ export interface TrafficStatusEffectConfig {
   materialization_probability: number; // Probability each tick (0-1)
   turnsRemaining: number;
   max_instances_at_once?: number;
+  warning_config?: StatusEffectWarningConfig;
 }
 
 export type StatusEffectConfig = ComponentStatusEffectConfig | TrafficStatusEffectConfig;

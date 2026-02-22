@@ -395,6 +395,55 @@ describe('GameEngine Integration', () => {
     expect(traffic.latencyHistory[0]).toBe(160);
   });
 
+  it('should handle TrafficStatusEffect with warning_config', () => {
+    const level = JSON.parse(JSON.stringify(baseLevel));
+    level.statusEffects = [
+      {
+        type: 'traffic',
+        name: 'Flash Sale',
+        traffic_affected: 'inflow',
+        multiplier: 4.0, // 5x total
+        materialization_probability: 1.0, // Always materialize
+        turnsRemaining: 2,
+        warning_config: {
+          delay_ticks: 3,
+          ticket_title: 'Flash Sale Warning',
+          ticket_description: 'A flash sale will start in 3 ticks!'
+        }
+      }
+    ];
+
+    const engine = new GameEngine();
+    engine.loadLevel(level);
+
+    // Tick 1: Warning starts
+    engine.update();
+    const effect = engine.statusEffects[0] as TrafficStatusEffect;
+    expect(effect.isWarning).toBe(true);
+    expect(effect.isActive).toBe(false);
+    expect(effect.delayRemaining).toBe(3); // delay_ticks starts at 3
+    expect(engine.tickets.length).toBe(1);
+    expect(engine.tickets[0].title).toBe('Flash Sale Warning');
+    expect(engine.traffics['inflow'].actualValue).toBe(150); // No effect yet
+
+    // Tick 2
+    engine.update();
+    expect(effect.isWarning).toBe(true);
+    expect(effect.delayRemaining).toBe(2);
+
+    // Tick 3
+    engine.update();
+    expect(effect.isWarning).toBe(true);
+    expect(effect.delayRemaining).toBe(1);
+
+    // Tick 4: Warning finishes, isActive becomes true
+    engine.update();
+    expect(effect.isWarning).toBe(false);
+    expect(effect.isActive).toBe(true);
+    expect(effect.turnsRemaining).toBe(2); // initialTurnsRemaining (starts at 2)
+    expect(engine.traffics['inflow'].actualValue).toBe(750); // Effect applied!
+  });
+
   it('should materialize TrafficStatusEffect and affect traffic volume', () => {
     const level = JSON.parse(JSON.stringify(baseLevel));
     level.statusEffects = [
