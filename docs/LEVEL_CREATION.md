@@ -5,13 +5,16 @@ This guide explains how to design and implement new levels for the Oncall Simula
 ## Core Concepts
 
 ### 1. The Two-Pass Traffic System
+
 The simulation uses a two-pass system to ensure fair traffic distribution:
+
 - **Demand Pass (Pass 1):** Every component calculates the total intended traffic it will receive.
 - **Resolution Pass (Pass 2):** Every component uses its total demand to calculate a failure rate. This rate is applied proportionally to all incoming flows.
 
 **Rule of Thumb:** If you add a new way to emit traffic (like a StatusEffect or ScheduledJob), ensure it participates in both passes to avoid breaking saturation physics.
 
 ### 2. Component Types
+
 - **Compute (`compute`):** General-purpose nodes. Capacity is usually tied to `gcu` or `cpu` attributes.
 - **Database (`database`):** High-latency penalty for connection saturation. Metrics focus on `query_latency`.
 - **Storage (`storage`):** Capacity is tied to `storage_usage`. It has no request limit but fails completely if the disk is 100% full.
@@ -19,7 +22,9 @@ The simulation uses a two-pass system to ensure fair traffic distribution:
 ## Configuration Schema
 
 ### Component Physics
+
 Physics constants define how the component behaves under load:
+
 ```json
 "physics": {
   "request_capacity_per_unit": 20, // Reqs/sec per 1 unit of primary attribute
@@ -30,7 +35,9 @@ Physics constants define how the component behaves under load:
 ```
 
 ### Traffic Routes
+
 Traffic is "pulled" through components via named routes.
+
 - **Internal Traffic:** Must be defined in the global `traffics` list and emitted by an `outgoing_traffics` entry in a route.
 - **Multipliers:** If a service calls a DB twice per request, set `multiplier: 2`.
 
@@ -43,6 +50,7 @@ Traffic is "pulled" through components via named routes.
 5. **Validate:** Run `npm run validate` to check for circular dependencies or missing traffic definitions.
 
 ## Common Pitfalls
+
 - **Circular Dependencies:** The validator will block any traffic loops (A -> B -> A).
 - **Missing Internal Traffic:** Every internal traffic name must exist in the global `traffics` array AND be emitted by at least one component route or scheduled job.
 - **Saturation Spikes:** Setting a high `saturation_penalty_factor` (e.g., > 2.0) can cause latency to explode into the millions of milliseconds instantly. Use with caution.

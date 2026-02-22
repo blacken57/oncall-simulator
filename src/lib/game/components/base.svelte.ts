@@ -55,10 +55,22 @@ export abstract class SystemComponent {
 
   // Temporary state for the current tick
   totalExpectedVolume = 0;
+  localExpectedVolume = 0; // Volume before dependency expansion
   incomingTrafficVolume = 0;
+  localIncomingVolume = 0; // Volume before dependency expansion
   unsuccessfulTrafficVolume = 0;
   totalLatencySum = 0;
   totalSuccessfulRequests = 0;
+
+  /**
+   * The average latency across all requests handled in this tick,
+   * including propagated latency from dependencies.
+   */
+  get propagatedLatency(): number {
+    return this.totalSuccessfulRequests > 0
+      ? this.totalLatencySum / this.totalSuccessfulRequests
+      : 0;
+  }
 
   constructor(config: ComponentConfig) {
     this.id = config.id;
@@ -102,17 +114,19 @@ export abstract class SystemComponent {
           ? value >= alert.critical_threshold
           : value <= alert.critical_threshold;
 
-      const isWarning =
-        alert.direction === 'above'
-          ? value >= alert.warning_threshold
-          : value <= alert.warning_threshold;
-
       if (isCritical) {
         this.statusTriggers[alert.name] = 'critical';
         newStatus = 'critical';
-      } else if (isWarning) {
-        if (newStatus !== 'critical') newStatus = 'warning';
-        this.statusTriggers[alert.name] = 'warning';
+      } else {
+        const isWarning =
+          alert.direction === 'above'
+            ? value >= alert.warning_threshold
+            : value <= alert.warning_threshold;
+
+        if (isWarning) {
+          if (newStatus !== 'critical') newStatus = 'warning';
+          this.statusTriggers[alert.name] = 'warning';
+        }
       }
     }
 
@@ -130,6 +144,7 @@ export abstract class SystemComponent {
    */
   recordDemand(trafficName: string, value: number, handler: TrafficHandler) {
     this.totalExpectedVolume += value;
+    this.localExpectedVolume += value;
     const route = this.trafficRoutes.find((r) => r.name === trafficName);
 
     if (route && value > 0) {
@@ -150,6 +165,7 @@ export abstract class SystemComponent {
     handler: TrafficHandler
   ): { successfulVolume: number; averageLatency: number } {
     this.incomingTrafficVolume += value;
+    this.localIncomingVolume += value;
 
     // Calculate global failure rate for this tick based on total demand
     const failureRate = this.calculateFailureRate(this.totalExpectedVolume);
@@ -184,15 +200,51 @@ export abstract class SystemComponent {
     this.unsuccessfulTrafficVolume += failed;
 
     const baseLatency = route?.base_latency_ms ?? 0;
-    const finalLatency = baseLatency + totalDependencyLatency;
 
-    // Track aggregate latency for this component's metrics
+    // 2. Apply local physics (Load Factor, Saturation) via subclass hook
+    let localLatency = this.calculateLocalLatency(baseLatency, value);
+
+    // 3. Apply localized status effects (Multipliers/Offsets)
+    localLatency = this.applyLatencyEffects(localLatency, handler);
+
+    // 4. Final latency is local + dependencies
+    const finalLatency = localLatency + totalDependencyLatency; // Track aggregate latency for this component's metrics
     if (successfulVolume > 0) {
       this.totalLatencySum += finalLatency * successfulVolume;
       this.totalSuccessfulRequests += successfulVolume;
     }
 
     return { successfulVolume, averageLatency: finalLatency };
+  }
+
+  /**
+   * Hook for subclasses to apply local latency physics (like load factors or saturation penalties).
+   * Default implementation just returns the base latency.
+   */
+  protected calculateLocalLatency(baseLatency: number, volume: number): number {
+    return baseLatency;
+  }
+
+  /**
+   * Applies active status effect multipliers and offsets to a latency value.
+   */
+  protected applyLatencyEffects(baseLatency: number, handler: TrafficHandler): number {
+    let multiplierSum = 0;
+    let offsetSum = 0;
+
+    const activeEffects = handler.getActiveComponentEffects(this.id).filter((e) => {
+      // Ensure we only apply effects intended for THIS component's metrics.
+      // We use handler.getActiveComponentEffects(this.id) which already filters by componentId.
+      // But we check Name just in case the derived map uses ID while config uses Name.
+      return e.metricAffected === 'latency' || e.metricAffected === 'query_latency';
+    });
+
+    for (const e of activeEffects) {
+      multiplierSum += e.multiplier;
+      offsetSum += e.offset;
+    }
+
+    return baseLatency + baseLatency * multiplierSum + offsetSum;
   }
 
   /**
@@ -205,7 +257,9 @@ export abstract class SystemComponent {
    */
   resetTick() {
     this.totalExpectedVolume = 0;
+    this.localExpectedVolume = 0;
     this.incomingTrafficVolume = 0;
+    this.localIncomingVolume = 0;
     this.unsuccessfulTrafficVolume = 0;
     this.totalLatencySum = 0;
     this.totalSuccessfulRequests = 0;

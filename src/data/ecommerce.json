@@ -10,11 +10,15 @@
       "physics": {
         "request_capacity_per_unit": 250,
         "latency_base_ms": 10,
-        "latency_load_factor": 0.05,
+        "latency_load_factor": 0.02,
         "saturation_threshold_percent": 75,
         "saturation_penalty_factor": 0.2,
-        "resource_base_usage": { "cpu": 2.0 },
-        "consumption_rates": { "cpu": 0.001 },
+        "resource_base_usage": {
+          "cpu": 2.0
+        },
+        "consumption_rates": {
+          "cpu": 0.001
+        },
         "noise_factor": 0.1
       },
       "attributes": {
@@ -29,16 +33,25 @@
         }
       },
       "metrics": {
-        "incoming": { "name": "Requests", "unit": "req/s" },
-        "latency": { "name": "P99 Latency", "unit": "ms" },
-        "error_rate": { "name": "Error Rate", "unit": "%" }
+        "incoming": {
+          "name": "Requests",
+          "unit": "req/s"
+        },
+        "latency": {
+          "name": "P99 Latency",
+          "unit": "ms"
+        },
+        "error_rate": {
+          "name": "Error Rate",
+          "unit": "%"
+        }
       },
       "alerts": [
         {
           "name": "Gateway Latency Spike",
           "metric": "latency",
-          "warning_threshold": 150,
-          "critical_threshold": 300,
+          "warning_threshold": 200,
+          "critical_threshold": 400,
           "direction": "above"
         }
       ],
@@ -46,17 +59,32 @@
         {
           "name": "search_request",
           "base_latency_ms": 5,
-          "outgoing_traffics": [{ "name": "internal_search", "multiplier": 1 }]
+          "outgoing_traffics": [
+            {
+              "name": "internal_search",
+              "multiplier": 1
+            }
+          ]
         },
         {
           "name": "cart_request",
           "base_latency_ms": 5,
-          "outgoing_traffics": [{ "name": "internal_cart", "multiplier": 1 }]
+          "outgoing_traffics": [
+            {
+              "name": "internal_cart",
+              "multiplier": 1
+            }
+          ]
         },
         {
           "name": "checkout_request",
           "base_latency_ms": 10,
-          "outgoing_traffics": [{ "name": "internal_order", "multiplier": 1 }]
+          "outgoing_traffics": [
+            {
+              "name": "internal_order",
+              "multiplier": 1
+            }
+          ]
         }
       ]
     },
@@ -67,11 +95,15 @@
       "physics": {
         "request_capacity_per_unit": 100,
         "latency_base_ms": 20,
-        "latency_load_factor": 0.1,
+        "latency_load_factor": 0.05,
         "saturation_threshold_percent": 80,
         "saturation_penalty_factor": 0.5,
-        "resource_base_usage": { "cpu": 4.0 },
-        "consumption_rates": { "cpu": 0.005 },
+        "resource_base_usage": {
+          "cpu": 4.0
+        },
+        "consumption_rates": {
+          "cpu": 0.005
+        },
         "noise_factor": 0.2
       },
       "attributes": {
@@ -86,16 +118,25 @@
         }
       },
       "metrics": {
-        "incoming": { "name": "Search Requests", "unit": "req/s" },
-        "latency": { "name": "P99 Latency", "unit": "ms" },
-        "error_rate": { "name": "Error Rate", "unit": "%" }
+        "incoming": {
+          "name": "Search Requests",
+          "unit": "req/s"
+        },
+        "latency": {
+          "name": "P99 Latency",
+          "unit": "ms"
+        },
+        "error_rate": {
+          "name": "Error Rate",
+          "unit": "%"
+        }
       },
       "alerts": [
         {
           "name": "Search Service Slow",
           "metric": "latency",
-          "warning_threshold": 200,
-          "critical_threshold": 500,
+          "warning_threshold": 300,
+          "critical_threshold": 600,
           "direction": "above"
         }
       ],
@@ -103,7 +144,12 @@
         {
           "name": "internal_search",
           "base_latency_ms": 20,
-          "outgoing_traffics": [{ "name": "search_db_io", "multiplier": 3 }]
+          "outgoing_traffics": [
+            {
+              "name": "search_db_io",
+              "multiplier": 3
+            }
+          ]
         }
       ]
     },
@@ -112,7 +158,9 @@
       "name": "Search Database",
       "type": "storage",
       "physics": {
-        "consumption_rates": { "storage_usage": 0.01 },
+        "consumption_rates": {
+          "storage_usage": 0.01
+        },
         "saturation_threshold_percent": 90,
         "noise_factor": 1.0
       },
@@ -127,9 +175,22 @@
         }
       },
       "metrics": {
-        "incoming": { "name": "Disk IOPS", "unit": "iops" },
-        "fill_rate": { "name": "Fill Rate", "unit": "GB/s" },
-        "error_rate": { "name": "Error Rate", "unit": "%" }
+        "incoming": {
+          "name": "Disk IOPS",
+          "unit": "iops"
+        },
+        "fill_rate": {
+          "name": "Fill Rate",
+          "unit": "GB/s"
+        },
+        "latency": {
+          "name": "IO Latency",
+          "unit": "ms"
+        },
+        "error_rate": {
+          "name": "Error Rate",
+          "unit": "%"
+        }
       },
       "alerts": [
         {
@@ -158,8 +219,12 @@
         "latency_load_factor": 0.01,
         "saturation_threshold_percent": 90,
         "saturation_penalty_factor": 0.1,
-        "resource_base_usage": { "cpu": 2.0 },
-        "consumption_rates": { "cpu": 0.0005 },
+        "resource_base_usage": {
+          "cpu": 2.0
+        },
+        "consumption_rates": {
+          "cpu": 0.0005
+        },
         "noise_factor": 0.05
       },
       "attributes": {
@@ -174,16 +239,30 @@
         }
       },
       "metrics": {
-        "incoming": { "name": "Cart Actions", "unit": "req/s" },
-        "latency": { "name": "P99 Latency", "unit": "ms" },
-        "error_rate": { "name": "Error Rate", "unit": "%" }
+        "incoming": {
+          "name": "Cart Actions",
+          "unit": "req/s"
+        },
+        "latency": {
+          "name": "P99 Latency",
+          "unit": "ms"
+        },
+        "error_rate": {
+          "name": "Error Rate",
+          "unit": "%"
+        }
       },
       "alerts": [],
       "traffic_routes": [
         {
           "name": "internal_cart",
           "base_latency_ms": 5,
-          "outgoing_traffics": [{ "name": "cart_cache_queries", "multiplier": 2 }]
+          "outgoing_traffics": [
+            {
+              "name": "cart_cache_queries",
+              "multiplier": 2
+            }
+          ]
         }
       ]
     },
@@ -197,7 +276,9 @@
         "latency_load_factor": 0.01,
         "saturation_threshold_percent": 95,
         "saturation_penalty_factor": 10,
-        "consumption_rates": { "storage": 0.00001 },
+        "consumption_rates": {
+          "storage": 0.00001
+        },
         "noise_factor": 0.1
       },
       "attributes": {
@@ -220,9 +301,18 @@
         }
       },
       "metrics": {
-        "incoming": { "name": "Cache Queries", "unit": "qps" },
-        "query_latency": { "name": "Query Latency", "unit": "ms" },
-        "error_rate": { "name": "Error Rate", "unit": "%" }
+        "incoming": {
+          "name": "Cache Queries",
+          "unit": "qps"
+        },
+        "query_latency": {
+          "name": "Query Latency",
+          "unit": "ms"
+        },
+        "error_rate": {
+          "name": "Error Rate",
+          "unit": "%"
+        }
       },
       "alerts": [
         {
@@ -251,8 +341,12 @@
         "latency_load_factor": 0.5,
         "saturation_threshold_percent": 70,
         "saturation_penalty_factor": 0.5,
-        "resource_base_usage": { "cpu": 8.0 },
-        "consumption_rates": { "cpu": 0.05 },
+        "resource_base_usage": {
+          "cpu": 8.0
+        },
+        "consumption_rates": {
+          "cpu": 0.05
+        },
         "noise_factor": 0.5
       },
       "attributes": {
@@ -267,9 +361,18 @@
         }
       },
       "metrics": {
-        "incoming": { "name": "Checkouts", "unit": "req/s" },
-        "latency": { "name": "P99 Latency", "unit": "ms" },
-        "error_rate": { "name": "Error Rate", "unit": "%" }
+        "incoming": {
+          "name": "Checkouts",
+          "unit": "req/s"
+        },
+        "latency": {
+          "name": "P99 Latency",
+          "unit": "ms"
+        },
+        "error_rate": {
+          "name": "Error Rate",
+          "unit": "%"
+        }
       },
       "alerts": [
         {
@@ -285,8 +388,14 @@
           "name": "internal_order",
           "base_latency_ms": 100,
           "outgoing_traffics": [
-            { "name": "order_db_queries", "multiplier": 4 },
-            { "name": "inventory_updates", "multiplier": 1 }
+            {
+              "name": "order_db_queries",
+              "multiplier": 4
+            },
+            {
+              "name": "inventory_updates",
+              "multiplier": 1
+            }
           ]
         }
       ]
@@ -301,7 +410,9 @@
         "latency_load_factor": 0.2,
         "saturation_threshold_percent": 85,
         "saturation_penalty_factor": 5,
-        "consumption_rates": { "storage": 0.001 },
+        "consumption_rates": {
+          "storage": 0.001
+        },
         "noise_factor": 1.0
       },
       "attributes": {
@@ -324,9 +435,18 @@
         }
       },
       "metrics": {
-        "incoming": { "name": "SQL Queries", "unit": "qps" },
-        "query_latency": { "name": "Query Latency", "unit": "ms" },
-        "error_rate": { "name": "Error Rate", "unit": "%" }
+        "incoming": {
+          "name": "SQL Queries",
+          "unit": "qps"
+        },
+        "query_latency": {
+          "name": "Query Latency",
+          "unit": "ms"
+        },
+        "error_rate": {
+          "name": "Error Rate",
+          "unit": "%"
+        }
       },
       "alerts": [
         {
@@ -355,8 +475,12 @@
         "latency_load_factor": 0.1,
         "saturation_threshold_percent": 90,
         "saturation_penalty_factor": 0.1,
-        "resource_base_usage": { "cpu": 4.0 },
-        "consumption_rates": { "cpu": 0.001 },
+        "resource_base_usage": {
+          "cpu": 4.0
+        },
+        "consumption_rates": {
+          "cpu": 0.001
+        },
         "noise_factor": 0.1
       },
       "attributes": {
@@ -371,21 +495,40 @@
         }
       },
       "metrics": {
-        "incoming": { "name": "Inventory Ops", "unit": "req/s" },
-        "latency": { "name": "P99 Latency", "unit": "ms" },
-        "error_rate": { "name": "Error Rate", "unit": "%" }
+        "incoming": {
+          "name": "Inventory Ops",
+          "unit": "req/s"
+        },
+        "latency": {
+          "name": "P99 Latency",
+          "unit": "ms"
+        },
+        "error_rate": {
+          "name": "Error Rate",
+          "unit": "%"
+        }
       },
       "alerts": [],
       "traffic_routes": [
         {
           "name": "inventory_updates",
           "base_latency_ms": 10,
-          "outgoing_traffics": [{ "name": "inventory_db_queries", "multiplier": 1 }]
+          "outgoing_traffics": [
+            {
+              "name": "inventory_db_queries",
+              "multiplier": 1
+            }
+          ]
         },
         {
           "name": "inventory_sync_traffic",
           "base_latency_ms": 50,
-          "outgoing_traffics": [{ "name": "inventory_db_queries", "multiplier": 10 }]
+          "outgoing_traffics": [
+            {
+              "name": "inventory_db_queries",
+              "multiplier": 10
+            }
+          ]
         }
       ]
     },
@@ -399,7 +542,9 @@
         "latency_load_factor": 0.1,
         "saturation_threshold_percent": 95,
         "saturation_penalty_factor": 2,
-        "consumption_rates": { "storage": 0.0001 },
+        "consumption_rates": {
+          "storage": 0.0001
+        },
         "noise_factor": 0.5
       },
       "attributes": {
@@ -422,9 +567,18 @@
         }
       },
       "metrics": {
-        "incoming": { "name": "DB Queries", "unit": "qps" },
-        "query_latency": { "name": "Query Latency", "unit": "ms" },
-        "error_rate": { "name": "Error Rate", "unit": "%" }
+        "incoming": {
+          "name": "DB Queries",
+          "unit": "qps"
+        },
+        "query_latency": {
+          "name": "Query Latency",
+          "unit": "ms"
+        },
+        "error_rate": {
+          "name": "Error Rate",
+          "unit": "%"
+        }
       },
       "alerts": [],
       "traffic_routes": [
@@ -458,12 +612,36 @@
       "value": 100,
       "base_variance": 10
     },
-    { "type": "internal", "name": "internal_search", "target_component_name": "Search Service" },
-    { "type": "internal", "name": "internal_cart", "target_component_name": "Cart Service" },
-    { "type": "internal", "name": "internal_order", "target_component_name": "Order Service" },
-    { "type": "internal", "name": "search_db_io", "target_component_name": "Search Database" },
-    { "type": "internal", "name": "cart_cache_queries", "target_component_name": "Cart Cache" },
-    { "type": "internal", "name": "order_db_queries", "target_component_name": "Order Database" },
+    {
+      "type": "internal",
+      "name": "internal_search",
+      "target_component_name": "Search Service"
+    },
+    {
+      "type": "internal",
+      "name": "internal_cart",
+      "target_component_name": "Cart Service"
+    },
+    {
+      "type": "internal",
+      "name": "internal_order",
+      "target_component_name": "Order Service"
+    },
+    {
+      "type": "internal",
+      "name": "search_db_io",
+      "target_component_name": "Search Database"
+    },
+    {
+      "type": "internal",
+      "name": "cart_cache_queries",
+      "target_component_name": "Cart Cache"
+    },
+    {
+      "type": "internal",
+      "name": "order_db_queries",
+      "target_component_name": "Order Database"
+    },
     {
       "type": "internal",
       "name": "inventory_updates",
@@ -499,9 +677,11 @@
       "name": "Search DB Reindexing",
       "component_affected": "search-db",
       "metric_affected": "latency",
-      "multiplier": 2.0,
-      "materialization_probability": 0.02,
-      "resolution_condition": { "turnsRemaining": 5 },
+      "multiplier": 2.3,
+      "materialization_probability": 0.05,
+      "resolution_condition": {
+        "turnsRemaining": 5
+      },
       "max_instances_at_once": 1
     }
   ],
@@ -509,15 +689,30 @@
     {
       "name": "Inventory Batch Sync",
       "targetName": "Inventory Service",
-      "schedule": { "interval": 60 },
+      "schedule": {
+        "interval": 20
+      },
       "affectedAttributes": [],
-      "emittedTraffic": [{ "name": "inventory_sync_traffic", "value": 2000 }]
+      "emittedTraffic": [
+        {
+          "name": "inventory_sync_traffic",
+          "value": 200
+        }
+      ]
     },
     {
       "name": "Search DB Cleanup",
       "targetName": "Search Database",
-      "schedule": { "interval": 120 },
-      "affectedAttributes": [{ "name": "storage_usage", "target": "value", "multiplier": -0.2 }],
+      "schedule": {
+        "interval": 40
+      },
+      "affectedAttributes": [
+        {
+          "name": "storage_usage",
+          "target": "value",
+          "multiplier": -0.5
+        }
+      ],
       "emittedTraffic": []
     }
   ]

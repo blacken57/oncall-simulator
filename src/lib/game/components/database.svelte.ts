@@ -32,6 +32,25 @@ export class DatabaseNode extends SystemComponent {
     return 0;
   }
 
+  /**
+   * Applies local Database physics: connection saturation.
+   */
+  protected calculateLocalLatency(baseLatency: number, volume: number): number {
+    let localLat = baseLatency;
+    const connAttr = this.attributes.connections;
+    if (connAttr) {
+      // Use current demand (Pass 1 volume) for saturation check
+      const demand = this.totalExpectedVolume;
+      const util = (demand / connAttr.limit) * 100;
+      const satThreshold = this.physics.saturation_threshold_percent ?? 90;
+
+      if (util > satThreshold) {
+        localLat *= 1 + (this.physics.saturation_penalty_factor ?? 4);
+      }
+    }
+    return localLat;
+  }
+
   tick(handler: TrafficHandler) {
     const traffic = this.incomingTrafficVolume;
     const physics = this.physics;
@@ -51,26 +70,9 @@ export class DatabaseNode extends SystemComponent {
 
     const connUtil = this.attributes.connections ? this.attributes.connections.utilization : 0;
 
-    // Aggregate latency from all routes
-    let avgLatency =
-      this.totalSuccessfulRequests > 0 ? this.totalLatencySum / this.totalSuccessfulRequests : 0;
-
-    const satThreshold = physics.saturation_threshold_percent ?? 90;
-    if (connUtil > satThreshold) {
-      avgLatency *= 1 + (physics.saturation_penalty_factor ?? 4);
-    }
-
-    // Apply status effect multipliers for latency
-    let multiplierSum = 0;
-    let offsetSum = 0;
-    const activeEffects = this.getActiveComponentEffects(handler).filter(
-      (e) => e.metricAffected === 'query_latency'
-    );
-    for (const e of activeEffects) {
-      multiplierSum += e.multiplier;
-      offsetSum += e.offset;
-    }
-    avgLatency = avgLatency + avgLatency * multiplierSum + offsetSum;
+    // Aggregate latency from all routes, including dependencies
+    // status effects, and saturation penalties calculated during handleTraffic.
+    const avgLatency = this.propagatedLatency;
 
     if (this.metrics.query_latency) {
       this.metrics.query_latency.update(avgLatency);

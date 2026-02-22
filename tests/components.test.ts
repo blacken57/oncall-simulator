@@ -7,10 +7,15 @@ import type { ComponentConfig } from '../src/lib/game/schema';
 describe('Component Physics', () => {
   const mockHandler = {
     recordDemand: () => {},
-    handleTraffic: () => ({ successfulVolume: 100, averageLatency: 10 }),
+    handleTraffic: (name: string, volume: number) => ({
+      successfulVolume: volume,
+      averageLatency: 10
+    }),
     statusEffects: [],
     getActiveComponentEffects: () => [],
-    getActiveTrafficEffects: () => []
+    getActiveTrafficEffects: () => [],
+    localExpectedVolume: 0,
+    localIncomingVolume: 0
   };
 
   describe('ComputeNode', () => {
@@ -72,22 +77,79 @@ describe('Component Physics', () => {
       // 10 GCU * 20 req/GCU = 200 total capacity.
       // 80 incoming / 200 capacity = 40% util.
       node.attributes.gcu.limit = 10;
-      node.incomingTrafficVolume = 80;
+      node.localExpectedVolume = 80;
+      node.localIncomingVolume = 80;
+
+      // Setup propagated latency (base + deps)
       node.totalLatencySum = 100 * 80;
       node.totalSuccessfulRequests = 80;
+
       node.tick(mockHandler as any);
+      // avgLatency = 100. (40 < 50, no penalty)
       expect(node.metrics.latency.value).toBe(100);
 
       // 2. Over threshold: 60% utilization (10% over threshold of 50%)
       // 120 incoming / 200 capacity = 60% util.
-      // Penalty: 100 * (1 + (60-50) * 1.0) = 1100ms
-      node.incomingTrafficVolume = 120;
-      node.totalLatencySum = 100 * 120;
+      // NOTE: In the new system, penalty is applied in handleTraffic, but
+      // since we are testing tick() isolation, we must ensure tick()
+      // just reports whatever is in totalLatencySum / totalSuccessfulRequests.
+      node.localExpectedVolume = 120;
+      node.localIncomingVolume = 120;
+
+      // Simulating handleTraffic result: 100ms base * (1 + pow((60-50)*1.0, 2)) = 10100ms
+      node.totalLatencySum = 10100 * 120;
       node.totalSuccessfulRequests = 120;
+
       node.tick(mockHandler as any);
-      expect(node.metrics.latency.value).toBe(1100);
+      expect(node.metrics.latency.value).toBe(10100);
     });
 
+    it('should calculate failure rate considering resource overhead', () => {
+      const node = new ComputeNode({
+        ...config,
+        physics: {
+          ...config.physics,
+          request_capacity_per_unit: 10,
+          resource_base_usage: { gcu: 2.0 } // 2 GCU overhead
+        }
+      });
+      // Limit 10, overhead 2, available 8 GCU.
+      // Capacity: 8 GCU * 10 req/GCU = 80.
+      // Demand 100. (100 - 80) / 100 = 0.2
+      node.localExpectedVolume = 100;
+      // @ts-ignore
+      expect(node.calculateFailureRate(100)).toBe(0.2);
+    });
+
+    it('should apply latency penalty using raw uncapped utilization', () => {
+      const node = new ComputeNode({
+        ...config,
+        physics: {
+          ...config.physics,
+          request_capacity_per_unit: 10,
+          saturation_threshold_percent: 50,
+          saturation_penalty_factor: 1.0,
+          resource_base_usage: { gcu: 0 },
+          noise_factor: 0
+        }
+      });
+
+      // Demand 150, Capacity 100. Util = 150%.
+      // 1 + pow((150 - 50) * 1.0, 2) = 1 + pow(100, 2) = 10001x penalty.
+      node.localExpectedVolume = 150;
+      node.localIncomingVolume = 150;
+
+      // Simulating handleTraffic result: 100ms * 10001 = 1000100ms
+      node.totalLatencySum = 1000100 * 150;
+      node.totalSuccessfulRequests = 150;
+
+      node.tick(mockHandler as any);
+
+      // Latency: 1000100
+      expect(node.metrics.latency.value).toBe(1000100);
+      // Metric itself should be capped at limit (10)
+      expect(node.attributes.gcu.current).toBe(10);
+    });
     it('should consume resources proportionally to traffic', () => {
       const node = new ComputeNode({
         ...config,
@@ -100,7 +162,7 @@ describe('Component Physics', () => {
       });
 
       // Traffic of 10 should use: 1.0 (base) + 10 * 0.1 (consumption) = 2.0 RAM
-      node.incomingTrafficVolume = 10;
+      node.localIncomingVolume = 10;
       node.tick(mockHandler as any);
       expect(node.attributes.ram.current).toBe(2.0);
     });

@@ -12,7 +12,7 @@ export class ComputeNode extends SystemComponent {
     return {
       request_capacity_per_unit: 20,
       latency_base_ms: 50,
-      latency_load_factor: 0.2,
+      latency_load_factor: 0,
       saturation_threshold_percent: 80,
       saturation_penalty_factor: 0.1,
       resource_base_usage: {
@@ -29,27 +29,68 @@ export class ComputeNode extends SystemComponent {
     const primaryAttr = this.attributes.gcu || this.attributes.cpu;
     if (!primaryAttr) return 0;
 
-    const capacity = primaryAttr.limit * (this.physics.request_capacity_per_unit ?? 20);
-    if (totalDemand > capacity) {
-      return (totalDemand - capacity) / totalDemand;
+    const physics = this.physics;
+    const resourceBase = physics.resource_base_usage?.gcu ?? physics.resource_base_usage?.cpu ?? 0;
+    const capPerUnit = physics.request_capacity_per_unit ?? 20;
+
+    // Actual capacity is limit minus overhead, multiplied by throughput per unit
+    const availableResource = Math.max(0, primaryAttr.limit - resourceBase);
+    const capacity = availableResource * capPerUnit;
+
+    // Use localExpectedVolume for capacity checks
+    if (this.localExpectedVolume > capacity) {
+      return (this.localExpectedVolume - capacity) / this.localExpectedVolume;
     }
     return 0;
   }
 
+  protected calculateLocalLatency(baseLatency: number, volume: number): number {
+    let localLat = baseLatency;
+
+    // Apply local load factor (per-request latency increase)
+    const physics = this.physics;
+    const loadFactor = physics.latency_load_factor ?? 0;
+    localLat += volume * loadFactor;
+
+    // Apply local saturation penalty based on Pass 1 demand
+    const resourceBase = physics.resource_base_usage?.gcu ?? physics.resource_base_usage?.cpu ?? 0;
+    const capPerUnit = physics.request_capacity_per_unit ?? 20;
+    const demand = this.localExpectedVolume;
+    const calculatedValue = resourceBase + demand / capPerUnit;
+    const rawUtilization =
+      (calculatedValue / (this.attributes.cpu?.limit || this.attributes.gcu?.limit || 1)) * 100;
+
+    const satThreshold = physics.saturation_threshold_percent ?? 80;
+    if (rawUtilization > satThreshold) {
+      // Non-linear penalty: spikes more aggressively as utilization increases.
+      // We use a power of 2 to make it feel more like a real queuing bottleneck.
+      const factor = (rawUtilization - satThreshold) * (physics.saturation_penalty_factor ?? 0.1);
+      const penalty = 1 + Math.pow(factor, 2);
+      localLat *= penalty;
+    }
+
+    return localLat;
+  }
   tick(handler: TrafficHandler) {
-    const traffic = this.incomingTrafficVolume;
+    const traffic = this.localIncomingVolume;
     const physics = this.physics;
     const noiseFactor = physics.noise_factor ?? 0.5;
     const noise = (Math.random() - 0.5) * noiseFactor;
 
     // Resource Usage (GCU/CPU)
     const primaryAttr = this.attributes.gcu || this.attributes.cpu;
+    let rawUtilization = 0;
+
     if (primaryAttr) {
       const capPerUnit = physics.request_capacity_per_unit ?? 20;
       const resourceBase =
         physics.resource_base_usage?.gcu ?? physics.resource_base_usage?.cpu ?? 0;
+
+      // Uncapped value for physics calculations
       const calculatedValue = resourceBase + traffic / capPerUnit + Math.random() * noiseFactor;
-      // Cap at limit to avoid > 100% utilization in metrics
+      rawUtilization = (calculatedValue / primaryAttr.limit) * 100;
+
+      // Cap at limit only for the attribute storage (UI)
       primaryAttr.update(Math.min(primaryAttr.limit, calculatedValue));
     }
 
@@ -60,29 +101,9 @@ export class ComputeNode extends SystemComponent {
       this.attributes.ram.update(ramBase + traffic * ramUsagePerReq + noise * 0.5);
     }
 
-    const util = primaryAttr ? primaryAttr.utilization : 0;
-
-    // Aggregate latency from all routes processed this tick
-    let avgLatency =
-      this.totalSuccessfulRequests > 0 ? this.totalLatencySum / this.totalSuccessfulRequests : 0;
-
-    // Apply utilization-based penalty to the final average
-    const satThreshold = physics.saturation_threshold_percent ?? 80;
-    if (util > satThreshold) {
-      avgLatency *= 1 + (util - satThreshold) * (physics.saturation_penalty_factor ?? 0.1);
-    }
-
-    // Apply status effect multipliers: (1 + sum(multipliers)) * base_value + sum(offsets)
-    let multiplierSum = 0;
-    let offsetSum = 0;
-    const activeEffects = this.getActiveComponentEffects(handler).filter(
-      (e) => e.metricAffected === 'latency'
-    );
-    for (const e of activeEffects) {
-      multiplierSum += e.multiplier;
-      offsetSum += e.offset;
-    }
-    avgLatency = avgLatency + avgLatency * multiplierSum + offsetSum;
+    // Aggregate latency from all routes processed this tick, including dependencies
+    // status effects, and saturation penalties calculated during handleTraffic.
+    const avgLatency = this.propagatedLatency;
 
     if (this.metrics.latency) {
       this.metrics.latency.update(avgLatency);

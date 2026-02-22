@@ -64,6 +64,13 @@ export class StorageNode extends SystemComponent {
       this.metrics.incoming.update(traffic);
     }
 
+    // Aggregate latency from all routes, including dependencies
+    const avgLatency = this.propagatedLatency;
+
+    if (this.metrics.latency) {
+      this.metrics.latency.update(avgLatency);
+    }
+
     this.checkAlerts();
   }
 }

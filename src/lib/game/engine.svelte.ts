@@ -80,8 +80,18 @@ export class GameEngine implements TrafficHandler {
     }, 5000);
   }
 
-  getActiveComponentEffects(componentId: string): ComponentStatusEffect[] {
-    return this.activeComponentEffects[componentId] || [];
+  getActiveComponentEffects(componentIdOrName: string): ComponentStatusEffect[] {
+    const component =
+      this.components[componentIdOrName] ||
+      Object.values(this.components).find((c) => c.name === componentIdOrName);
+
+    if (!component) return [];
+
+    // Return effects that target the ID or the Name
+    return [
+      ...(this.activeComponentEffects[component.id] || []),
+      ...(this.activeComponentEffects[component.name] || [])
+    ];
   }
 
   getActiveTrafficEffects(trafficId: string): TrafficStatusEffect[] {

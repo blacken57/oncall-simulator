@@ -10,6 +10,12 @@ import type { GameEngine } from './engine.svelte';
  */
 export type StatusEffect = ComponentStatusEffect | TrafficStatusEffect;
 
+export interface StatusEffectWarningConfig {
+  delay_ticks: number;
+  ticket_title: string;
+  ticket_description: string;
+}
+
 export class ComponentStatusEffect {
   type = 'component' as const;
   name: string;
@@ -124,7 +130,7 @@ export class TrafficStatusEffect {
           engine.notify(`WARNING: ${this.name} incoming!`, 'info');
           engine.tickets.push({
             id: Math.random().toString(36).substr(2, 9),
-            componentId: this.trafficAffected, // For traffic, use traffic ID as componentId (or similar)
+            componentId: this.trafficAffected,
             alertName: this.name,
             title: this.warningConfig.ticket_title,
             description: this.warningConfig.ticket_description,
