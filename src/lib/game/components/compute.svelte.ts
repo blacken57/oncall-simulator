@@ -26,7 +26,10 @@ export class ComputeNode extends SystemComponent {
   }
 
   protected calculateFailureRate(totalDemand: number): number {
-    const capacity = this.attributes.gcu.limit * (this.physics.request_capacity_per_unit ?? 20);
+    const primaryAttr = this.attributes.gcu || this.attributes.cpu;
+    if (!primaryAttr) return 0;
+
+    const capacity = primaryAttr.limit * (this.physics.request_capacity_per_unit ?? 20);
     if (totalDemand > capacity) {
       return (totalDemand - capacity) / totalDemand;
     }
@@ -39,17 +42,23 @@ export class ComputeNode extends SystemComponent {
     const noiseFactor = physics.noise_factor ?? 0.5;
     const noise = (Math.random() - 0.5) * noiseFactor;
 
-    // GCU Usage
-    const capPerUnit = physics.request_capacity_per_unit ?? 20;
-    const gcuBase = physics.resource_base_usage?.gcu ?? 0;
-    this.attributes.gcu.update(gcuBase + traffic / capPerUnit + Math.random() * noiseFactor);
+    // Resource Usage (GCU/CPU)
+    const primaryAttr = this.attributes.gcu || this.attributes.cpu;
+    if (primaryAttr) {
+      const capPerUnit = physics.request_capacity_per_unit ?? 20;
+      const resourceBase =
+        physics.resource_base_usage?.gcu ?? physics.resource_base_usage?.cpu ?? 0;
+      primaryAttr.update(resourceBase + traffic / capPerUnit + Math.random() * noiseFactor);
+    }
 
     // RAM Usage
-    const ramBase = physics.resource_base_usage?.ram ?? 0;
-    const ramUsagePerReq = physics.consumption_rates?.ram ?? 0;
-    this.attributes.ram.update(ramBase + traffic * ramUsagePerReq + noise * 0.5);
+    if (this.attributes.ram) {
+      const ramBase = physics.resource_base_usage?.ram ?? 0;
+      const ramUsagePerReq = physics.consumption_rates?.ram ?? 0;
+      this.attributes.ram.update(ramBase + traffic * ramUsagePerReq + noise * 0.5);
+    }
 
-    const util = this.attributes.gcu.utilization;
+    const util = primaryAttr ? primaryAttr.utilization : 0;
 
     // Aggregate latency from all routes processed this tick
     let avgLatency =
@@ -73,7 +82,9 @@ export class ComputeNode extends SystemComponent {
     }
     avgLatency = avgLatency + avgLatency * multiplierSum + offsetSum;
 
-    this.metrics.latency.update(avgLatency);
+    if (this.metrics.latency) {
+      this.metrics.latency.update(avgLatency);
+    }
 
     // Calculate Error Rate: (failed traffic / total traffic) * 100
     const baseFailureRate = traffic > 0 ? (this.unsuccessfulTrafficVolume / traffic) * 100 : 0;
@@ -90,7 +101,9 @@ export class ComputeNode extends SystemComponent {
     }
     const errorRate = baseFailureRate + baseFailureRate * errMultSum + errOffsetSum;
 
-    this.metrics.error_rate.update(errorRate);
+    if (this.metrics.error_rate) {
+      this.metrics.error_rate.update(errorRate);
+    }
 
     if (this.metrics.incoming) {
       this.metrics.incoming.update(traffic);

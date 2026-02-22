@@ -22,7 +22,10 @@ export class DatabaseNode extends SystemComponent {
   }
 
   protected calculateFailureRate(totalDemand: number): number {
-    const limit = this.attributes.connections.limit;
+    const connAttr = this.attributes.connections;
+    if (!connAttr) return 0;
+
+    const limit = connAttr.limit;
     if (totalDemand > limit) {
       return (totalDemand - limit) / totalDemand;
     }
@@ -35,14 +38,18 @@ export class DatabaseNode extends SystemComponent {
     const noiseFactor = physics.noise_factor ?? 2;
 
     // Connections update
-    this.attributes.connections.update(traffic + Math.random() * noiseFactor);
+    if (this.attributes.connections) {
+      this.attributes.connections.update(traffic + Math.random() * noiseFactor);
+    }
 
-    const growth = traffic * (physics.consumption_rates?.storage ?? 0.0001);
-    this.attributes.storage.update(
-      Math.min(this.attributes.storage.limit, this.attributes.storage.current + growth)
-    );
+    if (this.attributes.storage) {
+      const growth = traffic * (physics.consumption_rates?.storage ?? 0.0001);
+      this.attributes.storage.update(
+        Math.min(this.attributes.storage.limit, this.attributes.storage.current + growth)
+      );
+    }
 
-    const connUtil = this.attributes.connections.utilization;
+    const connUtil = this.attributes.connections ? this.attributes.connections.utilization : 0;
 
     // Aggregate latency from all routes
     let avgLatency =
@@ -65,7 +72,9 @@ export class DatabaseNode extends SystemComponent {
     }
     avgLatency = avgLatency + avgLatency * multiplierSum + offsetSum;
 
-    this.metrics.query_latency.update(avgLatency);
+    if (this.metrics.query_latency) {
+      this.metrics.query_latency.update(avgLatency);
+    }
 
     if (this.metrics.error_rate) {
       const baseFailureRate = traffic > 0 ? (this.unsuccessfulTrafficVolume / traffic) * 100 : 0;

@@ -5,9 +5,11 @@ This file provides foundational context for the Oncall Simulator project to ensu
 ## 🏗️ Technical Architecture
 
 - **Framework**: Svelte 5 with Runes (`$state`, `$derived`, `$effect`).
+- **Routing**: Dynamic level loading via `src/routes/game/[levelId]/+page.svelte`. Landing page at `/`.
 - **Core Engine**: `src/lib/game/engine.svelte.ts`. Manages a 1s/tick loop and automated ticket/incident lifecycle.
 - **Physics Engine**: `src/lib/game/components/`. Modular node implementations (`ComputeNode`, `DatabaseNode`, `StorageNode`) inheriting from `SystemComponent`.
-- **Data-Driven**: Level config is loaded from `src/data/level1.json`, including structured `physics`, `alerts`, and `scheduledJobs`.
+- **Data-Driven**: Level registry in `src/lib/game/levels.ts`. Configs in `src/data/*.json`.
+- **Documentation**: Level-specific runbooks in `src/data/docs/[levelId]/*.md`.
 - **Verification**: Build-time level validator (`src/lib/game/validator.ts`) with cycle detection and Vitest suite (`tests/`).
 
 ## 🔬 Simulation Physics (Key Logic)
@@ -19,6 +21,7 @@ This file provides foundational context for the Oncall Simulator project to ensu
 
 ## 📍 Key Files & Symbols
 
+- `src/lib/game/levels.ts`: Level registry and helper functions.
 - `src/lib/game/components/base.svelte.ts`: `SystemComponent` base, `checkAlerts()`, and two-pass logic.
 - `src/lib/game/engine.svelte.ts`: `GameEngine` loop and ticket management logic.
 - `src/lib/game/schema.ts`: Defines `AlertConfig`, `ComponentConfig`, and `LevelConfig`.
@@ -26,9 +29,10 @@ This file provides foundational context for the Oncall Simulator project to ensu
 
 ## 🚀 Immediate Roadmap (Next Session)
 
-1.  **Incident Side Effects**: Implement "Reputation" (SLA) penalties for unacknowledged tickets and "Investigation Costs" for active ones.
-2.  **Horizontal Scaling**: Support for `instances` attribute and `queue_depth` metrics.
-3.  **Fail-Open Logic**: Support `optional: true` for non-critical dependencies.
+1.  **Tutorial Expansion**: Add more interactive guidance to the tutorial level.
+2.  **Incident Side Effects**: Implement "Reputation" (SLA) penalties for unacknowledged tickets and "Investigation Costs" for active ones.
+3.  **Horizontal Scaling**: Support for `instances` attribute and `queue_depth` metrics.
+4.  **Fail-Open Logic**: Support `optional: true` for non-critical dependencies.
 
 ## ⚠️ Known Constraints
 

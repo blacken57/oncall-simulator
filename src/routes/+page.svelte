@@ -1,144 +1,77 @@
 <script lang="ts">
-  import { engine } from '$lib/game/engine.svelte';
-  import DashboardLayout from '../components/Dashboard/DashboardLayout.svelte';
-  import ComponentList from '../components/Actions/ComponentList.svelte';
-  import TicketList from '../components/Tickets/TicketList.svelte';
-  import DocsView from '../components/Docs/DocsView.svelte';
-  import level1 from '../data/level1.json';
-  import type { LevelConfig } from '$lib/game/schema';
-  import { flip } from 'svelte/animate';
-  import { fade } from 'svelte/transition';
+  import { getAllLevels } from '$lib/game/levels';
+  import { fade, fly } from 'svelte/transition';
 
-  // Load level at top level for SSR support
-  engine.loadLevel(level1 as unknown as LevelConfig);
+  const allLevels = getAllLevels();
 
-  let tick = $derived(engine.tick);
-  let isRunning = $derived(engine.isRunning);
-  let currentSpend = $derived(engine.currentSpend);
-  let budgetRemaining = $derived(engine.budget - currentSpend);
-  let activeTicketsCount = $derived(engine.tickets.filter((t) => t.status !== 'resolved').length);
-
-  let activeView = $state('dashboard');
+  let hoveredLevel = $state<string | null>(null);
 </script>
 
-<main class="game-container">
-  <header class="global-header">
-    <div class="brand">
+<div class="landing-container">
+  <header class="landing-header">
+    <div class="brand" in:fly={{ y: -20, duration: 800 }}>
       <h1>ONCALL <span class="highlight">SIMULATOR</span></h1>
-      <span class="version">v0.1.0-alpha</span>
-    </div>
-
-    <div class="game-stats">
-      <div class="stat-item">
-        <span class="label">TICK:</span>
-        <span class="value">{tick}</span>
-      </div>
-      <div class="stat-item {budgetRemaining < 500 ? 'low-budget' : ''}">
-        <span class="label">BUDGET:</span>
-        <span class="value">${budgetRemaining.toFixed(0)}</span>
-      </div>
-      <div class="stat-item">
-        <span class="label">SPEND:</span>
-        <span class="value">${currentSpend.toFixed(0)}/tick</span>
-      </div>
-    </div>
-
-    <div class="controls">
-      <button
-        class="btn {isRunning ? 'stop' : 'start'}"
-        onclick={() => (isRunning ? engine.stop() : engine.start())}
-      >
-        {isRunning ? 'PAUSE' : 'RUN'}
-      </button>
+      <p class="tagline">Experience the thrill and terror of systems at scale.</p>
     </div>
   </header>
 
-  <div class="content">
-    <nav class="side-nav">
-      <button
-        class="nav-item {activeView === 'dashboard' ? 'active' : ''}"
-        onclick={() => (activeView = 'dashboard')}>Dashboard</button
-      >
-      <button
-        class="nav-item {activeView === 'actions' ? 'active' : ''}"
-        onclick={() => (activeView = 'actions')}>Actions</button
-      >
-      <button
-        class="nav-item {activeView === 'tickets' ? 'active' : ''}"
-        onclick={() => (activeView = 'tickets')}
-      >
-        Tickets
-        {#if activeTicketsCount > 0}
-          <span class="badge">{activeTicketsCount}</span>
-        {/if}
-      </button>
-      <button
-        class="nav-item {activeView === 'docs' ? 'active' : ''}"
-        onclick={() => (activeView = 'docs')}
-      >
-        Docs
-      </button>
-    </nav>
-
-    <div class="main-view">
-      {#if activeView === 'dashboard'}
-        <DashboardLayout />
-      {:else if activeView === 'actions'}
-        <ComponentList />
-      {:else if activeView === 'tickets'}
-        <TicketList />
-      {:else if activeView === 'docs'}
-        <DocsView />
-      {/if}
-    </div>
-  </div>
-
-  <div class="notifications-container">
-    {#each engine.notifications as notification (notification.id)}
-      <div
-        class="notification {notification.type}"
-        animate:flip={{ duration: 300 }}
-        transition:fade
-      >
-        <div class="message">{notification.message}</div>
+  <main class="landing-content">
+    <section class="intro" in:fade={{ delay: 300, duration: 800 }}>
+      <h2>SYSTEM OVERVIEW</h2>
+      <p>
+        Welcome, Engineer. You've been tasked with maintaining our critical infrastructure. Each
+        level presents a different architectural challenge. Monitor metrics, respond to alerts, and
+        manage your budget to keep the system running.
+      </p>
+      <div class="features">
+        <div class="feature-card">
+          <h3>Real-time Physics</h3>
+          <p>Traffic propagation, latency spikes, and cascading failures.</p>
+        </div>
+        <div class="feature-card">
+          <h3>Incident Response</h3>
+          <p>Acknowledge tickets and investigate root causes before the budget runs out.</p>
+        </div>
+        <div class="feature-card">
+          <h3>Documentation</h3>
+          <p>Read the runbooks. They are your only friend when everything is on fire.</p>
+        </div>
       </div>
-    {/each}
-  </div>
-</main>
+    </section>
+
+    <section class="level-selection" in:fade={{ delay: 600, duration: 800 }}>
+      <h2>SELECT MISSION</h2>
+      <div class="level-grid">
+        {#each allLevels as level}
+          <a
+            href="/game/{level.id}"
+            class="level-card"
+            onmouseenter={() => (hoveredLevel = level.id)}
+            onmouseleave={() => (hoveredLevel = null)}
+          >
+            <div class="level-card-content">
+              <h3>{level.name}</h3>
+              <p>{level.description}</p>
+              <div class="level-meta">
+                <span class="difficulty">ID: {level.id}</span>
+                <span class="action">INITIALIZE_SEQUENCE ></span>
+              </div>
+            </div>
+            {#if hoveredLevel === level.id}
+              <div class="level-card-glow" transition:fade={{ duration: 200 }}></div>
+            {/if}
+          </a>
+        {/each}
+      </div>
+    </section>
+  </main>
+
+  <footer class="landing-footer">
+    <span class="version">v0.1.0-alpha | LOG_LEVEL: INFO</span>
+  </footer>
+</div>
 
 <style>
-  .notifications-container {
-    position: fixed;
-    bottom: 2rem;
-    right: 2rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    pointer-events: none;
-    z-index: 1000;
-  }
-
-  .notification {
-    background: #111;
-    border: 1px solid #333;
-    padding: 0.75rem 1.5rem;
-    color: #fff;
-    font-size: 0.8rem;
-    border-left: 4px solid #4ade80;
-    pointer-events: auto;
-    box-shadow:
-      0 4px 6px -1px rgba(0, 0, 0, 0.1),
-      0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  }
-
-  .notification.info {
-    border-left-color: #4ade80;
-  }
-
-  .notification.error {
-    border-left-color: #f87171;
-  }
-
   :global(body) {
     margin: 0;
     background: #000;
@@ -146,129 +79,161 @@
     font-family: 'JetBrains Mono', 'Courier New', monospace;
   }
 
-  .badge {
-    background: #f87171;
-    color: #fff;
-    font-size: 0.6rem;
-    padding: 0.1rem 0.4rem;
-    border-radius: 10px;
-    margin-left: 0.4rem;
-    vertical-align: middle;
-  }
-
-  .game-container {
+  .landing-container {
+    min-height: 100vh;
     display: flex;
     flex-direction: column;
-    height: 100vh;
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    background: radial-gradient(circle at 50% 0%, #111 0%, #000 70%);
   }
 
-  .global-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.75rem 1.5rem;
-    background: #0a0a0a;
-    border-bottom: 2px solid #222;
+  .landing-header {
+    margin-bottom: 4rem;
+    text-align: center;
   }
 
   .brand h1 {
+    font-size: 3rem;
+    letter-spacing: 0.2em;
     margin: 0;
-    font-size: 1.2rem;
-    letter-spacing: 0.1em;
+    color: #fff;
   }
 
   .highlight {
     color: #f87171;
-  }
-  .version {
-    font-size: 0.6rem;
-    color: #555;
+    text-shadow: 0 0 10px rgba(248, 113, 113, 0.3);
   }
 
-  .game-stats {
-    display: flex;
-    gap: 2rem;
-  }
-
-  .stat-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-
-  .stat-item .label {
-    font-size: 0.6rem;
+  .tagline {
+    font-size: 1rem;
     color: #666;
-  }
-  .stat-item .value {
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: #4ade80;
-  }
-  .low-budget .value {
-    color: #f87171;
-  }
-
-  .btn {
-    background: #222;
-    color: #fff;
-    border: 1px solid #444;
-    padding: 0.4rem 1rem;
-    cursor: pointer;
-    font-family: inherit;
-    font-weight: bold;
+    margin-top: 0.5rem;
     letter-spacing: 0.1em;
   }
 
-  .btn:hover {
-    background: #333;
-  }
-  .btn.start {
-    color: #4ade80;
-    border-color: #4ade8055;
-  }
-  .btn.stop {
-    color: #f87171;
-    border-color: #f8717155;
+  .landing-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4rem;
   }
 
-  .content {
-    display: flex;
-    flex: 1;
+  h2 {
+    font-size: 1.2rem;
+    color: #444;
+    letter-spacing: 0.3em;
+    border-bottom: 1px solid #222;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .intro p {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    max-width: 800px;
+    color: #aaa;
+  }
+
+  .features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-top: 2rem;
+  }
+
+  .feature-card {
+    background: #050505;
+    border: 1px solid #222;
+    padding: 1.5rem;
+  }
+
+  .feature-card h3 {
+    font-size: 0.9rem;
+    color: #fff;
+    margin-top: 0;
+    margin-bottom: 0.75rem;
+    text-transform: uppercase;
+  }
+
+  .feature-card p {
+    font-size: 0.85rem;
+    color: #666;
+    margin: 0;
+  }
+
+  .level-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 2rem;
+  }
+
+  .level-card {
+    position: relative;
+    background: #0a0a0a;
+    border: 1px solid #333;
+    padding: 2rem;
+    text-decoration: none;
+    color: inherit;
+    transition:
+      transform 0.2s,
+      border-color 0.2s;
     overflow: hidden;
   }
 
-  .side-nav {
-    width: 120px;
-    background: #0a0a0a;
-    border-right: 1px solid #222;
-    display: flex;
-    flex-direction: column;
-    padding: 1rem 0;
+  .level-card:hover {
+    transform: translateY(-5px);
+    border-color: #f8717155;
   }
 
-  .nav-item {
-    background: none;
-    border: none;
-    color: #666;
-    padding: 0.75rem;
-    text-align: center;
-    cursor: pointer;
-    font-size: 0.8rem;
-    font-family: inherit;
-    text-transform: uppercase;
-    width: 100%;
-  }
-
-  .nav-item.active {
+  .level-card h3 {
+    font-size: 1.4rem;
+    margin: 0 0 1rem 0;
     color: #fff;
-    background: #111;
-    border-left: 3px solid #f87171;
   }
 
-  .main-view {
-    flex: 1;
-    overflow-y: auto;
-    background: #050505;
+  .level-card p {
+    font-size: 0.9rem;
+    color: #888;
+    margin-bottom: 2rem;
+    line-height: 1.5;
+  }
+
+  .level-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.75rem;
+    border-top: 1px solid #222;
+    padding-top: 1rem;
+  }
+
+  .difficulty {
+    color: #444;
+  }
+
+  .action {
+    color: #f87171;
+    font-weight: bold;
+  }
+
+  .level-card-glow {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, transparent, rgba(248, 113, 113, 0.05), transparent);
+    pointer-events: none;
+  }
+
+  .landing-footer {
+    margin-top: 4rem;
+    padding-top: 2rem;
+    border-top: 1px solid #111;
+    text-align: center;
+    color: #333;
+    font-size: 0.7rem;
   }
 </style>

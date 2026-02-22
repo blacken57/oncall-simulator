@@ -202,6 +202,9 @@ export class GameEngine implements TrafficHandler {
   }
 
   update() {
+    if (Object.keys(this.components).length === 0 || Object.keys(this.traffics).length === 0) {
+      return;
+    }
     this.tick++;
 
     // 0. Reset Components for the new tick

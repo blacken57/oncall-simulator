@@ -1,0 +1,78 @@
+{
+  "id": "tutorial",
+  "name": "Simple Service",
+  "description": "A basic service with a single point of failure. Monitor the CPU.",
+  "components": [
+    {
+      "id": "basic-server",
+      "name": "Basic Server",
+      "type": "compute",
+      "physics": {
+        "request_capacity_per_unit": 10,
+        "latency_base_ms": 100,
+        "latency_load_factor": 1,
+        "saturation_threshold_percent": 80,
+        "saturation_penalty_factor": 0.5,
+        "resource_base_usage": {
+          "cpu": 1
+        },
+        "consumption_rates": {
+          "cpu": 0.1
+        },
+        "noise_factor": 0.1
+      },
+      "attributes": {
+        "cpu": {
+          "name": "CPU",
+          "unit": "Units",
+          "initialLimit": 4,
+          "minLimit": 1,
+          "maxLimit": 16,
+          "costPerUnit": 50,
+          "apply_delay": 2
+        }
+      },
+      "metrics": {
+        "incoming": {
+          "name": "Incoming",
+          "unit": "req/s"
+        },
+        "latency": {
+          "name": "Latency",
+          "unit": "ms"
+        },
+        "error_rate": {
+          "name": "Error Rate",
+          "unit": "%"
+        }
+      },
+      "alerts": [
+        {
+          "name": "High CPU",
+          "metric": "cpu",
+          "warning_threshold": 70,
+          "critical_threshold": 90,
+          "direction": "above"
+        }
+      ],
+      "traffic_routes": [
+        {
+          "name": "user_traffic",
+          "base_latency_ms": 100,
+          "outgoing_traffics": []
+        }
+      ]
+    }
+  ],
+  "traffics": [
+    {
+      "type": "external",
+      "name": "user_traffic",
+      "target_component_name": "Basic Server",
+      "value": 20,
+      "base_variance": 5
+    }
+  ],
+  "statusEffects": [],
+  "scheduledJobs": []
+}

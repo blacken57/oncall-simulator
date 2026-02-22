@@ -17,7 +17,10 @@ export class StorageNode extends SystemComponent {
   }
 
   protected calculateFailureRate(totalDemand: number): number {
-    const util = this.attributes.storage_usage.utilization;
+    const storageAttr = this.attributes.storage_usage;
+    if (!storageAttr) return 0;
+
+    const util = storageAttr.utilization;
     if (util >= 100) return 1; // Total failure
     return 0;
   }
@@ -26,12 +29,18 @@ export class StorageNode extends SystemComponent {
     const traffic = this.incomingTrafficVolume;
     const physics = this.physics;
 
-    const growth = traffic * (physics.consumption_rates?.storage_usage ?? 0.05);
-    this.attributes.storage_usage.update(
-      Math.min(this.attributes.storage_usage.limit, this.attributes.storage_usage.current + growth)
-    );
-
-    this.metrics.fill_rate.update(growth);
+    if (this.attributes.storage_usage) {
+      const growth = traffic * (physics.consumption_rates?.storage_usage ?? 0.05);
+      this.attributes.storage_usage.update(
+        Math.min(
+          this.attributes.storage_usage.limit,
+          this.attributes.storage_usage.current + growth
+        )
+      );
+      if (this.metrics.fill_rate) {
+        this.metrics.fill_rate.update(growth);
+      }
+    }
 
     if (this.metrics.error_rate) {
       const baseFailureRate = traffic > 0 ? (this.unsuccessfulTrafficVolume / traffic) * 100 : 0;

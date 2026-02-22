@@ -1,21 +1,33 @@
 <script lang="ts">
   import snarkdown from 'snarkdown';
 
-  // Load all markdown files from the docs directory as raw strings
-  // 'as: raw' is more reliable in Vite 5 for production builds
-  const docs = import.meta.glob('../../data/docs/*.md', { as: 'raw', eager: true });
+  interface Props {
+    levelId?: string;
+  }
+
+  let { levelId = 'level-1' }: Props = $props();
+
+  // Load all markdown files from the docs directory recursively
+  const docs = import.meta.glob('../../data/docs/**/*.md', { as: 'raw', eager: true });
 
   let currentDoc = $state('index.md');
+
+  // Filter docs for the current level
+  const filteredDocs = $derived.by(() => {
+    const prefix = `../../data/docs/${levelId}/`;
+    const result: Record<string, string> = {};
+    for (const [path, content] of Object.entries(docs)) {
+      if (path.startsWith(prefix)) {
+        const relativePath = path.replace(prefix, '');
+        result[relativePath] = content as string;
+      }
+    }
+    return result;
+  });
+
   let htmlContent = $derived.by(() => {
-    // Find the key that matches our current filename
-    const key = Object.keys(docs).find((k) => k.endsWith(currentDoc));
-    if (!key) return '# Error\nDocument not found.';
-
-    // In production, 'as: raw' usually returns the string directly.
-    // In dev or with other configs, it might be { default: string }.
-    const val = docs[key];
-    const raw = typeof val === 'string' ? val : (val as any).default || '';
-
+    const raw = filteredDocs[currentDoc];
+    if (!raw) return '# Error\nDocument not found.';
     return snarkdown(raw);
   });
 
@@ -33,18 +45,19 @@
     }
   }
 
-  // Sidebar list
-  const docList = Object.keys(docs).map((path) => {
-    const filename = path.split('/').pop() || '';
-    return {
-      filename,
-      label: filename
-        .replace('.md', '')
-        .split('-')
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ')
-    };
-  });
+  // Sidebar list based on filtered docs
+  const docList = $derived(
+    Object.keys(filteredDocs).map((filename) => {
+      return {
+        filename,
+        label: filename
+          .replace('.md', '')
+          .split('-')
+          .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ')
+      };
+    })
+  );
 </script>
 
 <div class="docs-view">
