@@ -2,42 +2,59 @@
 
 This document tracks the roadmap and architectural direction for the Oncall Simulator.
 
-## ✅ Completed (Recent Session)
+## ✅ Completed (Recent Sessions)
 
-- **Alert-Driven Incident System**: Refactored `status_thresholds` into a dedicated `alerts` schema. Supports `warning`, `critical`, and directional thresholds (`above`/`below`).
-- **Automated Ticketing**: Implemented an automated Pager/Ticketing system. Tickets are now alert-specific and deduplicated by Component + Alert Name.
-- **Persistent Issue Detection**: If a user manually resolves a ticket but the underlying critical condition persists, the system automatically re-opens/re-cuts a new ticket.
-- **In-Place Telemetry Optimization**: Replaced memory-heavy array spreads with in-place mutations for all metric/attribute history, significantly reducing GC pressure.
+- **Multi-Level Support**: Dynamic level loading with a dedicated Landing Page (`/`) and dynamic routing (`/game/[levelId]`).
+- **Level Registry**: Centralized level management in `src/lib/game/levels.ts`.
+- **Hierarchical Documentation**: Level-specific runbooks with auto-filtering based on the active level.
+- **Resilient Engine**: Guarded the `update()` loop against empty or partially loaded states.
+- **Component Robustness**: Components now handle missing attributes or metrics gracefully (Negative Testing).
+- **Status Effect Warning Phase**: Implemented stochastic and scheduled events with a pre-incident warning ticket system.
+- **Alert-Driven Incident System**: Refactored `status_thresholds` into a dedicated `alerts` schema.
+- **Automated Ticketing**: Implemented an automated Pager/Ticketing system.
 - **Cycle Detection**: Added DFS-based validation to catch circular traffic dependencies during level loading.
-- **Targeted Scheduled Jobs**: Fixed a bug where jobs only affected capacity (limits); they can now target current utilization (`value`) for things like cache clearing or log rotation.
 
-## 1. Incident Management Side Effects (Next Priority)
+## 1. Asynchronous Infrastructure (High Priority)
+
+- **Objective**: Model event-driven architectures where processing isn't instantaneous or blocking.
+- **QueueNode**: A new component type for message queues (RabbitMQ, Kafka, SQS).
+  - **Backlog Physics**: Stores "Pending Work" that isn't processed in the same tick.
+  - **Drain Rate**: Processes a fixed or variable amount of work per tick based on consumer health.
+  - **Dead Letter Queues**: Traffic that fails to be processed after N retries is sent to a separate `storage` component.
+- **Retry Logic**: Support for components to retry failed dependency calls (with exponential backoff simulation).
+
+## 2. Advanced Component Attributes & Metrics
+
+- **Objective**: Increase the depth of the simulation physics.
+- **New Attributes**:
+  - `io_ops`: Disk input/output limits (critical for Database nodes).
+  - `bandwidth`: Network throughput limits between components.
+  - `concurrency`: Maximum simultaneous active threads.
+- **Advanced Metrics**:
+  - `queue_depth`: Number of requests waiting for a thread/resource.
+  - `cache_hit_rate`: Effectiveness of a `CacheNode` (new component).
+- **Wait Time Physics**: `Total Latency = Processing Time + (Queue Depth * Time Per Request)`.
+
+## 3. Incident Management Side Effects
 
 - **Objective**: Make ticket status (Open vs. Investigating) have a material impact on the game state.
 - **Reputation System (SLA)**: Introduce a "Reputation" metric (0-100).
   - If a ticket remains `open` (unacknowledged) for more than N ticks, Reputation begins to drop.
-  - Acknowledging (`investigating`) stops the reputation bleed but incurs a cost.
 - **Investigation Costs**: Active investigations represent engineer time. Deduct a small amount from the budget per tick for every ticket in the `investigating` state.
-- **The Observer Effect**: Hide certain "hidden" physics variables (like exact noise offsets or deep dependency health) until an engineer is actively `investigating` the relevant component.
-- **Automatic Mitigation**: Some alerts could support "Acknowledge to Mitigate," where acknowledging the ticket automatically applies a temporary status effect (e.g., rate-limiting) to prevent a total crash.
+- **The Observer Effect**: Hide certain "hidden" physics variables until an engineer is actively `investigating` the relevant component.
 
-## 2. Latency Control & Horizontal Scaling
+## 4. Content & Onboarding
 
-- **Objective**: Introduce "Number of Instances" and "Queue Depth" to move beyond simple hardware limits.
-- **Instances (Attribute)**: Implement horizontal scaling. Total Capacity = `instances * gcu_per_instance * factor`. This attribute should have a high `apply_delay` (provisioning time).
-- **Queue Depth (Metric)**: Track requests waiting for a thread.
-- **Wait Time Physics**: `Total Latency = Processing Time + (Queue Depth * Time Per Request)`.
+- **Objective**: Simplify level creation and expand the library of challenges.
+- **Level Scaffolding**: Create a CLI tool or template for generating new level JSONs and documentation structures.
+- **Scenario Library**:
+  - "The Thundering Herd": A cache-miss storm level.
+  - "The Poison Pill": A specific traffic type that crashes a specific component.
+  - "The Regional Outage": A status effect that affects all components in a specific "Zone".
+- **Dynamic Documentation**: Allow documentation to change based on the system state (e.g., "Emergency Runbooks" that appear only during critical incidents).
 
-## 3. Asynchronous Queue & Pub/Sub Simulation
+## 5. Testing & Validation
 
-- **Objective**: Model event-driven architectures where processing isn't instantaneous or blocking.
-- **Guidance**: Create a `QueueNode`. Instead of returning success immediately in `handleTraffic`, the queue should store "Pending Work" and emit it as internal traffic in subsequent ticks based on a "Drain Rate."
-
-## 4. Fail-Open & Optional Dependencies
-
-- **Objective**: Handle non-critical dependencies (e.g., analytics, non-blocking logs).
-- **Guidance**: Update `OutgoingTrafficConfig` with an `optional: boolean` flag. If `optional` is true, a failure in that dependency should not reduce the `successfulVolume` of the parent request.
-
-## 5. Stability & Content Expansion
-
-- **New Components**: Implement `LoadBalancer` (distributes traffic), `Cache` (latency-saving but subject to TTL/eviction), and `ThirdPartyAPI` (high latency, outside player control).
+- **Objective**: Make the system harder to break.
+- **Property-Based Testing**: Use a library like `fast-check` to generate random level configurations and ensure the engine doesn't crash.
+- **Visual Regression**: Ensure the dashboard doesn't break when components have unusual names or a high number of metrics.
