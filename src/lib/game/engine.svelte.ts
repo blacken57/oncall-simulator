@@ -34,6 +34,9 @@ export class GameEngine implements TrafficHandler {
   scheduledJobs: ScheduledJob[] = $state([]);
   pendingActions = $state<QueuedAction[]>([]);
   tickets = $state<Ticket[]>([]);
+  notifications = $state<
+    { id: string; message: string; type: 'info' | 'error'; createdAt: number }[]
+  >([]);
 
   currentLevelId = $state<string | null>(null);
 
@@ -67,6 +70,16 @@ export class GameEngine implements TrafficHandler {
 
   constructor() {}
 
+  notify(message: string, type: 'info' | 'error' = 'info') {
+    const id = Math.random().toString(36).substr(2, 9);
+    this.notifications.push({ id, message, type, createdAt: this.tick });
+
+    // Auto-remove notification after 5 seconds (5 ticks roughly)
+    setTimeout(() => {
+      this.notifications = this.notifications.filter((n) => n.id !== id);
+    }, 5000);
+  }
+
   getActiveComponentEffects(componentId: string): ComponentStatusEffect[] {
     return this.activeComponentEffects[componentId] || [];
   }
@@ -88,6 +101,7 @@ export class GameEngine implements TrafficHandler {
     this.scheduledJobs = (config.scheduledJobs || []).map((j) => new ScheduledJob(j));
     this.pendingActions = [];
     this.tickets = [];
+    this.notifications = [];
 
     // Create components
     for (const compConfig of config.components) {
@@ -202,7 +216,7 @@ export class GameEngine implements TrafficHandler {
 
     // 2. Update Status Effects (Materialization & Resolution)
     for (const effect of this.statusEffects) {
-      effect.tick();
+      effect.tick(this);
     }
 
     // 3. Process Pending Actions

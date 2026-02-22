@@ -150,7 +150,26 @@ export function validateLevel(config: LevelConfig): ValidationError[] {
     }
   });
 
-  // 8. Cycle Detection (Traffic Dependency Graph)
+  // 8. Validate Status Effects
+  config.statusEffects.forEach((effect, i) => {
+    if (effect.type === 'component') {
+      if (!componentIds.has(effect.component_affected)) {
+        errors.push({
+          path: `statusEffects[${i}].component_affected`,
+          message: `Status effect "${effect.name}" targets non-existent component: "${effect.component_affected}"`
+        });
+      }
+    } else if (effect.type === 'traffic') {
+      if (!trafficNames.has(effect.traffic_affected)) {
+        errors.push({
+          path: `statusEffects[${i}].traffic_affected`,
+          message: `Status effect "${effect.name}" targets non-existent traffic: "${effect.traffic_affected}"`
+        });
+      }
+    }
+  });
+
+  // 9. Cycle Detection (Traffic Dependency Graph)
   // Build a map of component name -> set of component names it calls
   const adjacency: Record<string, Set<string>> = {};
   for (const comp of config.components) {

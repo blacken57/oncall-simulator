@@ -99,6 +99,20 @@ describe('Level Validator', () => {
     ).toBe(true);
   });
 
+  it('catches status effects targeting non-existent components or traffic', () => {
+    const invalid = JSON.parse(JSON.stringify(baseLevel));
+    invalid.statusEffects.push({
+      type: 'traffic',
+      name: 'Bad Effect',
+      traffic_affected: 'non-existent',
+      multiplier: 2,
+      materialization_probability: 0.5,
+      turnsRemaining: 1
+    });
+    const errors = validateLevel(invalid);
+    expect(errors.some((e) => e.message.includes('targets non-existent traffic'))).toBe(true);
+  });
+
   it('catches circular traffic dependencies', () => {
     const invalid = JSON.parse(JSON.stringify(baseLevel));
     // C1 calls C2. Let's make C2 call C1.

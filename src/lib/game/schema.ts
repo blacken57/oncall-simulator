@@ -41,7 +41,9 @@ export interface TrafficStatusEffectConfig {
   traffic_affected: string; // Traffic ID
   multiplier?: number; // Defaults to 0 if missing.
   offset?: number; // Defaults to 0 if missing.
+  materialization_probability: number; // Probability each tick (0-1)
   turnsRemaining: number;
+  max_instances_at_once?: number;
 }
 
 export type StatusEffectConfig = ComponentStatusEffectConfig | TrafficStatusEffectConfig;

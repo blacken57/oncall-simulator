@@ -3,6 +3,7 @@ import type {
   TrafficStatusEffectConfig,
   ResolutionConditionConfig
 } from './schema';
+import type { GameEngine } from './engine.svelte';
 
 /**
  * A StatusEffect represents a temporary or permanent condition affecting the system.
@@ -39,10 +40,11 @@ export class ComponentStatusEffect {
     }
   }
 
-  tick() {
+  tick(engine: GameEngine) {
     if (!this.isActive) {
       if (Math.random() < this.materializationProbability) {
         this.isActive = true;
+        engine.notify(`EVENT: ${this.name} materialized!`, 'info');
       }
     } else {
       if (this.turnsRemaining !== undefined) {
@@ -65,19 +67,29 @@ export class TrafficStatusEffect {
   trafficAffected: string;
   multiplier: number;
   offset: number;
+  materializationProbability: number;
+  initialTurnsRemaining: number;
   turnsRemaining = $state(0);
-  isActive = $state(true);
+  isActive = $state(false);
 
   constructor(config: TrafficStatusEffectConfig) {
     this.name = config.name;
     this.trafficAffected = config.traffic_affected;
     this.multiplier = config.multiplier ?? 0;
     this.offset = config.offset ?? 0;
+    this.materializationProbability = config.materialization_probability;
+    this.initialTurnsRemaining = config.turnsRemaining;
     this.turnsRemaining = config.turnsRemaining;
   }
 
-  tick() {
-    if (this.isActive) {
+  tick(engine: GameEngine) {
+    if (!this.isActive) {
+      if (Math.random() < this.materializationProbability) {
+        this.isActive = true;
+        this.turnsRemaining = this.initialTurnsRemaining;
+        engine.notify(`EVENT: ${this.name} materialized!`, 'info');
+      }
+    } else {
       this.turnsRemaining--;
       if (this.turnsRemaining <= 0) {
         this.isActive = false;

@@ -252,7 +252,16 @@
       "target_component_name": "Log Block Storage"
     }
   ],
-  "statusEffects": [],
+  "statusEffects": [
+    {
+      "type": "traffic",
+      "name": "Flash Sale",
+      "traffic_affected": "initiatePurchase",
+      "multiplier": 4.0,
+      "materialization_probability": 0.1,
+      "turnsRemaining": 3
+    }
+  ],
   "scheduledJobs": [
     {
       "name": "Hourly Log Rotation",

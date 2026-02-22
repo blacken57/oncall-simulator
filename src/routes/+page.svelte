@@ -6,6 +6,8 @@
   import DocsView from '../components/Docs/DocsView.svelte';
   import level1 from '../data/level1.json';
   import type { LevelConfig } from '$lib/game/schema';
+  import { flip } from 'svelte/animate';
+  import { fade } from 'svelte/transition';
 
   // Load level at top level for SSR support
   engine.loadLevel(level1 as unknown as LevelConfig);
@@ -90,9 +92,53 @@
       {/if}
     </div>
   </div>
+
+  <div class="notifications-container">
+    {#each engine.notifications as notification (notification.id)}
+      <div
+        class="notification {notification.type}"
+        animate:flip={{ duration: 300 }}
+        transition:fade
+      >
+        <div class="message">{notification.message}</div>
+      </div>
+    {/each}
+  </div>
 </main>
 
 <style>
+  .notifications-container {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    pointer-events: none;
+    z-index: 1000;
+  }
+
+  .notification {
+    background: #111;
+    border: 1px solid #333;
+    padding: 0.75rem 1.5rem;
+    color: #fff;
+    font-size: 0.8rem;
+    border-left: 4px solid #4ade80;
+    pointer-events: auto;
+    box-shadow:
+      0 4px 6px -1px rgba(0, 0, 0, 0.1),
+      0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+
+  .notification.info {
+    border-left-color: #4ade80;
+  }
+
+  .notification.error {
+    border-left-color: #f87171;
+  }
+
   :global(body) {
     margin: 0;
     background: #000;

@@ -395,6 +395,44 @@ describe('GameEngine Integration', () => {
     expect(traffic.latencyHistory[0]).toBe(160);
   });
 
+  it('should materialize TrafficStatusEffect and affect traffic volume', () => {
+    const level = JSON.parse(JSON.stringify(baseLevel));
+    level.statusEffects = [
+      {
+        type: 'traffic',
+        name: 'Flash Sale',
+        traffic_affected: 'inflow',
+        multiplier: 4.0, // 5x total
+        materialization_probability: 1.0, // Always materialize
+        turnsRemaining: 2
+      }
+    ];
+
+    const engine = new GameEngine();
+    engine.loadLevel(level);
+
+    // Initial tick: Status effect is NOT active yet (tick() hasn't run)
+    // Actually, tick() runs BEFORE traffic calculation in engine.update()
+    engine.update();
+
+    const effect = engine.statusEffects[0];
+    expect(effect.isActive).toBe(true);
+    expect(engine.notifications.length).toBe(1);
+    expect(engine.notifications[0].message).toContain('Flash Sale');
+
+    const traffic = engine.traffics['inflow'];
+    // baseValue is 150. With 5x it should be 750.
+    expect(traffic.actualValue).toBe(750);
+
+    engine.update(); // Tick 2 (turnsRemaining 2 -> 1)
+    expect(effect.isActive).toBe(true);
+    expect(traffic.actualValue).toBe(750);
+
+    engine.update(); // Tick 3 (turnsRemaining 1 -> 0, becomes inactive)
+    expect(effect.isActive).toBe(false);
+    expect(traffic.actualValue).toBe(150);
+  });
+
   it('should respect custom apply_delay in queueAction', () => {
     const engine = new GameEngine();
     engine.loadLevel(baseLevel);
