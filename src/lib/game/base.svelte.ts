@@ -82,6 +82,7 @@ export class Attribute {
   }
 
   get utilization() {
+    if (this.limit === 0) return 0;
     return (this.current / this.limit) * 100;
   }
 }

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { GameEngine } from '../src/lib/game/engine.svelte';
+import { TrafficStatusEffect } from '../src/lib/game/statusEffects.svelte';
 import type { LevelConfig } from '../src/lib/game/schema';
 
 describe('GameEngine Integration', () => {

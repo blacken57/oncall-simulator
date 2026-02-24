@@ -2,6 +2,8 @@ import { describe, it, expect, vi } from 'vitest';
 import { ComputeNode } from '../src/lib/game/components/compute.svelte';
 import { DatabaseNode } from '../src/lib/game/components/database.svelte';
 import { StorageNode } from '../src/lib/game/components/storage.svelte';
+import { GameEngine } from '../src/lib/game/engine.svelte';
+import { Attribute } from '../src/lib/game/base.svelte';
 import type { ComponentConfig } from '../src/lib/game/schema';
 
 describe('Resilience / Negative Testing', () => {
@@ -115,6 +117,42 @@ describe('Resilience / Negative Testing', () => {
       expect(() => node.tick(mockHandler as any)).not.toThrow();
       // @ts-ignore
       expect(node.calculateFailureRate(100)).toBe(0);
+    });
+  });
+
+  describe('GameEngine Resilience', () => {
+    it('should handle missing traffic definition in recordDemand', () => {
+      const engine = new GameEngine();
+      // Should not throw when recording demand for non-existent traffic
+      expect(() => engine.recordDemand('non-existent', 100)).not.toThrow();
+    });
+
+    it('should handle missing component target in handleTraffic', () => {
+      const engine = new GameEngine();
+      const level: any = {
+        id: 'bad-level',
+        components: [],
+        traffics: [{ type: 'external', name: 't1', target_component_name: 'Ghost' }],
+        statusEffects: []
+      };
+      engine.loadLevel(level);
+      // Ghost component does not exist. Should return 0 success.
+      const result = engine.handleTraffic('t1', 100);
+      expect(result.successfulVolume).toBe(0);
+    });
+  });
+
+  describe('Attribute Resilience', () => {
+    it('should return 0 utilization when limit is 0 to avoid NaN', () => {
+      const attr = new Attribute({
+        name: 'Test',
+        unit: 'T',
+        initialLimit: 0,
+        minLimit: 0,
+        maxLimit: 100,
+        costPerUnit: 1
+      });
+      expect(attr.utilization).toBe(0);
     });
   });
 });

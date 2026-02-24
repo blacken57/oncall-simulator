@@ -10,8 +10,8 @@
   import { fade } from 'svelte/transition';
   import { onMount, untrack } from 'svelte';
 
-  let levelId = $derived($page.params.levelId);
-  let level = $derived(getLevel(levelId));
+  let levelId = $derived($page.params.levelId || '');
+  let level = $derived(levelId ? getLevel(levelId) : null);
 
   $effect(() => {
     if (level) {

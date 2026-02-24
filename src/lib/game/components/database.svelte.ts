@@ -37,6 +37,12 @@ export class DatabaseNode extends SystemComponent {
    */
   protected calculateLocalLatency(baseLatency: number, volume: number): number {
     let localLat = baseLatency;
+
+    // Apply local load factor (per-request latency increase)
+    const physics = this.physics;
+    const loadFactor = physics.latency_load_factor ?? 0;
+    localLat += volume * loadFactor;
+
     const connAttr = this.attributes.connections;
     if (connAttr) {
       // Use current demand (Pass 1 volume) for saturation check
