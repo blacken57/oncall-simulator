@@ -267,8 +267,45 @@ export abstract class SystemComponent {
 
   /**
    * Updates component internal state (utilization, etc.) based on total traffic seen this tick.
+   * Subclasses should override this to perform their specific resource usage logic and then call super.tick(handler).
    */
-  abstract tick(handler: TrafficHandler): void;
+  tick(handler: TrafficHandler): void {
+    const traffic = this.incomingTrafficVolume;
+
+    // Aggregate latency from all routes processed this tick, including dependencies
+    // status effects, and saturation penalties calculated during handleTraffic.
+    const avgLatency = this.propagatedLatency;
+
+    if (this.metrics.latency) {
+      this.metrics.latency.update(avgLatency);
+    } else if (this.metrics.query_latency) {
+      this.metrics.query_latency.update(avgLatency);
+    }
+
+    if (this.metrics.error_rate) {
+      const baseFailureRate = traffic > 0 ? (this.unsuccessfulTrafficVolume / traffic) * 100 : 0;
+
+      // Apply error_rate status effects
+      let errMultSum = 0;
+      let errOffsetSum = 0;
+      const errEffects = this.getActiveComponentEffects(handler).filter(
+        (e) => e.metricAffected === 'error_rate'
+      );
+      for (const e of errEffects) {
+        errMultSum += e.multiplier;
+        errOffsetSum += e.offset;
+      }
+      const errorRate = baseFailureRate + baseFailureRate * errMultSum + errOffsetSum;
+
+      this.metrics.error_rate.update(errorRate);
+    }
+
+    if (this.metrics.incoming) {
+      this.metrics.incoming.update(traffic);
+    }
+
+    this.checkAlerts();
+  }
 
   protected getActiveComponentEffects(handler: TrafficHandler) {
     return handler.getActiveComponentEffects(this.id);
