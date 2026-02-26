@@ -1,0 +1,233 @@
+{
+  "id": "iot-ingestion",
+  "name": "Global IoT Sensor Network",
+  "description": "Manage a high-throughput ingestion pipeline for millions of global IoT sensors. Use the message queue to absorb massive traffic spikes without dropping data.",
+  "components": [
+    {
+      "id": "ingestion-gateway",
+      "name": "Ingestion API Gateway",
+      "type": "compute",
+      "physics": {
+        "request_capacity_per_unit": 100,
+        "latency_base_ms": 10,
+        "latency_load_factor": 0.01,
+        "saturation_threshold_percent": 80,
+        "saturation_penalty_factor": 0.5
+      },
+      "attributes": {
+        "gcu": {
+          "name": "Compute Units",
+          "unit": "C",
+          "initialLimit": 10,
+          "minLimit": 1,
+          "maxLimit": 100,
+          "costPerUnit": 10
+        }
+      },
+      "metrics": {
+        "incoming": { "name": "Requests", "unit": "req/s" },
+        "latency": { "name": "Latency", "unit": "ms" },
+        "error_rate": { "name": "Errors", "unit": "%" }
+      },
+      "traffic_routes": [
+        {
+          "name": "sensorData",
+          "base_latency_ms": 5,
+          "outgoing_traffics": [{ "name": "enqueueTelemetry", "multiplier": 1 }]
+        }
+      ],
+      "alerts": [
+        {
+          "name": "Gateway High Latency",
+          "metric": "latency",
+          "warning_threshold": 100,
+          "critical_threshold": 300,
+          "direction": "above"
+        }
+      ]
+    },
+    {
+      "id": "telemetry-queue",
+      "name": "Telemetry Buffer Queue",
+      "type": "queue",
+      "attributes": {
+        "backlog": {
+          "name": "Backlog",
+          "unit": "msg",
+          "initialLimit": 10000,
+          "minLimit": 1000,
+          "maxLimit": 100000,
+          "costPerUnit": 0.05
+        },
+        "egress": {
+          "name": "Egress",
+          "unit": "msg/s",
+          "initialLimit": 200,
+          "minLimit": 10,
+          "maxLimit": 2000,
+          "costPerUnit": 2
+        }
+      },
+      "metrics": {
+        "incoming_message_count": { "name": "Ingress", "unit": "msg/s" },
+        "egress_failures": { "name": "Egress Failures", "unit": "msg/s" },
+        "error_rate": { "name": "Drop Rate", "unit": "%" },
+        "large_fill_rate": { "name": "Backlog Status", "unit": "count" }
+      },
+      "traffic_routes": [
+        {
+          "name": "enqueueTelemetry",
+          "outgoing_traffics": [{ "name": "processTelemetry", "multiplier": 1 }]
+        }
+      ],
+      "alerts": [
+        {
+          "name": "Queue Backlog Growing",
+          "metric": "large_fill_rate",
+          "warning_threshold": 1,
+          "critical_threshold": 1,
+          "direction": "above"
+        },
+        {
+          "name": "Queue Full",
+          "metric": "backlog",
+          "warning_threshold": 80,
+          "critical_threshold": 100,
+          "direction": "above"
+        }
+      ]
+    },
+    {
+      "id": "data-worker",
+      "name": "Data Processing Worker",
+      "type": "compute",
+      "physics": {
+        "request_capacity_per_unit": 20,
+        "latency_base_ms": 50,
+        "latency_load_factor": 0.5,
+        "saturation_threshold_percent": 75,
+        "saturation_penalty_factor": 1.5
+      },
+      "attributes": {
+        "gcu": {
+          "name": "Worker Nodes",
+          "unit": "Units",
+          "initialLimit": 10,
+          "minLimit": 1,
+          "maxLimit": 100,
+          "costPerUnit": 15
+        }
+      },
+      "metrics": {
+        "incoming": { "name": "Data Processed", "unit": "req/s" },
+        "latency": { "name": "Processing Time", "unit": "ms" },
+        "error_rate": { "name": "Worker Errors", "unit": "%" }
+      },
+      "traffic_routes": [
+        {
+          "name": "processTelemetry",
+          "outgoing_traffics": [{ "name": "writeTimeseries", "multiplier": 1 }]
+        }
+      ],
+      "alerts": [
+        {
+          "name": "Worker Overloaded",
+          "metric": "gcu",
+          "warning_threshold": 80,
+          "critical_threshold": 95,
+          "direction": "above"
+        }
+      ]
+    },
+    {
+      "id": "timeseries-db",
+      "name": "Timeseries Database",
+      "type": "database",
+      "physics": {
+        "request_capacity_per_unit": 1,
+        "latency_base_ms": 5
+      },
+      "attributes": {
+        "connections": {
+          "name": "Connections",
+          "unit": "conn",
+          "initialLimit": 300,
+          "minLimit": 50,
+          "maxLimit": 3000,
+          "costPerUnit": 2
+        }
+      },
+      "metrics": {
+        "incoming": { "name": "Inserts", "unit": "qps" },
+        "query_latency": { "name": "Insert Latency", "unit": "ms" }
+      },
+      "traffic_routes": [{ "name": "writeTimeseries", "outgoing_traffics": [] }],
+      "alerts": [
+        {
+          "name": "DB Connection Pool Exhausted",
+          "metric": "connections",
+          "warning_threshold": 80,
+          "critical_threshold": 95,
+          "direction": "above"
+        }
+      ]
+    }
+  ],
+  "traffics": [
+    {
+      "type": "external",
+      "name": "sensorData",
+      "target_component_name": "Ingestion API Gateway",
+      "value": 150,
+      "base_variance": 20
+    },
+    {
+      "type": "internal",
+      "name": "enqueueTelemetry",
+      "target_component_name": "Telemetry Buffer Queue"
+    },
+    {
+      "type": "internal",
+      "name": "processTelemetry",
+      "target_component_name": "Data Processing Worker"
+    },
+    {
+      "type": "internal",
+      "name": "writeTimeseries",
+      "target_component_name": "Timeseries Database"
+    }
+  ],
+  "statusEffects": [
+    {
+      "type": "traffic",
+      "name": "Morning Sensor Sync Surge",
+      "traffic_affected": "sensorData",
+      "multiplier": 5.0,
+      "materialization_probability": 0.05,
+      "turnsRemaining": 30,
+      "warning_config": {
+        "delay_ticks": 15,
+        "ticket_title": "Traffic Alert: Device Sync Surge Imminent",
+        "ticket_description": "We expect a massive influx of sensor data as devices sync their offline caches for the morning. Ensure the telemetry queue has enough capacity to buffer the spike."
+      }
+    },
+    {
+      "type": "component",
+      "name": "Database Vacuum Lock",
+      "component_affected": "timeseries-db",
+      "metric_affected": "latency",
+      "multiplier": 3.0,
+      "materialization_probability": 0.02,
+      "resolution_condition": { "turnsRemaining": 20 }
+    }
+  ],
+  "scheduledJobs": [
+    {
+      "name": "Backlog Cleanup",
+      "targetName": "Telemetry Buffer Queue",
+      "schedule": { "interval": 100 },
+      "affectedAttributes": [{ "name": "backlog", "target": "value", "offset": -1000 }],
+      "emittedTraffic": []
+    }
+  ]
+}
