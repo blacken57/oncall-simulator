@@ -5,7 +5,6 @@ export class QueueNode extends SystemComponent {
   type = 'queue';
   private totalSuccessfulOutgoing = 0;
   private totalAttemptedOutgoing = 0;
-  private isPushing = false;
 
   protected getDefaultPhysics(): ComponentPhysicsConfig {
     return {
@@ -17,23 +16,52 @@ export class QueueNode extends SystemComponent {
     const egressAttr = this.attributes.egress;
     const pushRate = egressAttr?.limit || 0;
 
-    // Decoupled demand: We only register demand for our consumers.
-    // We don't call super.recordDemand because that would try to register demand
-    // for our own routes (which we will handle manually in processPush).
-    if (pushRate > 0) {
-      this.isPushing = true;
+    // Reserve demand for our full capacity to ensure fair resolution downstream.
+    const targetPush = pushRate;
+
+    if (targetPush > 0) {
       for (const route of this.trafficRoutes) {
         for (const outgoing of route.outgoing_traffics) {
-          handler.recordDemand(outgoing.name, pushRate);
+          handler.recordDemand(outgoing.name, targetPush);
         }
       }
-      this.isPushing = false;
     }
   }
 
-  protected calculateFailureRate(totalDemand: number): number {
-    if (this.isPushing) return 0; // Internal push logic never fails itself
+  recordDemand(trafficName: string, value: number, handler: TrafficHandler) {
+    this.totalExpectedVolume += value;
+    this.localExpectedVolume += value;
+    // Do not forward demand, as this is a decoupled push queue
+  }
 
+  handleTraffic(
+    trafficName: string,
+    value: number,
+    handler: TrafficHandler
+  ): { successfulVolume: number; averageLatency: number } {
+    this.incomingTrafficVolume += value;
+    this.localIncomingVolume += value;
+
+    const failureRate = this.calculateFailureRate(this.totalExpectedVolume);
+    const successfulVolume = Math.round(value * (1 - failureRate));
+
+    const failed = value - successfulVolume;
+    this.unsuccessfulTrafficVolume += failed;
+
+    const route = this.trafficRoutes.find((r) => r.name === trafficName);
+    const baseLatency = route?.base_latency_ms ?? 0;
+    let localLatency = this.calculateLocalLatency(baseLatency, value);
+    localLatency = this.applyLatencyEffects(localLatency, handler);
+
+    if (successfulVolume > 0) {
+      this.totalLatencySum += localLatency * successfulVolume;
+      this.totalSuccessfulRequests += successfulVolume;
+    }
+
+    return { successfulVolume, averageLatency: localLatency };
+  }
+
+  protected calculateFailureRate(totalDemand: number): number {
     const backlogAttr = this.attributes.backlog;
     const maxCapacity = backlogAttr?.limit || 0;
     const currentBacklog = backlogAttr?.current || 0;
@@ -64,8 +92,7 @@ export class QueueNode extends SystemComponent {
     this.totalAttemptedOutgoing = targetVolume;
     let minSuccessful = targetVolume;
 
-    if (targetVolume > 0) {
-      this.isPushing = true;
+    if (targetVolume > 0 && this.trafficRoutes.length > 0) {
       for (const route of this.trafficRoutes) {
         for (const outgoing of route.outgoing_traffics) {
           const result = handler.handleTraffic(outgoing.name, targetVolume);
@@ -74,7 +101,6 @@ export class QueueNode extends SystemComponent {
           }
         }
       }
-      this.isPushing = false;
     } else {
       minSuccessful = 0;
     }
@@ -152,7 +178,7 @@ export class QueueNode extends SystemComponent {
         warning: 1,
         critical: 2
       };
-      if (priority[customStatus] > priority[this.status]) {
+      if (statusPriority[customStatus] > statusPriority[this.status]) {
         this.status = customStatus;
       }
       Object.assign(this.statusTriggers, customTriggers);
@@ -165,3 +191,9 @@ export class QueueNode extends SystemComponent {
     this.totalAttemptedOutgoing = 0;
   }
 }
+
+const statusPriority: Record<'healthy' | 'warning' | 'critical', number> = {
+  healthy: 0,
+  warning: 1,
+  critical: 2
+};

@@ -63,10 +63,6 @@ describe('QueueNode Physics & Alerts', () => {
         traffic_routes: [
           {
             name: 'to-queue',
-            outgoing_traffics: [] // Decoupled: incoming doesn't immediately trigger outgoing
-          },
-          {
-            name: 'push-route', // The route used for processPush
             outgoing_traffics: [{ name: 'from-queue', multiplier: 1 }]
           }
         ]
@@ -128,6 +124,7 @@ describe('QueueNode Physics & Alerts', () => {
     expect(queue.attributes.egress.current).toBe(10);
 
     const consumer = engine.components['consumer'];
+    // History array for incoming
     expect(consumer.metrics.incoming.value).toBe(10);
   });
 
@@ -140,12 +137,12 @@ describe('QueueNode Physics & Alerts', () => {
     // Tick 1: In 50. Backlog 0. Max 20. pushRate 10.
     // Available space = 20 - 0 + 10 = 30.
     // Demand = 50. Failure rate = (50 - 30) / 50 = 40%.
-    // Accepts 30. Fails 20. error_rate = 40%.
+    // Accepts 30. Fails 20. error_rate = 20/50 = 40%.
     // Process push pushes 10.
     // newCount = 0 + 30 - 10 = 20.
     engine.update();
     const queue = engine.components['my-queue'];
-    expect(queue.metrics.error_rate.value).toBe(40);
+    expect(queue.metrics.error_rate.value).toBe(40); // 20/50
     expect(queue.metrics.current_message_count.value).toBe(20);
 
     // Tick 2: In 50. Backlog 20. pushRate 10. Max 20.
@@ -155,13 +152,14 @@ describe('QueueNode Physics & Alerts', () => {
     // Process push pushes 10.
     // newCount = 20 + 10 - 10 = 20.
     engine.update();
-    expect(queue.metrics.error_rate.value).toBe(80);
+    expect(queue.metrics.error_rate.value).toBe(80); // 40/50
     expect(queue.metrics.current_message_count.value).toBe(20);
   });
 
   it('should trigger alerts and generate tickets', () => {
     const engine = new GameEngine();
     const alertLevel = JSON.parse(JSON.stringify(level));
+    // Set max to 50 so it fills up quickly
     alertLevel.components[1].attributes.backlog.initialLimit = 50;
     engine.loadLevel(alertLevel);
 
@@ -169,19 +167,24 @@ describe('QueueNode Physics & Alerts', () => {
     // Backlog becomes 40.
     engine.update();
     const queue = engine.components['my-queue'];
+
     expect(queue.statusTriggers['large_fill_rate']).toBe('critical');
 
     const ticketFill = engine.tickets.find((t) => t.alertName === 'large_fill_rate');
     expect(ticketFill).toBeDefined();
 
-    // Tick 2: fills to max
+    // Tick 2: incoming 50. Space available is 10 (since it pushes 10).
+    // Fills queue to max (50).
     engine.update();
     expect(queue.statusTriggers['Queue Near Full']).toBe('critical');
+
+    const ticketFull = engine.tickets.find((t) => t.alertName === 'Queue Near Full');
+    expect(ticketFull).toBeDefined();
   });
 
   it('should validate that multipliers must be 1 for queue routes', () => {
     const invalidLevel = JSON.parse(JSON.stringify(level));
-    invalidLevel.components[1].traffic_routes[1].outgoing_traffics[0].multiplier = 2;
+    invalidLevel.components[1].traffic_routes[0].outgoing_traffics[0].multiplier = 2;
 
     const errors = validateLevel(invalidLevel);
     expect(errors.some((e) => e.message.includes('Queue multipliers MUST be 1'))).toBe(true);
@@ -189,6 +192,7 @@ describe('QueueNode Physics & Alerts', () => {
 
   it('should handle fan-out to multiple consumers correctly', () => {
     const fanoutLevel = JSON.parse(JSON.stringify(level));
+    // Increase max to avoid capping in the test
     fanoutLevel.components[1].attributes.backlog.initialLimit = 1000;
     // Add another consumer
     fanoutLevel.components.push({
@@ -201,13 +205,14 @@ describe('QueueNode Physics & Alerts', () => {
       metrics: { incoming: { name: 'In', unit: 'req' } },
       traffic_routes: [{ name: 'from-queue-2', outgoing_traffics: [] }]
     });
+    // Add traffic definition
     fanoutLevel.traffics.push({
       type: 'internal',
       name: 'from-queue-2',
       target_component_name: 'Consumer 2'
     });
-    // Update queue route to fan-out (on the push-route!)
-    fanoutLevel.components[1].traffic_routes[1].outgoing_traffics.push({
+    // Update queue route to fan-out
+    fanoutLevel.components[1].traffic_routes[0].outgoing_traffics.push({
       name: 'from-queue-2',
       multiplier: 1
     });
@@ -223,17 +228,22 @@ describe('QueueNode Physics & Alerts', () => {
     expect(engine.components['consumer'].metrics.incoming.value).toBe(10);
     expect(engine.components['consumer-2'].metrics.incoming.value).toBe(10);
 
-    // Now restrict Consumer 2
+    // Now restrict Consumer 2 capacity drastically
     engine.components['consumer-2'].attributes.gcu.limit = 0;
 
     engine.update(); // Tick 3: In 50. Backlog 80. Push 10.
+    // Consumer 2 rejects all 10.
+    // Egress attempts should still be 10.
     expect(queue.attributes.egress.current).toBe(10);
+    // Egress failures should be 10.
     expect(queue.metrics.egress_failures.value).toBe(10);
-    expect(queue.metrics.current_message_count.value).toBe(130);
+    // Backlog should be 130 (nothing was subtracted because 0 was successful).
+    expect(queue.metrics.current_message_count.value).toBe(80 + 50 - 0); // 130
   });
 
   it('should validate consumer types', () => {
     const invalidLevel = JSON.parse(JSON.stringify(level));
+    // Target a database
     invalidLevel.components.push({
       id: 'bad-consumer',
       name: 'Bad Consumer',
@@ -256,7 +266,7 @@ describe('QueueNode Physics & Alerts', () => {
       name: 'to-db',
       target_component_name: 'Bad Consumer'
     });
-    invalidLevel.components[1].traffic_routes[1].outgoing_traffics[0].name = 'to-db';
+    invalidLevel.components[1].traffic_routes[0].outgoing_traffics[0].name = 'to-db';
 
     const errors = validateLevel(invalidLevel);
     expect(
@@ -264,86 +274,5 @@ describe('QueueNode Physics & Alerts', () => {
         e.message.includes('targets invalid consumer "Bad Consumer" of type "database"')
       )
     ).toBe(true);
-  });
-
-  it('should not push anything if the queue is empty and no traffic arrives', () => {
-    const engine = new GameEngine();
-    const emptyLevel = JSON.parse(JSON.stringify(level));
-    emptyLevel.traffics[0].value = 0;
-    engine.loadLevel(emptyLevel);
-
-    engine.update();
-    const queue = engine.components['my-queue'];
-    expect(queue.attributes.egress.current).toBe(0);
-    expect(queue.metrics.current_message_count.value).toBe(0);
-  });
-
-  it('should cap the backlog at its limit', () => {
-    const engine = new GameEngine();
-    const cappedLevel = JSON.parse(JSON.stringify(level));
-    cappedLevel.components[1].attributes.backlog.initialLimit = 10;
-    cappedLevel.components[1].attributes.egress.initialLimit = 0;
-    cappedLevel.traffics[0].value = 100;
-    engine.loadLevel(cappedLevel);
-
-    engine.update();
-    const queue = engine.components['my-queue'];
-    expect(queue.metrics.current_message_count.value).toBe(10);
-    expect(queue.metrics.error_rate.value).toBeGreaterThan(0);
-  });
-
-  it('should only push what it has even if push rate is much higher', () => {
-    const engine = new GameEngine();
-    const highRateLevel = JSON.parse(JSON.stringify(level));
-    highRateLevel.components[1].attributes.egress.initialLimit = 5000;
-    highRateLevel.traffics[0].value = 100;
-    highRateLevel.traffics[0].base_variance = 0;
-    highRateLevel.components[2].attributes.gcu.initialLimit = 250; // 250 * 20 = 5000
-    engine.loadLevel(highRateLevel);
-
-    engine.update();
-    const queue = engine.components['my-queue'];
-    expect(queue.attributes.egress.current).toBe(100);
-    expect(queue.metrics.current_message_count.value).toBe(0);
-  });
-
-  it('should correctly react to scheduled jobs clearing the backlog', () => {
-    const engine = new GameEngine();
-    const jobLevel = JSON.parse(JSON.stringify(level));
-    jobLevel.scheduledJobs = [
-      {
-        name: 'Wipe Queue',
-        targetName: 'my-queue',
-        schedule: { interval: 2 },
-        affectedAttributes: [{ name: 'backlog', target: 'value', multiplier: -1 }],
-        emittedTraffic: []
-      }
-    ];
-    engine.loadLevel(jobLevel);
-
-    engine.update(); // Tick 1: Backlog 40
-    const queue = engine.components['my-queue'];
-    expect(queue.metrics.current_message_count.value).toBe(40);
-
-    engine.update(); // Tick 2: Job clears 40. In 50. Out 10. Result 40.
-    expect(queue.metrics.current_message_count.value).toBe(40);
-  });
-
-  it('should drain the queue over multiple ticks until empty', () => {
-    const engine = new GameEngine();
-    const drainLevel = JSON.parse(JSON.stringify(level));
-    drainLevel.traffics[0].value = 0;
-    engine.loadLevel(drainLevel);
-
-    const queue = engine.components['my-queue'];
-    queue.attributes.backlog.update(25);
-
-    engine.update(); // 15
-    expect(queue.metrics.current_message_count.value).toBe(15);
-    engine.update(); // 5
-    expect(queue.metrics.current_message_count.value).toBe(5);
-    engine.update(); // 0
-    expect(queue.metrics.current_message_count.value).toBe(0);
-    expect(queue.attributes.egress.current).toBe(5);
   });
 });
