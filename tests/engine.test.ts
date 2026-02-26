@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { GameEngine } from '../src/lib/game/engine.svelte';
 import { TrafficStatusEffect } from '../src/lib/game/statusEffects.svelte';
 import type { LevelConfig } from '../src/lib/game/schema';
@@ -501,5 +501,64 @@ describe('GameEngine Integration', () => {
     // After 5 more ticks (total 10), it should be 16
     for (let i = 0; i < 5; i++) engine.update();
     expect(ram.limit).toBe(16);
+  });
+
+  it('should return early from update if components or traffics are empty', () => {
+    const engine = new GameEngine();
+    // Empty engine initially
+    engine.update();
+    expect(engine.tick).toBe(0); // Should not have incremented
+
+    // Load a valid level but clear traffics
+    engine.loadLevel(baseLevel);
+    engine.traffics = {};
+    engine.update();
+    expect(engine.tick).toBe(0); // Should still not have incremented
+  });
+
+  it('should handle undefined traffic names or targets gracefully', () => {
+    const engine = new GameEngine();
+    engine.loadLevel(baseLevel);
+
+    // Call recordDemand with non-existent traffic
+    expect(() => engine.recordDemand('non-existent-traffic', 100)).not.toThrow();
+
+    // Call handleTraffic with non-existent traffic (assumes 100% success to prevent deadlocks)
+    const result = engine.handleTraffic('non-existent-traffic', 100);
+    expect(result.successfulVolume).toBe(100);
+
+    // Traffic with a missing target component
+    engine.traffics['orphaned-traffic'] = {
+      id: 'orphaned-traffic',
+      type: 'external',
+      targetComponentName: 'MissingTarget',
+      nominalValue: 100,
+      value: 100,
+      actualValue: 100,
+      baseVariance: 0,
+      successHistory: [],
+      failureHistory: [],
+      latencyHistory: [],
+      maxHistory: 60,
+      update: () => {}
+    } as any;
+
+    expect(() => engine.recordDemand('orphaned-traffic', 100)).not.toThrow();
+    const resultOrphan = engine.handleTraffic('orphaned-traffic', 100);
+    // Should act as a black hole (0 success)
+    expect(resultOrphan.successfulVolume).toBe(0);
+  });
+
+  it('should auto-remove notifications after 5 seconds', () => {
+    vi.useFakeTimers();
+    const engine = new GameEngine();
+    engine.notify('Test notification');
+    expect(engine.notifications.length).toBe(1);
+
+    // Fast-forward time
+    vi.advanceTimersByTime(5000);
+    expect(engine.notifications.length).toBe(0);
+
+    vi.useRealTimers();
   });
 });

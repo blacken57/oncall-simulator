@@ -136,4 +136,107 @@ describe('Level Validator', () => {
       true
     );
   });
+
+  it('catches duplicate component names', () => {
+    const invalid = JSON.parse(JSON.stringify(baseLevel));
+    invalid.components[1].name = 'Component 1';
+    const errors = validateLevel(invalid);
+    expect(errors.some((e) => e.message.includes('Duplicate component name'))).toBe(true);
+  });
+
+  it('catches duplicate traffic names', () => {
+    const invalid = JSON.parse(JSON.stringify(baseLevel));
+    invalid.traffics[1].name = 'traffic-1';
+    const errors = validateLevel(invalid);
+    expect(errors.some((e) => e.message.includes('Duplicate traffic name'))).toBe(true);
+  });
+
+  it('catches duplicate alert names', () => {
+    const invalid = JSON.parse(JSON.stringify(baseLevel));
+    invalid.components[0].alerts = [
+      {
+        name: 'duplicate-alert',
+        metric: 'latency',
+        warning_threshold: 50,
+        critical_threshold: 100,
+        direction: 'above'
+      },
+      {
+        name: 'duplicate-alert',
+        metric: 'error_rate',
+        warning_threshold: 5,
+        critical_threshold: 10,
+        direction: 'above'
+      }
+    ];
+    // Add dummy metrics to bypass missing metric check
+    invalid.components[0].metrics = {
+      latency: { name: 'Lat', unit: 'ms' },
+      error_rate: { name: 'Err', unit: '%' }
+    };
+    const errors = validateLevel(invalid);
+    expect(errors.some((e) => e.message.includes('has duplicate alert name'))).toBe(true);
+  });
+
+  it('catches alerts referencing missing metrics/attributes', () => {
+    const invalid = JSON.parse(JSON.stringify(baseLevel));
+    invalid.components[0].alerts = [
+      {
+        name: 'bad-alert',
+        metric: 'missing_metric',
+        warning_threshold: 50,
+        critical_threshold: 100,
+        direction: 'above'
+      }
+    ];
+    const errors = validateLevel(invalid);
+    expect(
+      errors.some((e) => e.message.includes('references non-existent metric or attribute'))
+    ).toBe(true);
+  });
+
+  it('catches scheduled jobs targeting missing attributes', () => {
+    const invalid = JSON.parse(JSON.stringify(baseLevel));
+    invalid.scheduledJobs = [
+      {
+        name: 'Bad Job',
+        targetName: 'Component 1',
+        schedule: { interval: 10 },
+        affectedAttributes: [{ name: 'missing_attr', multiplier: 2 }],
+        emittedTraffic: []
+      }
+    ];
+    const errors = validateLevel(invalid);
+    expect(errors.some((e) => e.message.includes('targets non-existent attribute'))).toBe(true);
+  });
+
+  it('catches scheduled jobs targeting missing components', () => {
+    const invalid = JSON.parse(JSON.stringify(baseLevel));
+    invalid.scheduledJobs = [
+      {
+        name: 'Bad Job',
+        targetName: 'Missing Component',
+        schedule: { interval: 10 },
+        affectedAttributes: [],
+        emittedTraffic: []
+      }
+    ];
+    const errors = validateLevel(invalid);
+    expect(errors.some((e) => e.message.includes('targets non-existent component'))).toBe(true);
+  });
+
+  it('catches component status effects targeting missing components', () => {
+    const invalid = JSON.parse(JSON.stringify(baseLevel));
+    invalid.statusEffects.push({
+      type: 'component',
+      name: 'Bad Component Effect',
+      component_affected: 'missing-id',
+      metric_affected: 'latency',
+      materialization_probability: 0.5,
+      resolution_condition: { turnsRemaining: 1 },
+      max_instances_at_once: 1
+    });
+    const errors = validateLevel(invalid);
+    expect(errors.some((e) => e.message.includes('targets non-existent component'))).toBe(true);
+  });
 });
