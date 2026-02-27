@@ -1,5 +1,5 @@
 <script lang="ts">
-  import snarkdown from 'snarkdown';
+  import { marked } from 'marked';
 
   interface Props {
     levelId?: string;
@@ -8,7 +8,7 @@
   let { levelId = 'level-1' }: Props = $props();
 
   // Load all markdown files from the docs directory recursively
-  const docs = import.meta.glob('../../data/docs/**/*.md', { as: 'raw', eager: true });
+  const docs = import.meta.glob('../../data/docs/**/*.md', { query: '?raw', eager: true });
 
   let currentDoc = $state('index.md');
 
@@ -19,7 +19,7 @@
     for (const [path, content] of Object.entries(docs)) {
       if (path.startsWith(prefix)) {
         const relativePath = path.replace(prefix, '');
-        result[relativePath] = content as string;
+        result[relativePath] = (content as any).default as string;
       }
     }
     return result;
@@ -28,7 +28,7 @@
   let htmlContent = $derived.by(() => {
     const raw = filteredDocs[currentDoc];
     if (!raw) return '# Error\nDocument not found.';
-    return snarkdown(raw);
+    return marked.parse(raw);
   });
 
   function navigate(e: MouseEvent) {
@@ -183,6 +183,31 @@
 
   :global(.markdown-body li) {
     margin-bottom: 0.5rem;
+  }
+
+  :global(.markdown-body table) {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1.5rem;
+    font-size: 0.85rem;
+  }
+
+  :global(.markdown-body th) {
+    background: #111;
+    color: #fff;
+    text-align: left;
+    padding: 0.75rem;
+    border: 1px solid #222;
+  }
+
+  :global(.markdown-body td) {
+    padding: 0.75rem;
+    border: 1px solid #222;
+    color: #aaa;
+  }
+
+  :global(.markdown-body tr:nth-child(even)) {
+    background: #080808;
   }
 
   :global(.markdown-body code) {
