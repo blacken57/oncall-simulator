@@ -182,6 +182,28 @@ describe('QueueNode Physics & Alerts', () => {
     expect(ticketFull).toBeDefined();
   });
 
+  it('should count egress_failures and only reduce backlog by successful pushes on partial rejection', () => {
+    const engine = new GameEngine();
+    engine.loadLevel(level);
+
+    // Tick 1: Normal operation. In=50, Push=10. Backlog=40.
+    engine.update();
+    const queue = engine.components['my-queue'];
+    expect(queue.metrics.current_message_count.value).toBe(40);
+
+    // Reduce consumer capacity to 5 req/s (half the egress rate of 10).
+    // Consumer: gcu.limit=0.25, request_capacity_per_unit=20 → capacity = 0.25 * 20 = 5.
+    // demand (from preTick)=10, failureRate=(10-5)/10=0.5, successfulVolume=round(10*0.5)=5.
+    engine.components['consumer'].attributes.gcu.limit = 0.25;
+
+    // Tick 2: In=50 (all accepted, queue still has space). Backlog=40.
+    // Attempted push=10, consumer accepts 5.
+    // egress_failures = 10 - 5 = 5. newBacklog = 40 + 50 - 5 = 85.
+    engine.update();
+    expect(queue.metrics.egress_failures.value).toBe(5);
+    expect(queue.metrics.current_message_count.value).toBe(85);
+  });
+
   it('should validate that multipliers must be 1 for queue routes', () => {
     const invalidLevel = JSON.parse(JSON.stringify(level));
     invalidLevel.components[1].traffic_routes[0].outgoing_traffics[0].multiplier = 2;

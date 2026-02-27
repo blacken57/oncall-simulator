@@ -239,4 +239,109 @@ describe('Level Validator', () => {
     const errors = validateLevel(invalid);
     expect(errors.some((e) => e.message.includes('targets non-existent component'))).toBe(true);
   });
+
+  it('catches materialization_probability outside [0, 1]', () => {
+    const invalid = JSON.parse(JSON.stringify(baseLevel));
+    invalid.statusEffects.push({
+      type: 'traffic',
+      name: 'Bad Probability',
+      traffic_affected: 'traffic-1',
+      multiplier: 2,
+      materialization_probability: 1.5,
+      turnsRemaining: 1
+    });
+    const errors = validateLevel(invalid);
+    expect(
+      errors.some((e) => e.message.includes('materialization_probability must be between 0 and 1'))
+    ).toBe(true);
+  });
+
+  it('catches schedule.interval of zero or less', () => {
+    const invalid = JSON.parse(JSON.stringify(baseLevel));
+    invalid.scheduledJobs = [
+      {
+        name: 'Bad Interval Job',
+        targetName: 'Component 1',
+        schedule: { interval: 0 },
+        affectedAttributes: [],
+        emittedTraffic: []
+      }
+    ];
+    const errors = validateLevel(invalid);
+    expect(errors.some((e) => e.message.includes('schedule.interval must be greater than 0'))).toBe(
+      true
+    );
+  });
+
+  it('catches attribute minLimit greater than initialLimit', () => {
+    const invalid = JSON.parse(JSON.stringify(baseLevel));
+    invalid.components[0].attributes = {
+      gcu: { name: 'GCU', unit: 'C', initialLimit: 5, minLimit: 10, maxLimit: 100, costPerUnit: 1 }
+    };
+    const errors = validateLevel(invalid);
+    expect(errors.some((e) => e.message.includes('minLimit must not exceed initialLimit'))).toBe(
+      true
+    );
+  });
+
+  it('catches inverted alert thresholds for above direction', () => {
+    const invalid = JSON.parse(JSON.stringify(baseLevel));
+    invalid.components[0].metrics = { latency: { name: 'Lat', unit: 'ms' } };
+    invalid.components[0].alerts = [
+      {
+        name: 'Inverted Alert',
+        metric: 'latency',
+        warning_threshold: 100,
+        critical_threshold: 50,
+        direction: 'above'
+      }
+    ];
+    const errors = validateLevel(invalid);
+    expect(
+      errors.some((e) => e.message.includes("thresholds are inverted for direction 'above'"))
+    ).toBe(true);
+  });
+
+  it('catches component status effect metric_affected not found on target', () => {
+    const invalid = JSON.parse(JSON.stringify(baseLevel));
+    invalid.statusEffects.push({
+      type: 'component',
+      name: 'Bad Metric Effect',
+      component_affected: 'comp-1',
+      metric_affected: 'nonexistent_metric',
+      materialization_probability: 0.1,
+      resolution_ticks: 5,
+      max_instances_at_once: 1
+    });
+    const errors = validateLevel(invalid);
+    expect(
+      errors.some((e) => e.message.includes("metric_affected 'nonexistent_metric' not found"))
+    ).toBe(true);
+  });
+
+  it('catches external traffic with a negative value', () => {
+    const invalid = JSON.parse(JSON.stringify(baseLevel));
+    invalid.traffics[0].value = -10;
+    const errors = validateLevel(invalid);
+    expect(errors.some((e) => e.message.includes('value must not be negative'))).toBe(true);
+  });
+
+  it('catches scheduled job emitting traffic not in the global traffics list', () => {
+    const invalid = JSON.parse(JSON.stringify(baseLevel));
+    invalid.scheduledJobs = [
+      {
+        name: 'Bad Traffic Job',
+        targetName: 'Component 1',
+        schedule: { interval: 10 },
+        affectedAttributes: [],
+        emittedTraffic: [{ name: 'nonexistent-traffic', value: 50 }]
+      }
+    ];
+    const errors = validateLevel(invalid);
+    expect(
+      errors.some((e) =>
+        e.message.includes("emits traffic 'nonexistent-traffic' which is not defined")
+      )
+    ).toBe(true);
+  });
 });

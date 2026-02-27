@@ -84,7 +84,7 @@
         {
           "name": "Queue Backlog Growing",
           "metric": "large_fill_rate",
-          "warning_threshold": 1,
+          "warning_threshold": 0.5,
           "critical_threshold": 1,
           "direction": "above"
         },
@@ -104,9 +104,9 @@
       "physics": {
         "request_capacity_per_unit": 20,
         "latency_base_ms": 50,
-        "latency_load_factor": 0.5,
+        "latency_load_factor": 0.1,
         "saturation_threshold_percent": 75,
-        "saturation_penalty_factor": 1.5
+        "saturation_penalty_factor": 0.3
       },
       "attributes": {
         "gcu": {
@@ -215,7 +215,7 @@
       "type": "component",
       "name": "Database Vacuum Lock",
       "component_affected": "timeseries-db",
-      "metric_affected": "latency",
+      "metric_affected": "query_latency",
       "multiplier": 3.0,
       "materialization_probability": 0.02,
       "resolution_ticks": 20

@@ -69,6 +69,42 @@ Tracks cumulative disk usage via a `storage_usage` attribute. Has no request rat
 
 Async FIFO queues that decouple producers from consumers. Incoming traffic is accepted into a bounded backlog and drained each tick at the egress rate. See Section 4 for a full explanation and the validator constraints.
 
+#### External API (`external_api`)
+
+Models third-party service dependencies (payment processors, mapping APIs, identity providers). Unlike compute nodes, latency is **load-independent** — it reflects the remote service's response time, not local CPU saturation. Degradation is modelled exclusively via `ComponentStatusEffect` (e.g., "Payment Gateway Slow").
+
+Key conventions:
+
+- The primary attribute is `quota_rps` — the rate-limit imposed by the third-party. Requests above this rate fail with a quota error.
+- `noise_factor` should be high (5–20) to reflect the unpredictability of external networks.
+- Do not set `saturation_penalty_factor`; external API latency doesn't follow the same saturation curve as internal services.
+
+```json
+{
+  "id": "payment-gateway",
+  "name": "Payment Gateway",
+  "type": "external_api",
+  "physics": {
+    "latency_base_ms": 200,
+    "noise_factor": 15
+  },
+  "attributes": {
+    "quota_rps": {
+      "name": "API Quota",
+      "unit": "req/s",
+      "initialLimit": 100,
+      "minLimit": 10,
+      "maxLimit": 500,
+      "costPerUnit": 5
+    }
+  },
+  "metrics": {
+    "latency": { "name": "Response Time", "unit": "ms" },
+    "error_rate": { "name": "Errors", "unit": "%" }
+  }
+}
+```
+
 ---
 
 ### 3. Component Physics
@@ -86,14 +122,26 @@ Physics constants control how a component behaves under load:
 }
 ```
 
-| Field                          | Description                                               |
-| ------------------------------ | --------------------------------------------------------- |
-| `request_capacity_per_unit`    | Requests/sec supported by 1 unit of the primary attribute |
-| `latency_base_ms`              | Baseline processing time                                  |
-| `latency_load_factor`          | Extra ms per request above baseline                       |
-| `saturation_threshold_percent` | Utilization % where non-linear latency begins             |
-| `saturation_penalty_factor`    | How sharply latency spikes above the threshold            |
-| `noise_factor`                 | Random variance added to metrics each tick (0–1)          |
+| Field                          | Description                                                                                                                                     |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `request_capacity_per_unit`    | Requests/sec supported by 1 unit of the primary attribute                                                                                       |
+| `latency_base_ms`              | Baseline processing time                                                                                                                        |
+| `latency_load_factor`          | Extra ms per request above baseline                                                                                                             |
+| `saturation_threshold_percent` | Utilization % where non-linear latency begins                                                                                                   |
+| `saturation_penalty_factor`    | How sharply latency spikes above the threshold. See note below.                                                                                 |
+| `noise_factor`                 | Random variance: `(Math.random() - 0.5) × 2 × noise_factor` (centred, symmetric). Typical: 0.5–2 for internal services, 5–20 for external APIs. |
+
+---
+
+### Defaults Reference
+
+| Field                      | Default if omitted                                  |
+| -------------------------- | --------------------------------------------------- |
+| `base_variance`            | 5                                                   |
+| `apply_delay`              | 5 ticks                                             |
+| `noise_factor`             | compute: 0.5, database: 2, external_api: 10         |
+| `status_effect.multiplier` | 0 (no multiplicative change; only `offset` applies) |
+| `status_effect.offset`     | 0                                                   |
 
 ---
 
@@ -356,9 +404,11 @@ Applies a multiplier/offset to a named traffic flow's volume (e.g., simulate a t
 
 - **Circular Dependencies**: The validator will block any traffic loops (A → B → A). Use the queue's decoupled model to break cycles.
 - **Missing Internal Traffic**: Every internal traffic name must exist in the global `traffics` array AND be emitted by at least one component route or scheduled job.
-- **Saturation Spikes**: Setting `saturation_penalty_factor` above 2.0 can cause latency to explode into the millions of milliseconds instantly. Start low (0.3–0.8) and tune up.
+- **Saturation Spikes**: Latency is capped at 100× the base value in code, so values will never reach millions of ms. However, with `saturation_penalty_factor` above 0.5, saturation at 150%+ utilisation will still push latency to thousands of ms. Keep penalty factors below 0.5 for gameplay-friendly behaviour.
 - **Queue multiplier ≠ 1**: Setting `multiplier` to anything other than `1` on a queue's `outgoing_traffics` is a validator error. Queues forward at their egress rate, not a multiple of it.
 - **Queue targeting invalid consumer**: A queue's egress traffic must target a `compute` or `storage` component. Targeting a `database` or another `queue` is rejected.
 - **ScheduledJob `target: 'value'` mutates `current`, not `limit`**: Use `target: 'value'` only for simulating fill growth (e.g., disk usage accumulation). Use the default `target: 'limit'` for capacity configuration.
 - **`materialization_probability: 1.0` without `resolution_ticks`**: The effect will materialize on tick 1 and never resolve. This is intentional for permanent degradation scenarios but easy to overlook. Add `resolution_ticks` if you want auto-recovery.
 - **Alert metric key mismatch**: The validator checks that `alert.metric` matches a key in either the component's `metrics` or `attributes` map. A typo here is a hard validation error.
+- **Alert thresholds inverted**: For `direction: "above"`, `warning_threshold` must be less than `critical_threshold`. For `direction: "below"`, `warning_threshold` must be greater than `critical_threshold`. Inverted thresholds are now a hard validation error.
+- **Status effect `metric_affected` mismatch**: `metric_affected` must match a key in the target component's `metrics` or `attributes` map. The validator enforces this — a typo will fail `npm run validate`.

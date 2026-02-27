@@ -54,7 +54,16 @@ export abstract class SystemComponent {
 
   // Temporary state for the current tick
   totalExpectedVolume = 0;
-  localExpectedVolume = 0; // Volume before dependency expansion
+  /**
+   * `localExpectedVolume` tracks demand arriving directly at this component (before fan-out
+   * to dependencies), while `totalExpectedVolume` would include any forwarded demand.
+   * For most components these are equal because `recordDemand()` increments both and then
+   * propagates demand downstream via `handler.recordDemand()`.
+   * `QueueNode` overrides `recordDemand()` to stop forwarding (it is a decoupling boundary),
+   * so both fields remain equal at the queue itself — but the downstream consumer never
+   * receives forwarded demand through the normal chain (only through `preTick()`).
+   */
+  localExpectedVolume = 0;
   incomingTrafficVolume = 0;
   unsuccessfulTrafficVolume = 0;
   totalLatencySum = 0;

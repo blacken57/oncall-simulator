@@ -92,7 +92,7 @@ export class ComponentStatusEffect extends BaseStatusEffect {
   componentAffected: string;
   metricAffected: string;
   resolutionTicks: number | undefined;
-  // TODO: enforce max_instances_at_once
+  // TODO(feature): enforce max_instances_at_once — currently config value is stored but not checked
   maxInstancesAtOnce: number;
 
   constructor(config: ComponentStatusEffectConfig) {

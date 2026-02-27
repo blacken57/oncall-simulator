@@ -64,7 +64,7 @@ export class ComputeNode extends SystemComponent {
       // Non-linear penalty: spikes more aggressively as utilization increases.
       // We use a power of 2 to make it feel more like a real queuing bottleneck.
       const factor = (rawUtilization - satThreshold) * (physics.saturation_penalty_factor ?? 0.1);
-      const penalty = 1 + Math.pow(factor, 2);
+      const penalty = Math.min(1 + Math.pow(factor, 2), 100);
       localLat *= penalty;
     }
 
@@ -74,7 +74,7 @@ export class ComputeNode extends SystemComponent {
     const traffic = this.incomingTrafficVolume;
     const physics = this.physics;
     const noiseFactor = physics.noise_factor ?? 0.5;
-    const noise = (Math.random() - 0.5) * noiseFactor;
+    const noise = (Math.random() - 0.5) * 2 * noiseFactor;
 
     // Resource Usage (GCU/CPU)
     const primaryAttr = this.attributes.gcu || this.attributes.cpu;
@@ -85,7 +85,8 @@ export class ComputeNode extends SystemComponent {
         physics.resource_base_usage?.gcu ?? physics.resource_base_usage?.cpu ?? 0;
 
       // Uncapped value for physics calculations
-      const calculatedValue = resourceBase + traffic / capPerUnit + Math.random() * noiseFactor;
+      const calculatedValue =
+        resourceBase + traffic / capPerUnit + (Math.random() - 0.5) * 2 * noiseFactor;
 
       // Cap at limit only for the attribute storage (UI)
       primaryAttr.update(Math.min(primaryAttr.limit, calculatedValue));

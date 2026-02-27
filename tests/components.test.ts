@@ -149,6 +149,27 @@ describe('Component Physics', () => {
       // Metric itself should be capped at limit (10)
       expect(node.attributes.gcu.current).toBe(10);
     });
+    it('should cap the saturation penalty at 100× even at extreme overload', () => {
+      const node = new ComputeNode({
+        ...config,
+        physics: {
+          request_capacity_per_unit: 10,
+          latency_load_factor: 0,
+          saturation_threshold_percent: 80,
+          saturation_penalty_factor: 2,
+          resource_base_usage: { gcu: 0 },
+          noise_factor: 0
+        }
+      });
+      // Capacity = 10 GCU * 10 req/GCU = 100. Demand = 500 → 500% utilization.
+      // factor = (500 - 80) * 2 = 840. Uncapped: 1 + 840² ≫ 100. With cap: penalty = 100×.
+      // localLat = 10ms (baseLatency) * 100 = 1000ms.
+      node.localExpectedVolume = 500;
+      // @ts-ignore — accessing protected for test
+      const latency = node.calculateLocalLatency(10, 500);
+      expect(latency).toBe(1000);
+    });
+
     it('should consume resources proportionally to traffic', () => {
       const node = new ComputeNode({
         ...config,
@@ -204,6 +225,25 @@ describe('Component Physics', () => {
       // (150 - 100) / 150 = 0.333...
       // @ts-ignore
       expect(node.calculateFailureRate(150)).toBeCloseTo(0.333, 3);
+    });
+
+    it('should apply 5× latency multiplier when utilization exceeds 90%', () => {
+      const node = new DatabaseNode({
+        ...config,
+        physics: {
+          latency_base_ms: 10,
+          latency_load_factor: 0,
+          saturation_threshold_percent: 90,
+          saturation_penalty_factor: 4,
+          noise_factor: 0
+        }
+      });
+      // connections.limit = 100. Set demand to 95 (95% > 90% threshold).
+      node.totalExpectedVolume = 95;
+      // @ts-ignore — accessing protected for test
+      const latency = node.calculateLocalLatency(10, 95);
+      // penalty = 1 + saturation_penalty_factor = 1 + 4 = 5×. 10ms * 5 = 50ms.
+      expect(latency).toBe(50);
     });
   });
 

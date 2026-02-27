@@ -64,7 +64,7 @@ export class DatabaseNode extends SystemComponent {
 
     // Connections update
     if (this.attributes.connections) {
-      this.attributes.connections.update(traffic + Math.random() * noiseFactor);
+      this.attributes.connections.update(traffic + (Math.random() - 0.5) * 2 * noiseFactor);
     }
 
     if (this.attributes.storage) {

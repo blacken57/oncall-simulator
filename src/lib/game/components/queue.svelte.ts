@@ -1,6 +1,23 @@
 import type { ComponentPhysicsConfig } from '../schema';
 import { SystemComponent, type TrafficHandler } from './base.svelte';
 
+/**
+ * Async FIFO queue that decouples producers from consumers via a bounded backlog.
+ *
+ * Tick lifecycle ordering (must follow this sequence):
+ *   1. `resetTick()` — clears all accumulators including outgoing counters.
+ *   2. `preTick()` — pre-registers egress-rate demand on downstream consumers so they
+ *      reserve capacity before Pass 1 begins.
+ *   3. `recordDemand()` — accepts incoming demand but does NOT forward it downstream
+ *      (the queue is a decoupling boundary).
+ *   4. `handleTraffic()` — accepts messages into the backlog; drops if full.
+ *   5. `processPush()` — drains up to `egress` messages per tick to downstream consumers;
+ *      downstream failures are counted separately as `egress_failures`.
+ *   6. `updateBacklogState()` — computes the new backlog depth from incomingAccepted and
+ *      totalSuccessfulOutgoing; MUST run before `super.tick()` so metrics have accurate state.
+ *   7. `tick()` → calls `updateBacklogState()` then delegates to `super.tick()` for
+ *      standard metric and alert evaluation.
+ */
 export class QueueNode extends SystemComponent {
   type = 'queue';
   private totalSuccessfulOutgoing = 0;

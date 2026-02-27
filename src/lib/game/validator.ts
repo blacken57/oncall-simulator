@@ -16,7 +16,7 @@ export function validateLevel(config: LevelConfig): ValidationError[] {
   const componentNames = new Set<string>();
   const trafficNames = new Set<string>();
 
-  // 1. Unique component IDs and names, and valid component types
+  // 1. Unique component IDs and names, valid component types, and attribute ordering
   config.components.forEach((comp, i) => {
     if (componentIds.has(comp.id)) {
       errors.push({ path: `components[${i}].id`, message: `Duplicate component ID: ${comp.id}` });
@@ -37,9 +37,31 @@ export function validateLevel(config: LevelConfig): ValidationError[] {
         message: `Unknown component type: ${comp.type}`
       });
     }
+
+    // Validate attribute limit ordering: 0 < minLimit ≤ initialLimit ≤ maxLimit
+    for (const [attrKey, attrConfig] of Object.entries(comp.attributes)) {
+      if (attrConfig.minLimit <= 0) {
+        errors.push({
+          path: `components[${i}].attributes.${attrKey}.minLimit`,
+          message: `Attribute ${attrKey}: minLimit must be greater than 0`
+        });
+      }
+      if (attrConfig.minLimit > attrConfig.initialLimit) {
+        errors.push({
+          path: `components[${i}].attributes.${attrKey}`,
+          message: `Attribute ${attrKey}: minLimit must not exceed initialLimit`
+        });
+      }
+      if (attrConfig.initialLimit > attrConfig.maxLimit) {
+        errors.push({
+          path: `components[${i}].attributes.${attrKey}`,
+          message: `Attribute ${attrKey}: initialLimit must not exceed maxLimit`
+        });
+      }
+    }
   });
 
-  // 2. Unique traffic names
+  // 2. Unique traffic names; external traffic value ≥ 0
   config.traffics.forEach((traffic, i) => {
     if (trafficNames.has(traffic.name)) {
       errors.push({
@@ -54,6 +76,13 @@ export function validateLevel(config: LevelConfig): ValidationError[] {
       errors.push({
         path: `traffics[${i}].target_component_name`,
         message: `Traffic "${traffic.name}" targets non-existent component: "${traffic.target_component_name}"`
+      });
+    }
+
+    if (traffic.type === 'external' && traffic.value !== undefined && traffic.value < 0) {
+      errors.push({
+        path: `traffics[${i}].value`,
+        message: `Traffic ${traffic.name}: value must not be negative`
       });
     }
   });
@@ -137,6 +166,13 @@ export function validateLevel(config: LevelConfig): ValidationError[] {
   // 6. Validate Scheduled Jobs
   if (config.scheduledJobs) {
     config.scheduledJobs.forEach((job, i) => {
+      if (job.schedule.interval <= 0) {
+        errors.push({
+          path: `scheduledJobs[${i}].schedule.interval`,
+          message: `Scheduled job "${job.name}": schedule.interval must be greater than 0`
+        });
+      }
+
       const targetComp = config.components.find(
         (c) => c.name === job.targetName || c.id === job.targetName
       );
@@ -155,6 +191,15 @@ export function validateLevel(config: LevelConfig): ValidationError[] {
           }
         });
       }
+
+      job.emittedTraffic.forEach((et, k) => {
+        if (!trafficNames.has(et.name)) {
+          errors.push({
+            path: `scheduledJobs[${i}].emittedTraffic[${k}]`,
+            message: `ScheduledJob "${job.name}" emits traffic '${et.name}' which is not defined`
+          });
+        }
+      });
     });
   }
 
@@ -179,18 +224,53 @@ export function validateLevel(config: LevelConfig): ValidationError[] {
             message: `Component "${comp.name}" alert "${alert.name}" references non-existent metric or attribute: "${alert.metric}"`
           });
         }
+
+        // Validate threshold direction: warning must be less severe than critical
+        if (alert.direction === 'above' && alert.warning_threshold >= alert.critical_threshold) {
+          errors.push({
+            path: `components[${i}].alerts[${j}]`,
+            message: `Alert ${alert.name}: thresholds are inverted for direction 'above' (warning must be < critical)`
+          });
+        }
+        if (alert.direction === 'below' && alert.warning_threshold <= alert.critical_threshold) {
+          errors.push({
+            path: `components[${i}].alerts[${j}]`,
+            message: `Alert ${alert.name}: thresholds are inverted for direction 'below' (warning must be > critical)`
+          });
+        }
       });
     }
   });
 
   // 8. Validate Status Effects
   config.statusEffects.forEach((effect, i) => {
+    if (effect.materialization_probability < 0 || effect.materialization_probability > 1) {
+      errors.push({
+        path: `statusEffects[${i}].materialization_probability`,
+        message: `Status effect "${effect.name}": materialization_probability must be between 0 and 1`
+      });
+    }
+
     if (effect.type === 'component') {
       if (!componentIds.has(effect.component_affected)) {
         errors.push({
           path: `statusEffects[${i}].component_affected`,
           message: `Status effect "${effect.name}" targets non-existent component: "${effect.component_affected}"`
         });
+      } else {
+        // Validate that metric_affected exists on the target component
+        const targetComp = config.components.find((c) => c.id === effect.component_affected);
+        if (targetComp) {
+          const metricExists =
+            targetComp.metrics[effect.metric_affected] ||
+            targetComp.attributes[effect.metric_affected];
+          if (!metricExists) {
+            errors.push({
+              path: `statusEffects[${i}].metric_affected`,
+              message: `Status effect "${effect.name}": metric_affected '${effect.metric_affected}' not found on component "${effect.component_affected}"`
+            });
+          }
+        }
       }
     } else if (effect.type === 'traffic') {
       if (!trafficNames.has(effect.traffic_affected)) {

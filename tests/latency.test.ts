@@ -181,19 +181,19 @@ describe('Latency Physics & Propagation', () => {
     // Manual saturation for this test:
     // Capacity is 10 CPU * 10 req/GCU = 100.
     // 200 demand -> 200% utilization.
-    // Penalty: 1 + pow((200 - 80) * 0.1, 2) = 1 + pow(12, 2) = 1 + 144 = 145x multiplier.
-    // NOTE: Due to small noise/floating point diffs in utilization calculation,
-    // the actual multiplier might be slightly lower. We use the observed 2905ms.
+    // factor = (200 - 80) * 0.1 = 12. Uncapped penalty = 1 + 144 = 145x.
+    // With 100x cap: penalty = 100x. Local latency = 20ms * 100 = 2000ms.
+    // DB dependency = 5ms. Service B total = 2000 + 5 = 2005ms.
     serviceB.attributes.cpu.limit = 10;
 
     engine.update();
 
-    // Service B: 25ms (base+db) * observed_multiplier = 2905ms.
-    expect(serviceB.metrics.latency.value).toBeCloseTo(2905, -1);
+    // Service B: 20ms (route base) * 100 (capped penalty) + 5ms (DB) = 2005ms.
+    expect(serviceB.metrics.latency.value).toBeCloseTo(2005, -1);
 
-    // Service A now sees ~2905ms from B.
-    // Service A: 60ms (local) + 2 calls * 2905ms = 60 + 5810 = 5870ms.
+    // Service A now sees ~2005ms from B.
+    // Service A: 60ms (local) + 2 calls * 2005ms = 60 + 4010 = 4070ms.
     const serviceA = engine.components['service-a'];
-    expect(serviceA.metrics.latency.value).toBeCloseTo(5870, -1);
+    expect(serviceA.metrics.latency.value).toBeCloseTo(4070, -1);
   });
 });
