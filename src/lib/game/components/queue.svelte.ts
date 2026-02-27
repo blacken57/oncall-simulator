@@ -6,6 +6,9 @@ export class QueueNode extends SystemComponent {
   private totalSuccessfulOutgoing = 0;
   private totalAttemptedOutgoing = 0;
 
+  // State set by updateBacklogState() and consumed by updateStandardMetrics / addCustomStatusTriggers
+  private newBacklog = 0;
+
   protected getDefaultPhysics(): ComponentPhysicsConfig {
     return {
       latency_base_ms: 5
@@ -40,7 +43,6 @@ export class QueueNode extends SystemComponent {
     handler: TrafficHandler
   ): { successfulVolume: number; averageLatency: number } {
     this.incomingTrafficVolume += value;
-    this.localIncomingVolume += value;
 
     const failureRate = this.calculateFailureRate(this.totalExpectedVolume);
     const successfulVolume = Math.round(value * (1 - failureRate));
@@ -83,7 +85,7 @@ export class QueueNode extends SystemComponent {
     const egressAttr = this.attributes.egress;
     const pushRate = egressAttr?.limit || 0;
     const currentBacklog = backlogAttr?.current || 0;
-    const incomingAccepted = this.localIncomingVolume - this.unsuccessfulTrafficVolume;
+    const incomingAccepted = this.incomingTrafficVolume - this.unsuccessfulTrafficVolume;
 
     // Attempted push rate is min(backlog + incoming, push_rate)
     const availableToPush = currentBacklog + incomingAccepted;
@@ -108,30 +110,35 @@ export class QueueNode extends SystemComponent {
     this.totalSuccessfulOutgoing = minSuccessful;
   }
 
-  tick(handler: TrafficHandler) {
+  /**
+   * Computes the new backlog count and updates backlog/egress attributes for UI display.
+   * Must run before super.tick() so the derived phases have accurate state.
+   */
+  private updateBacklogState(): void {
     const backlogAttr = this.attributes.backlog;
     const maxCapacity = backlogAttr?.limit || 0;
     const currentBacklog = backlogAttr?.current || 0;
     const egressAttr = this.attributes.egress;
-    const incomingAccepted = this.localIncomingVolume - this.unsuccessfulTrafficVolume;
+
+    const incomingAccepted = this.incomingTrafficVolume - this.unsuccessfulTrafficVolume;
 
     // We only remove SUCCESSFUL pushes from the backlog (guaranteed delivery)
-    const newBacklogCount = Math.min(
+    this.newBacklog = Math.min(
       maxCapacity,
       Math.max(0, currentBacklog + incomingAccepted - this.totalSuccessfulOutgoing)
     );
 
     // Update attributes for UI display
-    if (backlogAttr) backlogAttr.update(newBacklogCount);
-
-    // Egress bar now shows ATTEMPTED volume (effort) vs capacity
+    if (backlogAttr) backlogAttr.update(this.newBacklog);
     if (egressAttr) egressAttr.update(this.totalAttemptedOutgoing);
+  }
 
+  protected override updateStandardMetrics(_handler: TrafficHandler): void {
     if (this.metrics.current_message_count) {
-      this.metrics.current_message_count.update(newBacklogCount);
+      this.metrics.current_message_count.update(this.newBacklog);
     }
     if (this.metrics.incoming_message_count) {
-      this.metrics.incoming_message_count.update(this.localIncomingVolume);
+      this.metrics.incoming_message_count.update(this.incomingTrafficVolume);
     }
     if (this.metrics.egress_failures) {
       this.metrics.egress_failures.update(
@@ -139,50 +146,33 @@ export class QueueNode extends SystemComponent {
       );
     }
     if (this.metrics.large_fill_rate) {
-      // 1 if backlog is growing, 0 otherwise
       this.metrics.large_fill_rate.update(
-        this.totalSuccessfulOutgoing < this.localIncomingVolume ? 1 : 0
+        this.totalSuccessfulOutgoing < this.incomingTrafficVolume ? 1 : 0
       );
     }
     if (this.metrics.error_rate) {
       const rate =
-        this.localIncomingVolume > 0
-          ? (this.unsuccessfulTrafficVolume / this.localIncomingVolume) * 100
+        this.incomingTrafficVolume > 0
+          ? (this.unsuccessfulTrafficVolume / this.incomingTrafficVolume) * 100
           : 0;
       this.metrics.error_rate.update(rate);
     }
+  }
 
-    this.statusTriggers = {};
-    let newStatus: 'healthy' | 'warning' | 'critical' = 'healthy';
+  protected override addCustomStatusTriggers(): void {
+    const maxCapacity = this.attributes.backlog?.limit || 0;
 
-    if (this.totalSuccessfulOutgoing < this.localIncomingVolume) {
+    if (this.totalSuccessfulOutgoing < this.incomingTrafficVolume) {
       this.statusTriggers['large_fill_rate'] = 'critical';
-      newStatus = 'critical';
     }
-
-    if (newBacklogCount >= maxCapacity && maxCapacity > 0) {
+    if (this.newBacklog >= maxCapacity && maxCapacity > 0) {
       this.statusTriggers['Queue Near Full'] = 'critical';
-      newStatus = 'critical';
     }
+  }
 
-    this.status = newStatus;
-
-    if (this.alerts.length > 0) {
-      const customTriggers = { ...this.statusTriggers };
-      const customStatus = newStatus;
-
-      this.checkAlerts();
-
-      const priority: Record<'healthy' | 'warning' | 'critical', number> = {
-        healthy: 0,
-        warning: 1,
-        critical: 2
-      };
-      if (statusPriority[customStatus] > statusPriority[this.status]) {
-        this.status = customStatus;
-      }
-      Object.assign(this.statusTriggers, customTriggers);
-    }
+  tick(handler: TrafficHandler): void {
+    this.updateBacklogState();
+    super.tick(handler);
   }
 
   resetTick() {
@@ -191,9 +181,3 @@ export class QueueNode extends SystemComponent {
     this.totalAttemptedOutgoing = 0;
   }
 }
-
-const statusPriority: Record<'healthy' | 'warning' | 'critical', number> = {
-  healthy: 0,
-  warning: 1,
-  critical: 2
-};

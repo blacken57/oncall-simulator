@@ -68,11 +68,34 @@ export function validateLevel(config: LevelConfig): ValidationError[] {
         allOutgoingTrafficNames.add(outgoing.name);
 
         // Ensure the outgoing traffic exists in the global traffics list
+        const trafficDef = config.traffics.find((t) => t.name === outgoing.name);
         if (!trafficNames.has(outgoing.name)) {
           errors.push({
             path: `components[${i}].traffic_routes[${j}].outgoing_traffics[${k}]`,
             message: `Component "${comp.name}" route "${route.name}" references non-existent traffic: "${outgoing.name}"`
           });
+        }
+
+        // Queue-specific validations
+        if (comp.type === 'queue') {
+          if (outgoing.multiplier !== 1) {
+            errors.push({
+              path: `components[${i}].traffic_routes[${j}].outgoing_traffics[${k}].multiplier`,
+              message: `Queue multipliers MUST be 1. Component "${comp.name}" route "${route.name}" has multiplier ${outgoing.multiplier}`
+            });
+          }
+
+          if (trafficDef && trafficDef.target_component_name) {
+            const targetComp = config.components.find(
+              (c) => c.name === trafficDef.target_component_name
+            );
+            if (targetComp && targetComp.type !== 'compute' && targetComp.type !== 'storage') {
+              errors.push({
+                path: `components[${i}].traffic_routes[${j}].outgoing_traffics[${k}]`,
+                message: `Queue "${comp.name}" targets invalid consumer "${targetComp.name}" of type "${targetComp.type}". Queues can only target compute or storage components.`
+              });
+            }
+          }
         }
       });
     });

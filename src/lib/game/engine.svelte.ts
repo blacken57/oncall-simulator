@@ -2,10 +2,12 @@ import {
   ComputeNode,
   DatabaseNode,
   StorageNode,
+  QueueNode,
   Traffic,
   type SystemComponent,
   type TrafficHandler
 } from './models.svelte';
+import { applyEffects } from './base.svelte';
 import type { LevelConfig, Ticket, TicketStatus } from './schema';
 import {
   ComponentStatusEffect,
@@ -126,6 +128,9 @@ export class GameEngine implements TrafficHandler {
         case 'storage':
           component = new StorageNode(compConfig);
           break;
+        case 'queue':
+          component = new QueueNode(compConfig);
+          break;
         default:
           throw new Error(`Unknown component type: ${compConfig.type}`);
       }
@@ -243,6 +248,9 @@ export class GameEngine implements TrafficHandler {
     });
     this.pendingActions = this.pendingActions.filter((a) => a.status === 'pending');
 
+    // PRE-PASS 0: Active components register their own demand
+    Object.values(this.components).forEach((comp) => comp.preTick(this));
+
     // 4. PRE-PASS (Demand Pass): Calculate External Volumes and Record Demand
     // This phase identifies the total load hitting every component in the system
     // BEFORE any component decides to drop traffic.
@@ -253,14 +261,9 @@ export class GameEngine implements TrafficHandler {
         // Use nominalValue as the fixed center point for noise
         const newBaseValue = Math.max(0, traffic.nominalValue + noise);
 
-        let multiplierSum = 0;
-        let offsetSum = 0;
-        for (const effect of this.getActiveTrafficEffects(traffic.id)) {
-          multiplierSum += effect.multiplier;
-          offsetSum += effect.offset;
-        }
-
-        const currentVolume = Math.round(newBaseValue + newBaseValue * multiplierSum + offsetSum);
+        const currentVolume = Math.round(
+          applyEffects(newBaseValue, this.getActiveTrafficEffects(traffic.id))
+        );
         externalWork.push({ traffic, volume: currentVolume, base: newBaseValue });
 
         // Pass 1: Recursive demand collection
@@ -279,6 +282,9 @@ export class GameEngine implements TrafficHandler {
       // Update traffic history with the propagated latency
       traffic.update(base, volume, successfulVolume, fail, averageLatency);
     }
+
+    // 5.5. INTERNAL PUSH PASS: Active components push internal traffic
+    Object.values(this.components).forEach((comp) => comp.processPush(this));
 
     // 6. Tick each component to finalize metrics and handle physics
     Object.values(this.components).forEach((comp) => {

@@ -1,5 +1,4 @@
 import type { ComponentPhysicsConfig } from '../schema';
-import type { ComponentStatusEffect } from '../statusEffects.svelte';
 import { SystemComponent, type TrafficHandler } from './base.svelte';
 
 /**
@@ -71,15 +70,14 @@ export class ComputeNode extends SystemComponent {
 
     return localLat;
   }
-  tick(handler: TrafficHandler) {
-    const traffic = this.localIncomingVolume;
+  protected override updateResourceMetrics(_handler: TrafficHandler): void {
+    const traffic = this.incomingTrafficVolume;
     const physics = this.physics;
     const noiseFactor = physics.noise_factor ?? 0.5;
     const noise = (Math.random() - 0.5) * noiseFactor;
 
     // Resource Usage (GCU/CPU)
     const primaryAttr = this.attributes.gcu || this.attributes.cpu;
-    let rawUtilization = 0;
 
     if (primaryAttr) {
       const capPerUnit = physics.request_capacity_per_unit ?? 20;
@@ -88,7 +86,6 @@ export class ComputeNode extends SystemComponent {
 
       // Uncapped value for physics calculations
       const calculatedValue = resourceBase + traffic / capPerUnit + Math.random() * noiseFactor;
-      rawUtilization = (calculatedValue / primaryAttr.limit) * 100;
 
       // Cap at limit only for the attribute storage (UI)
       primaryAttr.update(Math.min(primaryAttr.limit, calculatedValue));
@@ -100,7 +97,5 @@ export class ComputeNode extends SystemComponent {
       const ramUsagePerReq = physics.consumption_rates?.ram ?? 0;
       this.attributes.ram.update(ramBase + traffic * ramUsagePerReq + noise * 0.5);
     }
-
-    super.tick(handler);
   }
 }

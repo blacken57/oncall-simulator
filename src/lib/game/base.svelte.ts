@@ -1,6 +1,22 @@
 import type { AttributeConfig, MetricConfig, TrafficConfig } from './schema';
 
 /**
+ * Applies a list of status effect multipliers and offsets to a base value.
+ */
+export function applyEffects(
+  baseValue: number,
+  effects: Array<{ multiplier: number; offset: number }>
+): number {
+  let multSum = 0,
+    offsetSum = 0;
+  for (const e of effects) {
+    multSum += e.multiplier;
+    offsetSum += e.offset;
+  }
+  return baseValue + baseValue * multSum + offsetSum;
+}
+
+/**
  * Represents a specific flow of traffic within the system.
  */
 export class Traffic {
@@ -75,6 +91,10 @@ export class Attribute {
     this.current = newValue;
     this.history.push(newValue);
     if (this.history.length > this.maxHistory) this.history.shift();
+  }
+
+  growBy(delta: number): void {
+    this.update(Math.min(this.limit, Math.max(0, this.current + delta)));
   }
 
   get cost() {

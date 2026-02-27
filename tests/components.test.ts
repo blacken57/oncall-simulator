@@ -14,8 +14,7 @@ describe('Component Physics', () => {
     statusEffects: [],
     getActiveComponentEffects: () => [],
     getActiveTrafficEffects: () => [],
-    localExpectedVolume: 0,
-    localIncomingVolume: 0
+    localExpectedVolume: 0
   };
 
   describe('ComputeNode', () => {
@@ -78,7 +77,7 @@ describe('Component Physics', () => {
       // 80 incoming / 200 capacity = 40% util.
       node.attributes.gcu.limit = 10;
       node.localExpectedVolume = 80;
-      node.localIncomingVolume = 80;
+      node.incomingTrafficVolume = 80;
 
       // Setup propagated latency (base + deps)
       node.totalLatencySum = 100 * 80;
@@ -94,7 +93,7 @@ describe('Component Physics', () => {
       // since we are testing tick() isolation, we must ensure tick()
       // just reports whatever is in totalLatencySum / totalSuccessfulRequests.
       node.localExpectedVolume = 120;
-      node.localIncomingVolume = 120;
+      node.incomingTrafficVolume = 120;
 
       // Simulating handleTraffic result: 100ms base * (1 + pow((60-50)*1.0, 2)) = 10100ms
       node.totalLatencySum = 10100 * 120;
@@ -137,7 +136,7 @@ describe('Component Physics', () => {
       // Demand 150, Capacity 100. Util = 150%.
       // 1 + pow((150 - 50) * 1.0, 2) = 1 + pow(100, 2) = 10001x penalty.
       node.localExpectedVolume = 150;
-      node.localIncomingVolume = 150;
+      node.incomingTrafficVolume = 150;
 
       // Simulating handleTraffic result: 100ms * 10001 = 1000100ms
       node.totalLatencySum = 1000100 * 150;
@@ -162,7 +161,7 @@ describe('Component Physics', () => {
       });
 
       // Traffic of 10 should use: 1.0 (base) + 10 * 0.1 (consumption) = 2.0 RAM
-      node.localIncomingVolume = 10;
+      node.incomingTrafficVolume = 10;
       node.tick(mockHandler as any);
       expect(node.attributes.ram.current).toBe(2.0);
     });

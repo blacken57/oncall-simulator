@@ -16,6 +16,9 @@ describe('Ecommerce Megastore Integration', () => {
       level.traffics.forEach((t) => {
         t.base_variance = 0;
       });
+      level.statusEffects.forEach((se) => {
+        se.materialization_probability = 0;
+      });
       engine.loadLevel(level);
     }
   });

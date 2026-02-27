@@ -25,23 +25,16 @@ export class StorageNode extends SystemComponent {
     return 0;
   }
 
-  tick(handler: TrafficHandler) {
+  protected override updateResourceMetrics(_handler: TrafficHandler): void {
     const traffic = this.incomingTrafficVolume;
     const physics = this.physics;
 
     if (this.attributes.storage_usage) {
       const growth = traffic * (physics.consumption_rates?.storage_usage ?? 0.05);
-      this.attributes.storage_usage.update(
-        Math.min(
-          this.attributes.storage_usage.limit,
-          this.attributes.storage_usage.current + growth
-        )
-      );
+      this.attributes.storage_usage.growBy(growth);
       if (this.metrics.fill_rate) {
         this.metrics.fill_rate.update(growth);
       }
     }
-
-    super.tick(handler);
   }
 }

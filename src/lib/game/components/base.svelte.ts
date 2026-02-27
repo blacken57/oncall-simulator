@@ -9,7 +9,7 @@ import type {
   ComponentPhysicsConfig,
   AlertConfig
 } from '../schema';
-import { Attribute, Metric } from '../base.svelte';
+import { Attribute, Metric, applyEffects } from '../base.svelte';
 
 /**
  * Interface to avoid circular dependency with GameEngine
@@ -57,7 +57,6 @@ export abstract class SystemComponent {
   totalExpectedVolume = 0;
   localExpectedVolume = 0; // Volume before dependency expansion
   incomingTrafficVolume = 0;
-  localIncomingVolume = 0; // Volume before dependency expansion
   unsuccessfulTrafficVolume = 0;
   totalLatencySum = 0;
   totalSuccessfulRequests = 0;
@@ -92,10 +91,19 @@ export abstract class SystemComponent {
 
   /**
    * Evaluates all alerts and updates component status and triggers.
+   * Called from evaluateAlerts() after addCustomStatusTriggers(), so statusTriggers
+   * may already contain custom entries — they are preserved and included in status derivation.
    */
   protected checkAlerts() {
-    this.statusTriggers = {};
+    // Initialise newStatus from any custom triggers already set by addCustomStatusTriggers()
     let newStatus: 'healthy' | 'warning' | 'critical' = 'healthy';
+    for (const severity of Object.values(this.statusTriggers)) {
+      if (severity === 'critical') {
+        newStatus = 'critical';
+        break;
+      }
+      if (severity === 'warning') newStatus = 'warning';
+    }
 
     for (const alert of this.alerts) {
       let value = 0;
@@ -139,6 +147,16 @@ export abstract class SystemComponent {
   protected abstract getDefaultPhysics(): ComponentPhysicsConfig;
 
   /**
+   * Hook for active components to register their own demand before Pass 1.
+   */
+  preTick(handler: TrafficHandler) {}
+
+  /**
+   * Hook for active components to push internal traffic after Pass 2.
+   */
+  processPush(handler: TrafficHandler) {}
+
+  /**
    * Pass 1: Records the intended traffic volume to calculate total demand.
    * This builds a global view of load before any success/failure is decided.
    */
@@ -165,7 +183,6 @@ export abstract class SystemComponent {
     handler: TrafficHandler
   ): { successfulVolume: number; averageLatency: number } {
     this.incomingTrafficVolume += value;
-    this.localIncomingVolume += value;
 
     // Calculate global failure rate for this tick based on total demand
     const failureRate = this.calculateFailureRate(this.totalExpectedVolume);
@@ -229,22 +246,10 @@ export abstract class SystemComponent {
    * Applies active status effect multipliers and offsets to a latency value.
    */
   protected applyLatencyEffects(baseLatency: number, handler: TrafficHandler): number {
-    let multiplierSum = 0;
-    let offsetSum = 0;
-
-    const activeEffects = handler.getActiveComponentEffects(this.id).filter((e) => {
-      // Ensure we only apply effects intended for THIS component's metrics.
-      // We use handler.getActiveComponentEffects(this.id) which already filters by componentId.
-      // But we check Name just in case the derived map uses ID while config uses Name.
-      return e.metricAffected === 'latency' || e.metricAffected === 'query_latency';
-    });
-
-    for (const e of activeEffects) {
-      multiplierSum += e.multiplier;
-      offsetSum += e.offset;
-    }
-
-    return baseLatency + baseLatency * multiplierSum + offsetSum;
+    const activeEffects = handler
+      .getActiveComponentEffects(this.id)
+      .filter((e) => e.metricAffected === 'latency' || e.metricAffected === 'query_latency');
+    return applyEffects(baseLatency, activeEffects);
   }
 
   /**
@@ -259,7 +264,6 @@ export abstract class SystemComponent {
     this.totalExpectedVolume = 0;
     this.localExpectedVolume = 0;
     this.incomingTrafficVolume = 0;
-    this.localIncomingVolume = 0;
     this.unsuccessfulTrafficVolume = 0;
     this.totalLatencySum = 0;
     this.totalSuccessfulRequests = 0;
@@ -267,13 +271,25 @@ export abstract class SystemComponent {
 
   /**
    * Updates component internal state (utilization, etc.) based on total traffic seen this tick.
-   * Subclasses should override this to perform their specific resource usage logic and then call super.tick(handler).
+   * Runs three phases in order: resource metrics → standard metrics → alert evaluation.
    */
   tick(handler: TrafficHandler): void {
-    const traffic = this.incomingTrafficVolume;
+    this.updateResourceMetrics(handler);
+    this.updateStandardMetrics(handler);
+    this.evaluateAlerts();
+  }
 
-    // Aggregate latency from all routes processed this tick, including dependencies
-    // status effects, and saturation penalties calculated during handleTraffic.
+  /**
+   * Phase 1: Subclass-specific resource/attribute updates (CPU, RAM, storage, etc.).
+   * Default is a no-op; subclasses override this instead of overriding tick().
+   */
+  protected updateResourceMetrics(_handler: TrafficHandler): void {}
+
+  /**
+   * Phase 2: Update standard observability metrics (latency, error_rate, incoming).
+   * Subclasses may override to replace or extend with component-specific metrics.
+   */
+  protected updateStandardMetrics(handler: TrafficHandler): void {
     const avgLatency = this.propagatedLatency;
 
     if (this.metrics.latency) {
@@ -283,29 +299,33 @@ export abstract class SystemComponent {
     }
 
     if (this.metrics.error_rate) {
+      const traffic = this.incomingTrafficVolume;
       const baseFailureRate = traffic > 0 ? (this.unsuccessfulTrafficVolume / traffic) * 100 : 0;
-
-      // Apply error_rate status effects
-      let errMultSum = 0;
-      let errOffsetSum = 0;
       const errEffects = this.getActiveComponentEffects(handler).filter(
         (e) => e.metricAffected === 'error_rate'
       );
-      for (const e of errEffects) {
-        errMultSum += e.multiplier;
-        errOffsetSum += e.offset;
-      }
-      const errorRate = baseFailureRate + baseFailureRate * errMultSum + errOffsetSum;
-
-      this.metrics.error_rate.update(errorRate);
+      this.metrics.error_rate.update(applyEffects(baseFailureRate, errEffects));
     }
 
     if (this.metrics.incoming) {
-      this.metrics.incoming.update(traffic);
+      this.metrics.incoming.update(this.incomingTrafficVolume);
     }
+  }
 
+  /**
+   * Phase 3: Reset triggers, let subclasses inject synthetic ones, then evaluate alert configs.
+   */
+  protected evaluateAlerts(): void {
+    this.statusTriggers = {};
+    this.addCustomStatusTriggers();
     this.checkAlerts();
   }
+
+  /**
+   * Hook called before checkAlerts() so subclasses can inject synthetic status triggers
+   * (e.g. QueueNode's fill-rate and near-full conditions) without reimplementing alert logic.
+   */
+  protected addCustomStatusTriggers(): void {}
 
   protected getActiveComponentEffects(handler: TrafficHandler) {
     return handler.getActiveComponentEffects(this.id);

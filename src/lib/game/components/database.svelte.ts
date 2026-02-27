@@ -57,7 +57,7 @@ export class DatabaseNode extends SystemComponent {
     return localLat;
   }
 
-  tick(handler: TrafficHandler) {
+  protected override updateResourceMetrics(_handler: TrafficHandler): void {
     const traffic = this.incomingTrafficVolume;
     const physics = this.physics;
     const noiseFactor = physics.noise_factor ?? 2;
@@ -69,11 +69,7 @@ export class DatabaseNode extends SystemComponent {
 
     if (this.attributes.storage) {
       const growth = traffic * (physics.consumption_rates?.storage ?? 0.0001);
-      this.attributes.storage.update(
-        Math.min(this.attributes.storage.limit, this.attributes.storage.current + growth)
-      );
+      this.attributes.storage.growBy(growth);
     }
-
-    super.tick(handler);
   }
 }
