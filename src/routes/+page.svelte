@@ -62,6 +62,24 @@
             {/if}
           </a>
         {/each}
+        <a
+          href="/custom"
+          class="level-card custom-card"
+          onmouseenter={() => (hoveredLevel = '__custom')}
+          onmouseleave={() => (hoveredLevel = null)}
+        >
+          <div class="level-card-content">
+            <h3>Custom Level</h3>
+            <p>Upload or paste your own JSON level config and play it in the simulator.</p>
+            <div class="level-meta">
+              <span class="difficulty">ID: custom</span>
+              <span class="action custom-action">DEPLOY_CUSTOM ></span>
+            </div>
+          </div>
+          {#if hoveredLevel === '__custom'}
+            <div class="level-card-glow custom-glow" transition:fade={{ duration: 200 }}></div>
+          {/if}
+        </a>
       </div>
     </section>
   </main>
@@ -226,6 +244,18 @@
     bottom: 0;
     background: linear-gradient(45deg, transparent, rgba(248, 113, 113, 0.05), transparent);
     pointer-events: none;
+  }
+
+  .custom-card:hover {
+    border-color: #4ade8055;
+  }
+
+  .custom-action {
+    color: #4ade80;
+  }
+
+  .custom-glow {
+    background: linear-gradient(45deg, transparent, rgba(74, 222, 128, 0.05), transparent);
   }
 
   .landing-footer {

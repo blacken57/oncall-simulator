@@ -2,6 +2,7 @@
   import { page } from '$app/stores';
   import { engine } from '$lib/game/engine.svelte';
   import { getLevel } from '$lib/game/levels';
+  import { customLevelStore } from '$lib/game/customLevel.svelte';
   import DashboardLayout from '../../../components/Dashboard/DashboardLayout.svelte';
   import ComponentList from '../../../components/Actions/ComponentList.svelte';
   import TicketList from '../../../components/Tickets/TicketList.svelte';
@@ -11,7 +12,9 @@
   import { onMount, untrack } from 'svelte';
 
   let levelId = $derived($page.params.levelId || '');
-  let level = $derived(levelId ? getLevel(levelId) : null);
+  let level = $derived(
+    levelId === 'custom' ? customLevelStore.config : levelId ? getLevel(levelId) : null
+  );
 
   $effect(() => {
     if (level) {

@@ -32,7 +32,7 @@ The engine runs an 8-phase tick loop (1 second per tick):
 7. **Pass 2 (Resolution)** — `handleTraffic()`: components compute proportional failure rates, propagate results
 8. **processPush** — QueueNode drains its backlog; component metrics finalized; alerts evaluated and tickets generated
 
-The two-pass design ensures fair, proportional failure distribution across all competing traffic flows. See [LEVEL_CREATION.md](docs/LEVEL_CREATION.md) for a full explanation.
+The two-pass design ensures fair, proportional failure distribution across all competing traffic flows. See [LEVEL_CREATION.md](src/data/docs/custom/index.md) for a full explanation.
 
 ### Reactive Models
 
@@ -98,7 +98,7 @@ npm run preview   # Preview the production build
 - `src/data/` — JSON level configurations (one file per level)
 - `src/components/` — Reusable Svelte components for dashboards, tickets, and action panels
 - `src/routes/` — SvelteKit pages (`/`, `/game/[levelId]`)
-- `docs/LEVEL_CREATION.md` — [Guide for creating and configuring new levels](docs/LEVEL_CREATION.md)
+- `src/data/docs/custom/index.md` — [Guide for creating and configuring new levels](/custom/guide)
 
 ## Roadmap
 

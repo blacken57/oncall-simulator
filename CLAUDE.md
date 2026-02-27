@@ -61,7 +61,7 @@ All game state uses Svelte 5 runes (`$state`, `$derived`).
 
 Levels are JSON configs in `src/data/*.json`. `src/lib/game/schema.ts` defines the types; `src/lib/game/validator.ts` enforces integrity (unique IDs, valid targets, no traffic cycles, queue constraints). Validation runs at build time (`npm run validate`) and at load time inside `engine.loadLevel()`.
 
-Level docs at `docs/LEVEL_CREATION.md`.
+Level docs at `src/data/docs/custom/index.md`.
 
 ### Status Effects & Scheduled Jobs
 
