@@ -25,16 +25,18 @@ An educational game where players manage a distributed system under load. Built 
 
 ### Simulation Loop
 
-`GameEngine` (`src/lib/game/engine.svelte.ts`) runs a 1-second tick loop with 6-phase resolution:
+`GameEngine` (`src/lib/game/engine.svelte.ts`) runs a 1-second tick loop with 8-phase resolution:
 
 1. Reset components
-2. Process scheduled jobs
-3. Update status effects
+2. Process scheduled jobs (each job runs its own internal two-pass for emitted traffic)
+3. Update status effects (materialization & resolution lifecycle)
 4. Process pending infrastructure actions
-5. **Pass 1** — `recordDemand()`: recursively calculate total intended traffic at each component
-6. **Pass 2** — `handleTraffic()`: components compute proportional failure rates based on demand vs capacity, then propagate
+5. **preTick** — components pre-register their own downstream demand (QueueNode reserves egress capacity)
+6. **Pass 1** — `recordDemand()`: recursively calculate total intended traffic at each component
+7. **Pass 2** — `handleTraffic()`: components compute proportional failure rates based on demand vs capacity, then propagate
+8. **processPush** — QueueNode drains its backlog to downstream consumers; component metrics are finalized and alerts evaluated
 
-The two-pass design is critical: it ensures failures are distributed fairly across all traffic flows rather than first-come-first-served.
+The two-pass design is critical: it ensures failures are distributed fairly across all traffic flows rather than first-come-first-served. The preTick/processPush hooks allow QueueNode to participate in traffic resolution without blocking its ingress path.
 
 ### Component Hierarchy
 
@@ -43,9 +45,9 @@ The two-pass design is critical: it ensures failures are distributed fairly acro
 - `ComputeNode` — CPU/GCU-based capacity, 80% saturation threshold
 - `DatabaseNode` — connection pool capacity, higher saturation penalties (4x at 90%+)
 - `StorageNode` — blob/object storage, simpler latency model
-- `QueueNode` — async FIFO queues with egress failure tracking
+- `QueueNode` — async FIFO queues with backlog physics and egress failure tracking; overrides `preTick()` and `processPush()` in addition to the standard interface
 
-Each subclass implements `getDefaultPhysics()`, `calculateFailureRate()`, `calculateLocalLatency()`, and `tick()`.
+Each subclass implements `getDefaultPhysics()`, `calculateFailureRate()`, `calculateLocalLatency()`, and `tick()`. QueueNode additionally overrides `preTick()` (pre-registers downstream demand) and `processPush()` (drains backlog after resolution pass).
 
 ### Reactive Primitives (`src/lib/game/base.svelte.ts`)
 
