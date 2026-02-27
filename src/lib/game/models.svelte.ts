@@ -4,3 +4,4 @@ export * from './components/compute.svelte.ts';
 export * from './components/database.svelte.ts';
 export * from './components/storage.svelte.ts';
 export * from './components/queue.svelte.ts';
+export * from './components/external-api.svelte.ts';

@@ -1,0 +1,541 @@
+{
+  "id": "finpay",
+  "name": "FinPay Processing Hub",
+  "description": "Manage a payment processing platform with 5 external API dependencies under evolving failure conditions.",
+  "components": [
+    {
+      "id": "payment-api",
+      "name": "Payment API",
+      "type": "compute",
+      "physics": {
+        "request_capacity_per_unit": 10,
+        "latency_load_factor": 0,
+        "saturation_threshold_percent": 80,
+        "saturation_penalty_factor": 0.05,
+        "resource_base_usage": { "gcu": 0.5 },
+        "consumption_rates": { "gcu": 0.05 },
+        "noise_factor": 0.2
+      },
+      "attributes": {
+        "gcu": {
+          "name": "GCU",
+          "unit": "GCU",
+          "initialLimit": 8,
+          "minLimit": 1,
+          "maxLimit": 32,
+          "costPerUnit": 5,
+          "apply_delay": 3
+        }
+      },
+      "metrics": {
+        "incoming": { "name": "Requests", "unit": "req/s" },
+        "latency": { "name": "P99 Latency", "unit": "ms" },
+        "error_rate": { "name": "Error Rate", "unit": "%" }
+      },
+      "alerts": [
+        {
+          "name": "Checkout Latency High",
+          "metric": "latency",
+          "warning_threshold": 700,
+          "critical_threshold": 1400,
+          "direction": "above"
+        },
+        {
+          "name": "Checkout Error Rate High",
+          "metric": "error_rate",
+          "warning_threshold": 5,
+          "critical_threshold": 15,
+          "direction": "above"
+        }
+      ],
+      "traffic_routes": [
+        {
+          "name": "checkout",
+          "base_latency_ms": 10,
+          "outgoing_traffics": [
+            { "name": "stripe_charge", "multiplier": 1 },
+            { "name": "fraud_check", "multiplier": 1 },
+            { "name": "auth_user", "multiplier": 1 },
+            { "name": "send_receipt", "multiplier": 1 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fraud-service",
+      "name": "Fraud Service",
+      "type": "compute",
+      "physics": {
+        "request_capacity_per_unit": 10,
+        "latency_load_factor": 0,
+        "saturation_threshold_percent": 80,
+        "saturation_penalty_factor": 0.05,
+        "resource_base_usage": { "gcu": 0.5 },
+        "consumption_rates": { "gcu": 0.05 },
+        "noise_factor": 0.2
+      },
+      "attributes": {
+        "gcu": {
+          "name": "GCU",
+          "unit": "GCU",
+          "initialLimit": 6,
+          "minLimit": 1,
+          "maxLimit": 24,
+          "costPerUnit": 5,
+          "apply_delay": 3
+        }
+      },
+      "metrics": {
+        "incoming": { "name": "Requests", "unit": "req/s" },
+        "latency": { "name": "P99 Latency", "unit": "ms" },
+        "error_rate": { "name": "Error Rate", "unit": "%" }
+      },
+      "alerts": [
+        {
+          "name": "Fraud Check Latency High",
+          "metric": "latency",
+          "warning_threshold": 100,
+          "critical_threshold": 250,
+          "direction": "above"
+        }
+      ],
+      "traffic_routes": [
+        {
+          "name": "fraud_check",
+          "base_latency_ms": 5,
+          "outgoing_traffics": [
+            { "name": "geo_score", "multiplier": 1 },
+            { "name": "save_transaction", "multiplier": 1 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "user-service",
+      "name": "User Service",
+      "type": "compute",
+      "physics": {
+        "request_capacity_per_unit": 10,
+        "latency_load_factor": 0,
+        "saturation_threshold_percent": 80,
+        "saturation_penalty_factor": 0.05,
+        "resource_base_usage": { "gcu": 0.5 },
+        "consumption_rates": { "gcu": 0.05 },
+        "noise_factor": 0.2
+      },
+      "attributes": {
+        "gcu": {
+          "name": "GCU",
+          "unit": "GCU",
+          "initialLimit": 6,
+          "minLimit": 1,
+          "maxLimit": 24,
+          "costPerUnit": 5,
+          "apply_delay": 3
+        }
+      },
+      "metrics": {
+        "incoming": { "name": "Requests", "unit": "req/s" },
+        "latency": { "name": "P99 Latency", "unit": "ms" },
+        "error_rate": { "name": "Error Rate", "unit": "%" }
+      },
+      "alerts": [
+        {
+          "name": "Auth Latency High",
+          "metric": "latency",
+          "warning_threshold": 350,
+          "critical_threshold": 700,
+          "direction": "above"
+        }
+      ],
+      "traffic_routes": [
+        {
+          "name": "auth_user",
+          "base_latency_ms": 5,
+          "outgoing_traffics": [
+            { "name": "verify_identity", "multiplier": 1 },
+            { "name": "sms_2fa", "multiplier": 1 },
+            { "name": "verify_bank", "multiplier": 1 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "transaction-db",
+      "name": "Transaction DB",
+      "type": "database",
+      "attributes": {
+        "connections": {
+          "name": "Connections",
+          "unit": "conn",
+          "initialLimit": 100,
+          "minLimit": 10,
+          "maxLimit": 500,
+          "costPerUnit": 2,
+          "apply_delay": 5
+        }
+      },
+      "metrics": {
+        "incoming": { "name": "Queries", "unit": "req/s" },
+        "query_latency": { "name": "Query Latency", "unit": "ms" },
+        "error_rate": { "name": "Error Rate", "unit": "%" }
+      },
+      "alerts": [],
+      "traffic_routes": [
+        {
+          "name": "save_transaction",
+          "base_latency_ms": 20,
+          "outgoing_traffics": []
+        }
+      ]
+    },
+    {
+      "id": "user-db",
+      "name": "User DB",
+      "type": "database",
+      "attributes": {
+        "connections": {
+          "name": "Connections",
+          "unit": "conn",
+          "initialLimit": 80,
+          "minLimit": 10,
+          "maxLimit": 500,
+          "costPerUnit": 2,
+          "apply_delay": 5
+        }
+      },
+      "metrics": {
+        "incoming": { "name": "Queries", "unit": "req/s" },
+        "query_latency": { "name": "Query Latency", "unit": "ms" },
+        "error_rate": { "name": "Error Rate", "unit": "%" }
+      },
+      "alerts": [],
+      "traffic_routes": [
+        {
+          "name": "verify_identity",
+          "base_latency_ms": 15,
+          "outgoing_traffics": []
+        }
+      ]
+    },
+    {
+      "id": "stripe",
+      "name": "Stripe",
+      "type": "external_api",
+      "physics": { "noise_factor": 20 },
+      "attributes": {
+        "quota_rps": {
+          "name": "Quota",
+          "unit": "req/s",
+          "initialLimit": 60,
+          "minLimit": 10,
+          "maxLimit": 500,
+          "costPerUnit": 10,
+          "apply_delay": 1
+        }
+      },
+      "metrics": {
+        "incoming": { "name": "Requests", "unit": "req/s" },
+        "latency": { "name": "Response Time", "unit": "ms" },
+        "error_rate": { "name": "Error Rate", "unit": "%" }
+      },
+      "alerts": [
+        {
+          "name": "Stripe Quota Near Limit",
+          "metric": "quota_rps",
+          "warning_threshold": 70,
+          "critical_threshold": 85,
+          "direction": "above"
+        },
+        {
+          "name": "Stripe Error Rate High",
+          "metric": "error_rate",
+          "warning_threshold": 5,
+          "critical_threshold": 15,
+          "direction": "above"
+        }
+      ],
+      "traffic_routes": [
+        {
+          "name": "stripe_charge",
+          "base_latency_ms": 150,
+          "outgoing_traffics": []
+        }
+      ]
+    },
+    {
+      "id": "twilio",
+      "name": "Twilio",
+      "type": "external_api",
+      "physics": { "noise_factor": 10 },
+      "attributes": {
+        "quota_rps": {
+          "name": "Quota",
+          "unit": "req/s",
+          "initialLimit": 60,
+          "minLimit": 10,
+          "maxLimit": 500,
+          "costPerUnit": 8,
+          "apply_delay": 1
+        }
+      },
+      "metrics": {
+        "incoming": { "name": "Requests", "unit": "req/s" },
+        "latency": { "name": "Response Time", "unit": "ms" },
+        "error_rate": { "name": "Error Rate", "unit": "%" }
+      },
+      "alerts": [
+        {
+          "name": "Twilio Quota Near Limit",
+          "metric": "quota_rps",
+          "warning_threshold": 70,
+          "critical_threshold": 85,
+          "direction": "above"
+        },
+        {
+          "name": "Twilio Error Rate High",
+          "metric": "error_rate",
+          "warning_threshold": 5,
+          "critical_threshold": 15,
+          "direction": "above"
+        }
+      ],
+      "traffic_routes": [
+        {
+          "name": "sms_2fa",
+          "base_latency_ms": 80,
+          "outgoing_traffics": []
+        }
+      ]
+    },
+    {
+      "id": "maxmind",
+      "name": "MaxMind",
+      "type": "external_api",
+      "physics": { "noise_factor": 5 },
+      "attributes": {
+        "quota_rps": {
+          "name": "Quota",
+          "unit": "req/s",
+          "initialLimit": 60,
+          "minLimit": 10,
+          "maxLimit": 500,
+          "costPerUnit": 5,
+          "apply_delay": 1
+        }
+      },
+      "metrics": {
+        "incoming": { "name": "Requests", "unit": "req/s" },
+        "latency": { "name": "Response Time", "unit": "ms" },
+        "error_rate": { "name": "Error Rate", "unit": "%" }
+      },
+      "alerts": [
+        {
+          "name": "MaxMind Quota Near Limit",
+          "metric": "quota_rps",
+          "warning_threshold": 70,
+          "critical_threshold": 85,
+          "direction": "above"
+        },
+        {
+          "name": "MaxMind Error Rate High",
+          "metric": "error_rate",
+          "warning_threshold": 5,
+          "critical_threshold": 15,
+          "direction": "above"
+        }
+      ],
+      "traffic_routes": [
+        {
+          "name": "geo_score",
+          "base_latency_ms": 50,
+          "outgoing_traffics": []
+        }
+      ]
+    },
+    {
+      "id": "plaid",
+      "name": "Plaid",
+      "type": "external_api",
+      "physics": { "noise_factor": 15 },
+      "attributes": {
+        "quota_rps": {
+          "name": "Quota",
+          "unit": "req/s",
+          "initialLimit": 60,
+          "minLimit": 10,
+          "maxLimit": 500,
+          "costPerUnit": 12,
+          "apply_delay": 1
+        }
+      },
+      "metrics": {
+        "incoming": { "name": "Requests", "unit": "req/s" },
+        "latency": { "name": "Response Time", "unit": "ms" },
+        "error_rate": { "name": "Error Rate", "unit": "%" }
+      },
+      "alerts": [
+        {
+          "name": "Plaid Quota Near Limit",
+          "metric": "quota_rps",
+          "warning_threshold": 70,
+          "critical_threshold": 85,
+          "direction": "above"
+        },
+        {
+          "name": "Plaid Error Rate High",
+          "metric": "error_rate",
+          "warning_threshold": 5,
+          "critical_threshold": 15,
+          "direction": "above"
+        }
+      ],
+      "traffic_routes": [
+        {
+          "name": "verify_bank",
+          "base_latency_ms": 200,
+          "outgoing_traffics": []
+        }
+      ]
+    },
+    {
+      "id": "sendgrid",
+      "name": "SendGrid",
+      "type": "external_api",
+      "physics": { "noise_factor": 8 },
+      "attributes": {
+        "quota_rps": {
+          "name": "Quota",
+          "unit": "req/s",
+          "initialLimit": 60,
+          "minLimit": 10,
+          "maxLimit": 500,
+          "costPerUnit": 6,
+          "apply_delay": 1
+        }
+      },
+      "metrics": {
+        "incoming": { "name": "Requests", "unit": "req/s" },
+        "latency": { "name": "Response Time", "unit": "ms" },
+        "error_rate": { "name": "Error Rate", "unit": "%" }
+      },
+      "alerts": [
+        {
+          "name": "SendGrid Quota Near Limit",
+          "metric": "quota_rps",
+          "warning_threshold": 70,
+          "critical_threshold": 85,
+          "direction": "above"
+        },
+        {
+          "name": "SendGrid Error Rate High",
+          "metric": "error_rate",
+          "warning_threshold": 5,
+          "critical_threshold": 15,
+          "direction": "above"
+        }
+      ],
+      "traffic_routes": [
+        {
+          "name": "send_receipt",
+          "base_latency_ms": 100,
+          "outgoing_traffics": []
+        }
+      ]
+    }
+  ],
+  "traffics": [
+    {
+      "type": "external",
+      "name": "checkout",
+      "target_component_name": "Payment API",
+      "value": 40,
+      "base_variance": 2
+    },
+    { "type": "internal", "name": "stripe_charge", "target_component_name": "Stripe" },
+    { "type": "internal", "name": "fraud_check", "target_component_name": "Fraud Service" },
+    { "type": "internal", "name": "geo_score", "target_component_name": "MaxMind" },
+    { "type": "internal", "name": "save_transaction", "target_component_name": "Transaction DB" },
+    { "type": "internal", "name": "auth_user", "target_component_name": "User Service" },
+    { "type": "internal", "name": "verify_identity", "target_component_name": "User DB" },
+    { "type": "internal", "name": "sms_2fa", "target_component_name": "Twilio" },
+    { "type": "internal", "name": "verify_bank", "target_component_name": "Plaid" },
+    { "type": "internal", "name": "send_receipt", "target_component_name": "SendGrid" }
+  ],
+  "statusEffects": [
+    {
+      "type": "component",
+      "name": "Stripe Degradation",
+      "component_affected": "stripe",
+      "metric_affected": "latency",
+      "multiplier": 4.0,
+      "materialization_probability": 0.02,
+      "resolution_ticks": 25,
+      "max_instances_at_once": 1,
+      "warning_config": {
+        "delay_ticks": 5,
+        "ticket_title": "Warning: Stripe API Degradation Incoming",
+        "ticket_description": "Stripe is reporting elevated latency. Expect checkout times to spike within 5 ticks."
+      }
+    },
+    {
+      "type": "component",
+      "name": "Twilio Rate Limit",
+      "component_affected": "twilio",
+      "metric_affected": "error_rate",
+      "offset": 75,
+      "materialization_probability": 0.02,
+      "resolution_ticks": 20,
+      "max_instances_at_once": 1,
+      "warning_config": {
+        "delay_ticks": 5,
+        "ticket_title": "Warning: Twilio Rate Limit Approaching",
+        "ticket_description": "Twilio is about to enforce rate limits. SMS 2FA will fail for most users in 5 ticks."
+      }
+    },
+    {
+      "type": "component",
+      "name": "MaxMind API Slow",
+      "component_affected": "maxmind",
+      "metric_affected": "latency",
+      "multiplier": 3.0,
+      "materialization_probability": 0.03,
+      "resolution_ticks": 30,
+      "max_instances_at_once": 1,
+      "warning_config": {
+        "delay_ticks": 5,
+        "ticket_title": "Warning: MaxMind Geo-scoring Slow",
+        "ticket_description": "MaxMind is responding slowly. Fraud checks will take 3x longer in 5 ticks."
+      }
+    },
+    {
+      "type": "component",
+      "name": "Plaid Maintenance",
+      "component_affected": "plaid",
+      "metric_affected": "error_rate",
+      "offset": 90,
+      "materialization_probability": 0.01,
+      "resolution_ticks": 15,
+      "max_instances_at_once": 1,
+      "warning_config": {
+        "delay_ticks": 8,
+        "ticket_title": "Warning: Plaid Scheduled Maintenance",
+        "ticket_description": "Plaid has announced maintenance in 8 ticks. Bank verification will be unavailable."
+      }
+    },
+    {
+      "type": "traffic",
+      "name": "Payment Surge",
+      "traffic_affected": "checkout",
+      "multiplier": 1.5,
+      "materialization_probability": 0.02,
+      "turnsRemaining": 20,
+      "max_instances_at_once": 1,
+      "warning_config": {
+        "delay_ticks": 5,
+        "ticket_title": "Warning: Payment Volume Surge",
+        "ticket_description": "Unusual checkout traffic detected. Volume expected to reach 2.5x normal in 5 ticks — all external API quotas will be breached."
+      }
+    }
+  ]
+}

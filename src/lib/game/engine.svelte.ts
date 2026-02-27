@@ -3,6 +3,7 @@ import {
   DatabaseNode,
   StorageNode,
   QueueNode,
+  ExternalAPINode,
   Traffic,
   type SystemComponent,
   type TrafficHandler
@@ -134,6 +135,9 @@ export class GameEngine implements TrafficHandler {
           break;
         case 'queue':
           component = new QueueNode(compConfig);
+          break;
+        case 'external_api':
+          component = new ExternalAPINode(compConfig);
           break;
         default:
           throw new Error(`Unknown component type: ${compConfig.type}`);

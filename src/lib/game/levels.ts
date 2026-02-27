@@ -2,13 +2,15 @@ import level1 from '../../data/level1.json';
 import tutorial from '../../data/tutorial.json';
 import ecommerce from '../../data/ecommerce.json';
 import iotIngestion from '../../data/iot-ingestion.json';
+import finpay from '../../data/finpay.json';
 import type { LevelConfig } from './schema';
 
 export const levels: Record<string, LevelConfig> = {
   tutorial: tutorial as unknown as LevelConfig,
   'level-1': level1 as unknown as LevelConfig,
   'ecommerce-megastore': ecommerce as unknown as LevelConfig,
-  'iot-ingestion': iotIngestion as unknown as LevelConfig
+  'iot-ingestion': iotIngestion as unknown as LevelConfig,
+  finpay: finpay as unknown as LevelConfig
 };
 
 export function getLevel(id: string): LevelConfig | undefined {
