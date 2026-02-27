@@ -679,9 +679,7 @@
       "metric_affected": "latency",
       "multiplier": 2.3,
       "materialization_probability": 0.05,
-      "resolution_condition": {
-        "turnsRemaining": 5
-      },
+      "resolution_ticks": 5,
       "max_instances_at_once": 1
     }
   ],

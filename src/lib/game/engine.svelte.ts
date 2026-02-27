@@ -82,10 +82,14 @@ export class GameEngine implements TrafficHandler {
     }, 5000);
   }
 
+  private findComponent(idOrName: string): SystemComponent | undefined {
+    return (
+      this.components[idOrName] || Object.values(this.components).find((c) => c.name === idOrName)
+    );
+  }
+
   getActiveComponentEffects(componentIdOrName: string): ComponentStatusEffect[] {
-    const component =
-      this.components[componentIdOrName] ||
-      Object.values(this.components).find((c) => c.name === componentIdOrName);
+    const component = this.findComponent(componentIdOrName);
 
     if (!component) return [];
 
@@ -159,9 +163,7 @@ export class GameEngine implements TrafficHandler {
     const traffic = this.traffics[trafficName];
     if (!traffic) return;
 
-    const targetComponent = Object.values(this.components).find(
-      (c) => c.name === traffic.targetComponentName
-    );
+    const targetComponent = this.findComponent(traffic.targetComponentName);
     if (!targetComponent) return;
 
     targetComponent.recordDemand(trafficName, value, this);
@@ -181,9 +183,7 @@ export class GameEngine implements TrafficHandler {
       return { successfulVolume: value, averageLatency: 0 };
     }
 
-    const targetComponent = Object.values(this.components).find(
-      (c) => c.name === traffic.targetComponentName
-    );
+    const targetComponent = this.findComponent(traffic.targetComponentName);
     if (!targetComponent) {
       return { successfulVolume: 0, averageLatency: 0 }; // Black hole
     }
@@ -311,7 +311,6 @@ export class GameEngine implements TrafficHandler {
           }
         }
       }
-      comp.lastStatus = comp.status;
     });
   }
   private applyAction(action: QueuedAction) {

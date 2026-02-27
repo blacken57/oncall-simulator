@@ -218,7 +218,7 @@
       "metric_affected": "latency",
       "multiplier": 3.0,
       "materialization_probability": 0.02,
-      "resolution_condition": { "turnsRemaining": 20 }
+      "resolution_ticks": 20
     }
   ],
   "scheduledJobs": [

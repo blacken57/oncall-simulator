@@ -1,7 +1,6 @@
 import type {
   ComponentStatusEffectConfig,
   TrafficStatusEffectConfig,
-  ResolutionConditionConfig,
   StatusEffectConfig
 } from './schema';
 import type { GameEngine } from './engine.svelte';
@@ -92,19 +91,16 @@ export class ComponentStatusEffect extends BaseStatusEffect {
   type = 'component' as const;
   componentAffected: string;
   metricAffected: string;
-  resolutionCondition: ResolutionConditionConfig;
+  resolutionTicks: number | undefined;
+  // TODO: enforce max_instances_at_once
   maxInstancesAtOnce: number;
 
   constructor(config: ComponentStatusEffectConfig) {
     super(config);
     this.componentAffected = config.component_affected;
     this.metricAffected = config.metric_affected;
-    this.resolutionCondition = config.resolution_condition;
+    this.resolutionTicks = config.resolution_ticks;
     this.maxInstancesAtOnce = config.max_instances_at_once;
-
-    if (config.resolution_condition.turnsRemaining !== undefined) {
-      this.turnsRemaining = config.resolution_condition.turnsRemaining;
-    }
   }
 
   protected get targetId() {
@@ -114,7 +110,7 @@ export class ComponentStatusEffect extends BaseStatusEffect {
     return this.metricAffected;
   }
   protected get initialTurnsRemaining() {
-    return this.resolutionCondition.turnsRemaining;
+    return this.resolutionTicks;
   }
 }
 

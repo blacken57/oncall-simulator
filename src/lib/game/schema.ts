@@ -19,10 +19,6 @@ export interface TrafficConfig {
   base_variance?: number; // Noise factor
 }
 
-export interface ResolutionConditionConfig {
-  turnsRemaining?: number;
-}
-
 export interface StatusEffectWarningConfig {
   delay_ticks: number;
   ticket_title: string;
@@ -37,7 +33,7 @@ export interface ComponentStatusEffectConfig {
   multiplier?: number; // Defaults to 0 if missing.
   offset?: number; // Static value to add/subtract. Defaults to 0 if missing.
   materialization_probability: number; // Probability each tick (0-1)
-  resolution_condition: ResolutionConditionConfig;
+  resolution_ticks?: number;
   max_instances_at_once: number;
   warning_config?: StatusEffectWarningConfig;
 }

@@ -43,7 +43,6 @@ export abstract class SystemComponent {
   attributes = $state<Record<string, Attribute>>({});
   metrics = $state<Record<string, Metric>>({});
   status = $state<'healthy' | 'warning' | 'critical'>('healthy');
-  lastStatus: 'healthy' | 'warning' | 'critical' = 'healthy';
   statusTriggers = $state<Record<string, 'warning' | 'critical'>>({});
   alerts: AlertConfig[] = [];
 
@@ -89,6 +88,10 @@ export abstract class SystemComponent {
     }
   }
 
+  private checkThreshold(value: number, threshold: number, dir: 'above' | 'below'): boolean {
+    return dir === 'above' ? value >= threshold : value <= threshold;
+  }
+
   /**
    * Evaluates all alerts and updates component status and triggers.
    * Called from evaluateAlerts() after addCustomStatusTriggers(), so statusTriggers
@@ -117,21 +120,11 @@ export abstract class SystemComponent {
         continue;
       }
 
-      const isCritical =
-        alert.direction === 'above'
-          ? value >= alert.critical_threshold
-          : value <= alert.critical_threshold;
-
-      if (isCritical) {
+      if (this.checkThreshold(value, alert.critical_threshold, alert.direction)) {
         this.statusTriggers[alert.name] = 'critical';
         newStatus = 'critical';
       } else {
-        const isWarning =
-          alert.direction === 'above'
-            ? value >= alert.warning_threshold
-            : value <= alert.warning_threshold;
-
-        if (isWarning) {
+        if (this.checkThreshold(value, alert.warning_threshold, alert.direction)) {
           if (newStatus !== 'critical') newStatus = 'warning';
           this.statusTriggers[alert.name] = 'warning';
         }

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { GameEngine } from '../src/lib/game/engine.svelte';
-import { TrafficStatusEffect } from '../src/lib/game/statusEffects.svelte';
+import { ComponentStatusEffect, TrafficStatusEffect } from '../src/lib/game/statusEffects.svelte';
 import type { LevelConfig } from '../src/lib/game/schema';
 
 describe('GameEngine Integration', () => {
@@ -547,6 +547,137 @@ describe('GameEngine Integration', () => {
     const resultOrphan = engine.handleTraffic('orphaned-traffic', 100);
     // Should act as a black hole (0 success)
     expect(resultOrphan.successfulVolume).toBe(0);
+  });
+
+  it('should handle ComponentStatusEffect with warning_config — emits warning ticket then activates', () => {
+    const level = JSON.parse(JSON.stringify(baseLevel));
+    level.statusEffects = [
+      {
+        type: 'component',
+        name: 'GC Pause',
+        component_affected: 'server',
+        metric_affected: 'latency',
+        multiplier: 2.0,
+        materialization_probability: 1.0,
+        resolution_ticks: 3,
+        max_instances_at_once: 1,
+        warning_config: {
+          delay_ticks: 2,
+          ticket_title: 'GC Pause Warning',
+          ticket_description: 'A GC pause is incoming!'
+        }
+      }
+    ];
+
+    const engine = new GameEngine();
+    engine.loadLevel(level);
+
+    // Tick 1: materialises into warning state
+    engine.update();
+    const effect = engine.statusEffects[0] as ComponentStatusEffect;
+    expect(effect.isWarning).toBe(true);
+    expect(effect.isActive).toBe(false);
+    expect(effect.delayRemaining).toBe(2);
+    expect(engine.tickets.length).toBe(1);
+    expect(engine.tickets[0].title).toBe('GC Pause Warning');
+
+    // Tick 2: delay ticks down
+    engine.update();
+    expect(effect.isWarning).toBe(true);
+    expect(effect.delayRemaining).toBe(1);
+
+    // Tick 3: delay expires → effect becomes active
+    engine.update();
+    expect(effect.isWarning).toBe(false);
+    expect(effect.isActive).toBe(true);
+    expect(effect.turnsRemaining).toBe(3);
+  });
+
+  it('should never materialise ComponentStatusEffect with materialization_probability: 0', () => {
+    const level = JSON.parse(JSON.stringify(baseLevel));
+    level.statusEffects = [
+      {
+        type: 'component',
+        name: 'Never Fires',
+        component_affected: 'server',
+        metric_affected: 'latency',
+        multiplier: 5.0,
+        materialization_probability: 0,
+        resolution_ticks: 5,
+        max_instances_at_once: 1
+      }
+    ];
+
+    const engine = new GameEngine();
+    engine.loadLevel(level);
+
+    for (let i = 0; i < 100; i++) engine.update();
+
+    const effect = engine.statusEffects[0];
+    expect(effect.isWarning).toBe(false);
+    expect(effect.isActive).toBe(false);
+  });
+
+  it('should always materialise ComponentStatusEffect with materialization_probability: 1 on the first tick', () => {
+    const level = JSON.parse(JSON.stringify(baseLevel));
+    level.statusEffects = [
+      {
+        type: 'component',
+        name: 'Always Fires',
+        component_affected: 'server',
+        metric_affected: 'latency',
+        multiplier: 1.0,
+        materialization_probability: 1.0,
+        resolution_ticks: 10,
+        max_instances_at_once: 1
+      }
+    ];
+
+    const engine = new GameEngine();
+    engine.loadLevel(level);
+
+    engine.update();
+
+    const effect = engine.statusEffects[0];
+    expect(effect.isActive).toBe(true);
+  });
+
+  it('should allow ComponentStatusEffect to re-materialise after resolution', () => {
+    const level = JSON.parse(JSON.stringify(baseLevel));
+    level.statusEffects = [
+      {
+        type: 'component',
+        name: 'Recurring',
+        component_affected: 'server',
+        metric_affected: 'latency',
+        multiplier: 1.0,
+        materialization_probability: 1.0,
+        resolution_ticks: 2,
+        max_instances_at_once: 1
+      }
+    ];
+
+    const engine = new GameEngine();
+    engine.loadLevel(level);
+
+    // Tick 1: materialises, turnsRemaining = 2
+    engine.update();
+    const effect = engine.statusEffects[0] as ComponentStatusEffect;
+    expect(effect.isActive).toBe(true);
+    expect(effect.turnsRemaining).toBe(2);
+
+    // Tick 2: turnsRemaining → 1
+    engine.update();
+    expect(effect.isActive).toBe(true);
+    expect(effect.turnsRemaining).toBe(1);
+
+    // Tick 3: turnsRemaining → 0 → effect deactivates
+    engine.update();
+    expect(effect.isActive).toBe(false);
+
+    // Tick 4: probability 1.0 → re-materialises immediately
+    engine.update();
+    expect(effect.isActive).toBe(true);
   });
 
   it('should auto-remove notifications after 5 seconds', () => {

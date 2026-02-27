@@ -118,7 +118,7 @@ describe('Latency Physics & Propagation', () => {
         metric_affected: 'query_latency',
         multiplier: 1.0, // Double latency
         materialization_probability: 0,
-        resolution_condition: { turnsRemaining: 1 },
+        resolution_ticks: 1,
         max_instances_at_once: 1
       }
     ]
