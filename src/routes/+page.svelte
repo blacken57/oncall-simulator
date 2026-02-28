@@ -7,6 +7,37 @@
   let hoveredLevel = $state<string | null>(null);
 </script>
 
+<svelte:head>
+  <title>Oncall Simulator | Site Reliability Engineering Game</title>
+  <meta
+    name="description"
+    content="Experience the thrill and terror of systems at scale. A SRE simulator where you monitor metrics, respond to alerts, and manage incidents."
+  />
+  <meta
+    name="keywords"
+    content="oncall simulator, SRE game, site reliability engineering, incident response, system architecture game"
+  />
+  <link rel="canonical" href="https://oncall-simulator.avroy.dev/" />
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://oncall-simulator.avroy.dev/" />
+  <meta property="og:title" content="Oncall Simulator | SRE Game" />
+  <meta
+    property="og:description"
+    content="Experience the thrill and terror of systems at scale. A SRE simulator where you monitor metrics, respond to alerts, and manage incidents."
+  />
+
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image" />
+  <meta property="twitter:url" content="https://oncall-simulator.avroy.dev/" />
+  <meta property="twitter:title" content="Oncall Simulator | SRE Game" />
+  <meta
+    property="twitter:description"
+    content="Experience the thrill and terror of systems at scale. A SRE simulator where you monitor metrics, respond to alerts, and manage incidents."
+  />
+</svelte:head>
+
 <div class="landing-container">
   <header class="landing-header">
     <div class="brand" in:fly={{ y: -20, duration: 800 }}>
