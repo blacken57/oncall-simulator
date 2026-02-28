@@ -13,8 +13,7 @@ describe('Alert Triggering Logic', () => {
         unit: 'GCU',
         initialLimit: 10,
         minLimit: 1,
-        maxLimit: 100,
-        costPerUnit: 1
+        maxLimit: 100
       }
     },
     metrics: {

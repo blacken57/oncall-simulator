@@ -26,8 +26,7 @@ describe('Ghost Latency Investigation', () => {
             unit: 'cores',
             initialLimit: 100,
             minLimit: 1,
-            maxLimit: 100,
-            costPerUnit: 1
+            maxLimit: 100
           }
         },
         metrics: { latency: { name: 'Lat', unit: 'ms' } },

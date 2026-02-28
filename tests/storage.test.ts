@@ -23,8 +23,7 @@ describe('Storage Physics', () => {
             unit: 'GB',
             initialLimit: 100,
             minLimit: 1,
-            maxLimit: 1000,
-            costPerUnit: 1
+            maxLimit: 1000
           }
         },
         metrics: {

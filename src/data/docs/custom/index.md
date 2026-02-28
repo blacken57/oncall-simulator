@@ -38,8 +38,7 @@ General-purpose nodes (APIs, workers, processors). Capacity is tied to a primary
       "unit": "C",
       "initialLimit": 10,
       "minLimit": 1,
-      "maxLimit": 100,
-      "costPerUnit": 10
+      "maxLimit": 100
     }
   },
   "metrics": {
@@ -94,8 +93,7 @@ Key conventions:
       "unit": "req/s",
       "initialLimit": 100,
       "minLimit": 10,
-      "maxLimit": 500,
-      "costPerUnit": 5
+      "maxLimit": 500
     }
   },
   "metrics": {
@@ -180,16 +178,14 @@ Physics constants control how a component behaves under load:
       "unit": "msg",
       "initialLimit": 5000,
       "minLimit": 100,
-      "maxLimit": 50000,
-      "costPerUnit": 0.01
+      "maxLimit": 50000
     },
     "egress": {
       "name": "Egress Rate",
       "unit": "msg/s",
       "initialLimit": 100,
       "minLimit": 10,
-      "maxLimit": 1000,
-      "costPerUnit": 1
+      "maxLimit": 1000
     }
   },
   "metrics": {

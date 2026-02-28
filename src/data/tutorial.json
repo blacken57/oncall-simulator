@@ -28,7 +28,6 @@
           "initialLimit": 4,
           "minLimit": 1,
           "maxLimit": 16,
-          "costPerUnit": 50,
           "apply_delay": 2
         }
       },

@@ -29,10 +29,9 @@ describe('Component Physics', () => {
           unit: 'GCU',
           initialLimit: 10,
           minLimit: 1,
-          maxLimit: 100,
-          costPerUnit: 1
+          maxLimit: 100
         },
-        ram: { name: 'RAM', unit: 'GB', initialLimit: 8, minLimit: 1, maxLimit: 64, costPerUnit: 1 }
+        ram: { name: 'RAM', unit: 'GB', initialLimit: 8, minLimit: 1, maxLimit: 64 }
       },
       metrics: {
         latency: { name: 'Lat', unit: 'ms' },
@@ -199,16 +198,14 @@ describe('Component Physics', () => {
           unit: 'count',
           initialLimit: 100,
           minLimit: 1,
-          maxLimit: 1000,
-          costPerUnit: 1
+          maxLimit: 1000
         },
         storage: {
           name: 'Store',
           unit: 'GB',
           initialLimit: 100,
           minLimit: 1,
-          maxLimit: 1000,
-          costPerUnit: 1
+          maxLimit: 1000
         }
       },
       metrics: {
@@ -258,8 +255,7 @@ describe('Component Physics', () => {
           unit: 'GB',
           initialLimit: 100,
           minLimit: 1,
-          maxLimit: 1000,
-          costPerUnit: 1
+          maxLimit: 1000
         }
       },
       metrics: {

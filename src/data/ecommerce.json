@@ -28,7 +28,6 @@
           "initialLimit": 16,
           "minLimit": 4,
           "maxLimit": 128,
-          "costPerUnit": 20,
           "apply_delay": 3
         }
       },
@@ -113,7 +112,6 @@
           "initialLimit": 32,
           "minLimit": 4,
           "maxLimit": 256,
-          "costPerUnit": 20,
           "apply_delay": 5
         }
       },
@@ -170,8 +168,7 @@
           "unit": "GB",
           "initialLimit": 2000,
           "minLimit": 500,
-          "maxLimit": 10000,
-          "costPerUnit": 0.05
+          "maxLimit": 10000
         }
       },
       "metrics": {
@@ -234,7 +231,6 @@
           "initialLimit": 4,
           "minLimit": 2,
           "maxLimit": 64,
-          "costPerUnit": 20,
           "apply_delay": 2
         }
       },
@@ -288,7 +284,6 @@
           "initialLimit": 5000,
           "minLimit": 1000,
           "maxLimit": 50000,
-          "costPerUnit": 0.01,
           "apply_delay": 5
         },
         "storage": {
@@ -296,8 +291,7 @@
           "unit": "MB",
           "initialLimit": 8192,
           "minLimit": 1024,
-          "maxLimit": 65536,
-          "costPerUnit": 0.1
+          "maxLimit": 65536
         }
       },
       "metrics": {
@@ -356,7 +350,6 @@
           "initialLimit": 32,
           "minLimit": 8,
           "maxLimit": 512,
-          "costPerUnit": 20,
           "apply_delay": 10
         }
       },
@@ -422,7 +415,6 @@
           "initialLimit": 1000,
           "minLimit": 100,
           "maxLimit": 10000,
-          "costPerUnit": 1,
           "apply_delay": 20
         },
         "storage": {
@@ -430,8 +422,7 @@
           "unit": "GB",
           "initialLimit": 1000,
           "minLimit": 100,
-          "maxLimit": 50000,
-          "costPerUnit": 0.5
+          "maxLimit": 50000
         }
       },
       "metrics": {
@@ -490,7 +481,6 @@
           "initialLimit": 16,
           "minLimit": 2,
           "maxLimit": 128,
-          "costPerUnit": 20,
           "apply_delay": 5
         }
       },
@@ -554,7 +544,6 @@
           "initialLimit": 500,
           "minLimit": 50,
           "maxLimit": 5000,
-          "costPerUnit": 1,
           "apply_delay": 10
         },
         "storage": {
@@ -562,8 +551,7 @@
           "unit": "GB",
           "initialLimit": 500,
           "minLimit": 100,
-          "maxLimit": 10000,
-          "costPerUnit": 0.2
+          "maxLimit": 10000
         }
       },
       "metrics": {

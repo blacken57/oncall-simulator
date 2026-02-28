@@ -32,8 +32,6 @@
 
   let tick = $derived(engine.tick);
   let isRunning = $derived(engine.isRunning);
-  let currentSpend = $derived(engine.currentSpend);
-  let budgetRemaining = $derived(engine.budget - currentSpend);
   let activeTicketsCount = $derived(engine.tickets.filter((t) => t.status !== 'resolved').length);
 
   let activeView = $state('dashboard');
@@ -61,14 +59,6 @@
         <div class="stat-item">
           <span class="label">TICK:</span>
           <span class="value">{tick}</span>
-        </div>
-        <div class="stat-item {budgetRemaining < 500 ? 'low-budget' : ''}">
-          <span class="label">BUDGET:</span>
-          <span class="value">${budgetRemaining.toFixed(0)}</span>
-        </div>
-        <div class="stat-item">
-          <span class="label">SPEND:</span>
-          <span class="value">${currentSpend.toFixed(0)}/tick</span>
         </div>
       </div>
 
@@ -272,10 +262,6 @@
     font-weight: 700;
     color: #4ade80;
   }
-  .low-budget .value {
-    color: #f87171;
-  }
-
   .btn {
     background: #222;
     color: #fff;

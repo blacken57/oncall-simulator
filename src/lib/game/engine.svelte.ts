@@ -29,8 +29,6 @@ export interface QueuedAction {
 export class GameEngine implements TrafficHandler {
   tick = $state(0);
   isRunning = $state(false);
-  budget = $state(2000); // Monthly operational budget
-
   components: Record<string, SystemComponent> = $state({});
   traffics: Record<string, Traffic> = $state({});
   statusEffects: StatusEffect[] = $state([]);
@@ -42,10 +40,6 @@ export class GameEngine implements TrafficHandler {
   >([]);
 
   currentLevelId = $state<string | null>(null);
-
-  currentSpend = $derived(
-    Object.values(this.components).reduce((sum, comp) => sum + comp.totalCost, 0)
-  );
 
   activeComponentEffects = $derived.by(() => {
     const map: Record<string, ComponentStatusEffect[]> = {};

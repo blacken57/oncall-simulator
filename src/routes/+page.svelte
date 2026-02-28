@@ -52,7 +52,7 @@
       <p>
         Welcome, Engineer. You've been tasked with maintaining our critical infrastructure. Each
         level presents a different architectural challenge. Monitor metrics, respond to alerts, and
-        manage your budget to keep the system running.
+        Keep the system running.
       </p>
       <div class="features">
         <div class="feature-card">
@@ -61,7 +61,7 @@
         </div>
         <div class="feature-card">
           <h3>Incident Response</h3>
-          <p>Acknowledge tickets and investigate root causes before the budget runs out.</p>
+          <p>Acknowledge tickets and investigate root causes.</p>
         </div>
         <div class="feature-card">
           <h3>Documentation</h3>

@@ -21,16 +21,14 @@ describe('Tickets System', () => {
             unit: 'GCU',
             initialLimit: 1,
             minLimit: 1,
-            maxLimit: 10,
-            costPerUnit: 1
+            maxLimit: 10
           },
           ram: {
             name: 'RAM',
             unit: 'GB',
             initialLimit: 8,
             minLimit: 1,
-            maxLimit: 64,
-            costPerUnit: 1
+            maxLimit: 64
           }
         },
         metrics: {

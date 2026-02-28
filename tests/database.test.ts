@@ -27,16 +27,14 @@ describe('Database Physics', () => {
             unit: 'count',
             initialLimit: 100,
             minLimit: 1,
-            maxLimit: 1000,
-            costPerUnit: 1
+            maxLimit: 1000
           },
           storage: {
             name: 'Store',
             unit: 'GB',
             initialLimit: 1000,
             minLimit: 1,
-            maxLimit: 10000,
-            costPerUnit: 1
+            maxLimit: 10000
           }
         },
         metrics: {

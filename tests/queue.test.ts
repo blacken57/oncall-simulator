@@ -19,8 +19,7 @@ describe('QueueNode Physics & Alerts', () => {
             unit: 'C',
             initialLimit: 10,
             minLimit: 1,
-            maxLimit: 10,
-            costPerUnit: 1
+            maxLimit: 10
           }
         },
         metrics: {},
@@ -41,16 +40,14 @@ describe('QueueNode Physics & Alerts', () => {
             unit: 'msg',
             initialLimit: 100,
             minLimit: 10,
-            maxLimit: 1000,
-            costPerUnit: 1
+            maxLimit: 1000
           },
           egress: {
             name: 'Egress',
             unit: 'msg/s',
             initialLimit: 10,
             minLimit: 0,
-            maxLimit: 100,
-            costPerUnit: 1
+            maxLimit: 100
           }
         },
         metrics: {
@@ -77,8 +74,7 @@ describe('QueueNode Physics & Alerts', () => {
             unit: 'C',
             initialLimit: 10,
             minLimit: 1,
-            maxLimit: 10,
-            costPerUnit: 1
+            maxLimit: 10
           }
         },
         metrics: {
@@ -222,7 +218,7 @@ describe('QueueNode Physics & Alerts', () => {
       name: 'Consumer 2',
       type: 'compute',
       attributes: {
-        gcu: { name: 'GCU', unit: 'C', initialLimit: 10, minLimit: 1, maxLimit: 10, costPerUnit: 1 }
+        gcu: { name: 'GCU', unit: 'C', initialLimit: 10, minLimit: 1, maxLimit: 10 }
       },
       metrics: { incoming: { name: 'In', unit: 'req' } },
       traffic_routes: [{ name: 'from-queue-2', outgoing_traffics: [] }]
@@ -276,8 +272,7 @@ describe('QueueNode Physics & Alerts', () => {
           unit: 'C',
           initialLimit: 10,
           minLimit: 1,
-          maxLimit: 10,
-          costPerUnit: 1
+          maxLimit: 10
         }
       },
       metrics: {},

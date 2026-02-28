@@ -20,8 +20,7 @@ const baseLevel: LevelConfig = {
           unit: 'GCU',
           initialLimit: 10,
           minLimit: 0,
-          maxLimit: 100,
-          costPerUnit: 1
+          maxLimit: 100
         }
       },
       metrics: {

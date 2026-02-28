@@ -82,7 +82,6 @@ export interface AttributeConfig {
   initialLimit: number;
   minLimit: number;
   maxLimit: number;
-  costPerUnit: number;
   maxHistory?: number;
   /** How many ticks it takes for a player-initiated change to materialize. Defaults to 5. */
   apply_delay?: number;

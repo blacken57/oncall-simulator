@@ -73,7 +73,6 @@ export class Attribute {
   maxHistory: number;
   minLimit: number;
   maxLimit: number;
-  costPerUnit: number;
   applyDelay: number;
 
   constructor(config: AttributeConfig) {
@@ -82,7 +81,6 @@ export class Attribute {
     this.limit = config.initialLimit;
     this.minLimit = config.minLimit;
     this.maxLimit = config.maxLimit;
-    this.costPerUnit = config.costPerUnit;
     this.applyDelay = config.apply_delay ?? 5;
     this.maxHistory = config.maxHistory ?? 60;
   }
@@ -95,10 +93,6 @@ export class Attribute {
 
   growBy(delta: number): void {
     this.update(Math.min(this.limit, Math.max(0, this.current + delta)));
-  }
-
-  get cost() {
-    return this.limit * this.costPerUnit;
   }
 
   get utilization() {

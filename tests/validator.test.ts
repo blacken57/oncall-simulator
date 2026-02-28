@@ -276,7 +276,7 @@ describe('Level Validator', () => {
   it('catches attribute minLimit greater than initialLimit', () => {
     const invalid = JSON.parse(JSON.stringify(baseLevel));
     invalid.components[0].attributes = {
-      gcu: { name: 'GCU', unit: 'C', initialLimit: 5, minLimit: 10, maxLimit: 100, costPerUnit: 1 }
+      gcu: { name: 'GCU', unit: 'C', initialLimit: 5, minLimit: 10, maxLimit: 100 }
     };
     const errors = validateLevel(invalid);
     expect(errors.some((e) => e.message.includes('minLimit must not exceed initialLimit'))).toBe(

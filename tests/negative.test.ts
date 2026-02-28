@@ -27,8 +27,7 @@ describe('Resilience / Negative Testing', () => {
             unit: 'C',
             initialLimit: 4,
             minLimit: 1,
-            maxLimit: 16,
-            costPerUnit: 1
+            maxLimit: 16
           }
         },
         metrics: {},
@@ -52,8 +51,7 @@ describe('Resilience / Negative Testing', () => {
             unit: 'C',
             initialLimit: 4,
             minLimit: 1,
-            maxLimit: 16,
-            costPerUnit: 1
+            maxLimit: 16
           }
         },
         metrics: {}, // Empty metrics
@@ -149,8 +147,7 @@ describe('Resilience / Negative Testing', () => {
         unit: 'T',
         initialLimit: 0,
         minLimit: 0,
-        maxLimit: 100,
-        costPerUnit: 1
+        maxLimit: 100
       });
       expect(attr.utilization).toBe(0);
     });

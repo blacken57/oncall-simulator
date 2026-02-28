@@ -28,8 +28,7 @@ const config: ComponentConfig = {
       unit: 'req/s',
       initialLimit: 60,
       minLimit: 10,
-      maxLimit: 500,
-      costPerUnit: 10
+      maxLimit: 500
     }
   },
   metrics: {
@@ -201,8 +200,7 @@ const integrationLevel: LevelConfig = {
           unit: 'GCU',
           initialLimit: 10,
           minLimit: 1,
-          maxLimit: 100,
-          costPerUnit: 1
+          maxLimit: 100
         }
       },
       metrics: {},
@@ -222,8 +220,7 @@ const integrationLevel: LevelConfig = {
           unit: 'req/s',
           initialLimit: 50,
           minLimit: 10,
-          maxLimit: 200,
-          costPerUnit: 1
+          maxLimit: 200
         }
       },
       metrics: {

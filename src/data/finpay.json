@@ -23,7 +23,6 @@
           "initialLimit": 8,
           "minLimit": 1,
           "maxLimit": 32,
-          "costPerUnit": 5,
           "apply_delay": 3
         }
       },
@@ -81,7 +80,6 @@
           "initialLimit": 6,
           "minLimit": 1,
           "maxLimit": 24,
-          "costPerUnit": 5,
           "apply_delay": 3
         }
       },
@@ -130,7 +128,6 @@
           "initialLimit": 6,
           "minLimit": 1,
           "maxLimit": 24,
-          "costPerUnit": 5,
           "apply_delay": 3
         }
       },
@@ -171,7 +168,6 @@
           "initialLimit": 100,
           "minLimit": 10,
           "maxLimit": 500,
-          "costPerUnit": 2,
           "apply_delay": 5
         }
       },
@@ -200,7 +196,6 @@
           "initialLimit": 80,
           "minLimit": 10,
           "maxLimit": 500,
-          "costPerUnit": 2,
           "apply_delay": 5
         }
       },
@@ -230,7 +225,6 @@
           "initialLimit": 60,
           "minLimit": 10,
           "maxLimit": 500,
-          "costPerUnit": 10,
           "apply_delay": 1
         }
       },
@@ -275,7 +269,6 @@
           "initialLimit": 60,
           "minLimit": 10,
           "maxLimit": 500,
-          "costPerUnit": 8,
           "apply_delay": 1
         }
       },
@@ -320,7 +313,6 @@
           "initialLimit": 60,
           "minLimit": 10,
           "maxLimit": 500,
-          "costPerUnit": 5,
           "apply_delay": 1
         }
       },
@@ -365,7 +357,6 @@
           "initialLimit": 60,
           "minLimit": 10,
           "maxLimit": 500,
-          "costPerUnit": 12,
           "apply_delay": 1
         }
       },
@@ -410,7 +401,6 @@
           "initialLimit": 60,
           "minLimit": 10,
           "maxLimit": 500,
-          "costPerUnit": 6,
           "apply_delay": 1
         }
       },

@@ -20,8 +20,7 @@
           "unit": "C",
           "initialLimit": 10,
           "minLimit": 1,
-          "maxLimit": 100,
-          "costPerUnit": 10
+          "maxLimit": 100
         }
       },
       "metrics": {
@@ -56,16 +55,14 @@
           "unit": "msg",
           "initialLimit": 10000,
           "minLimit": 1000,
-          "maxLimit": 100000,
-          "costPerUnit": 0.05
+          "maxLimit": 100000
         },
         "egress": {
           "name": "Egress",
           "unit": "msg/s",
           "initialLimit": 200,
           "minLimit": 10,
-          "maxLimit": 2000,
-          "costPerUnit": 2
+          "maxLimit": 2000
         }
       },
       "metrics": {
@@ -114,8 +111,7 @@
           "unit": "Units",
           "initialLimit": 10,
           "minLimit": 1,
-          "maxLimit": 100,
-          "costPerUnit": 15
+          "maxLimit": 100
         }
       },
       "metrics": {
@@ -153,8 +149,7 @@
           "unit": "conn",
           "initialLimit": 300,
           "minLimit": 50,
-          "maxLimit": 3000,
-          "costPerUnit": 2
+          "maxLimit": 3000
         }
       },
       "metrics": {

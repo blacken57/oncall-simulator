@@ -28,7 +28,6 @@
           "initialLimit": 8,
           "minLimit": 2,
           "maxLimit": 64,
-          "costPerUnit": 10,
           "apply_delay": 5
         },
         "gcu": {
@@ -37,7 +36,6 @@
           "initialLimit": 20,
           "minLimit": 1,
           "maxLimit": 32,
-          "costPerUnit": 25,
           "apply_delay": 10
         }
       },
@@ -124,7 +122,6 @@
           "initialLimit": 100,
           "minLimit": 10,
           "maxLimit": 1000,
-          "costPerUnit": 1,
           "apply_delay": 15
         },
         "storage": {
@@ -132,8 +129,7 @@
           "unit": "GB",
           "initialLimit": 500,
           "minLimit": 50,
-          "maxLimit": 5000,
-          "costPerUnit": 0.5
+          "maxLimit": 5000
         }
       },
       "metrics": {
@@ -190,8 +186,7 @@
           "unit": "GB",
           "initialLimit": 1000,
           "minLimit": 100,
-          "maxLimit": 10000,
-          "costPerUnit": 0.1
+          "maxLimit": 10000
         }
       },
       "metrics": {

@@ -27,8 +27,7 @@ describe('Latency Physics & Propagation', () => {
             unit: 'cores',
             initialLimit: 100,
             minLimit: 1,
-            maxLimit: 100,
-            costPerUnit: 1
+            maxLimit: 100
           }
         },
         metrics: { latency: { name: 'Lat', unit: 'ms' } },
@@ -57,8 +56,7 @@ describe('Latency Physics & Propagation', () => {
             unit: 'cores',
             initialLimit: 100,
             minLimit: 1,
-            maxLimit: 100,
-            costPerUnit: 1
+            maxLimit: 100
           }
         },
         metrics: { latency: { name: 'Lat', unit: 'ms' } },
@@ -85,8 +83,7 @@ describe('Latency Physics & Propagation', () => {
             unit: 'count',
             initialLimit: 1000,
             minLimit: 1,
-            maxLimit: 1000,
-            costPerUnit: 1
+            maxLimit: 1000
           }
         },
         metrics: { query_latency: { name: 'Lat', unit: 'ms' } },

@@ -332,8 +332,4 @@ export abstract class SystemComponent {
   protected getActiveComponentEffects(handler: TrafficHandler) {
     return handler.getActiveComponentEffects(this.id);
   }
-
-  get totalCost() {
-    return Object.values(this.attributes).reduce((sum, attr) => sum + attr.cost, 0);
-  }
 }
