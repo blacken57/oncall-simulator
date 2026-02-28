@@ -207,4 +207,16 @@
       width 0.3s ease,
       background 0.3s ease;
   }
+
+  @media (max-width: 768px) {
+    .dashboard {
+      grid-template-columns: 1fr;
+      gap: 0.75rem;
+      padding: 0.5rem;
+    }
+
+    .metrics-grid.traffic {
+      max-width: none;
+    }
+  }
 </style>

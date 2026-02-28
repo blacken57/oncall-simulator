@@ -212,4 +212,26 @@
     background: #333;
     color: #fff;
   }
+
+  @media (max-width: 768px) {
+    .tickets-view {
+      height: auto;
+    }
+
+    .ticket-columns {
+      grid-template-columns: 1fr;
+      overflow: visible;
+    }
+
+    .ticket-list {
+      overflow-y: visible;
+      padding-right: 0;
+      max-height: none;
+    }
+
+    button {
+      padding: 0.55rem 1rem;
+      font-size: 0.8rem;
+    }
+  }
 </style>

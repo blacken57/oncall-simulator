@@ -166,4 +166,30 @@
     color: #fbbf24;
     font-style: italic;
   }
+
+  @media (max-width: 640px) {
+    .attribute-row {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.5rem;
+    }
+
+    .info {
+      width: auto;
+    }
+
+    .controls {
+      justify-content: flex-start;
+    }
+
+    input[type='range'] {
+      max-width: none;
+      width: 100%;
+    }
+
+    .apply-btn {
+      padding: 0.4rem 1rem;
+      font-size: 0.8rem;
+    }
+  }
 </style>

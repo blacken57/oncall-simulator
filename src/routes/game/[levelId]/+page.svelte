@@ -226,7 +226,7 @@
   .game-container {
     display: flex;
     flex-direction: column;
-    height: 100vh;
+    height: 100dvh;
   }
 
   .global-header {
@@ -337,5 +337,75 @@
     flex: 1;
     overflow-y: auto;
     background: #050505;
+  }
+
+  @media (max-width: 768px) {
+    .global-header {
+      flex-wrap: wrap;
+      padding: 0.5rem 0.75rem;
+      gap: 0.25rem;
+    }
+
+    .brand {
+      flex: 1;
+    }
+
+    .brand h1 {
+      font-size: 1rem;
+    }
+
+    .level-info {
+      display: none;
+    }
+
+    .game-stats {
+      width: 100%;
+      order: 3;
+      justify-content: space-around;
+      gap: 0;
+      border-top: 1px solid #1a1a1a;
+      padding-top: 0.4rem;
+    }
+
+    .stat-item .value {
+      font-size: 0.9rem;
+    }
+
+    .side-nav {
+      width: 100%;
+      height: 56px;
+      flex-direction: row;
+      border-right: none;
+      border-top: 1px solid #222;
+      padding: 0;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+    }
+
+    .nav-item {
+      flex: 1;
+      font-size: 0.65rem;
+      padding: 0.5rem 0.25rem;
+      border-left: none !important;
+      border-bottom: 3px solid transparent;
+    }
+
+    .nav-item.active {
+      border-left: none;
+      border-bottom: 3px solid #f87171;
+      background: #111;
+    }
+
+    .main-view {
+      padding-bottom: 56px;
+    }
+
+    .notifications-container {
+      bottom: calc(56px + 0.75rem);
+      right: 0.75rem;
+    }
   }
 </style>

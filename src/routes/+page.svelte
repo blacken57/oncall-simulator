@@ -297,4 +297,27 @@
     color: #333;
     font-size: 0.7rem;
   }
+
+  @media (max-width: 640px) {
+    .landing-container {
+      padding: 1rem;
+    }
+
+    .landing-content {
+      gap: 2rem;
+    }
+
+    .brand h1 {
+      font-size: 2rem;
+    }
+
+    .landing-header {
+      margin-bottom: 2rem;
+    }
+
+    .level-grid {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+  }
 </style>

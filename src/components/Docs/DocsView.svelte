@@ -221,4 +221,42 @@
   :global(.markdown-body strong) {
     color: #fff;
   }
+
+  @media (max-width: 768px) {
+    .docs-view {
+      flex-direction: column;
+    }
+
+    .docs-sidebar {
+      width: 100%;
+      flex-direction: row;
+      overflow-x: auto;
+      border-right: none;
+      border-bottom: 1px solid #222;
+      padding: 0;
+      height: auto;
+      min-height: unset;
+    }
+
+    .docs-sidebar header {
+      display: none;
+    }
+
+    .doc-nav-item {
+      white-space: nowrap;
+      padding: 0.75rem 1rem;
+      border-left: none !important;
+      border-bottom: 2px solid transparent;
+      width: auto;
+    }
+
+    .doc-nav-item.active {
+      border-left: none;
+      border-bottom: 2px solid #f87171;
+    }
+
+    .docs-content {
+      padding: 1rem;
+    }
+  }
 </style>
