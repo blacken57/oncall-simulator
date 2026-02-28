@@ -290,6 +290,12 @@ StatusEffects are stochastic incidents that temporarily modify component metrics
    - Otherwise → immediately enters **Active** phase.
 2. **Active**: The multiplier/offset is applied every tick. If `resolution_ticks` is set, the effect auto-resolves after that many ticks. If not, it is permanent (until game end or level reset).
 
+**Warmup Period**
+
+The engine suppresses status-effect ticks and ticket generation for the first `warmupTicks` ticks (default **10**). Effects will not materialize — and no critical tickets will fire — until tick 11 onward. Design your baselines to be stable during warmup; don't rely on scripted incidents filling the gap.
+
+_Test note:_ Unit tests set `engine.warmupTicks = 0` to allow immediate materialization.
+
 ### Component StatusEffect
 
 Applies a multiplier/offset to a specific metric within a component (e.g., spike CPU utilization, increase latency).
@@ -313,16 +319,16 @@ Applies a multiplier/offset to a specific metric within a component (e.g., spike
 }
 ```
 
-| Field                         | Description                                                    |
-| ----------------------------- | -------------------------------------------------------------- |
-| `component_affected`          | Component `id` to apply the effect to                          |
-| `metric_affected`             | The metric key within that component                           |
-| `multiplier`                  | Relative modifier: `effectiveValue = base + base * multiplier` |
-| `offset`                      | Absolute modifier added on top                                 |
-| `materialization_probability` | Probability per tick of the effect triggering (0–1)            |
-| `resolution_ticks`            | Ticks until auto-resolution. Omit for a permanent effect.      |
-| `max_instances_at_once`       | Maximum concurrent instances of this effect                    |
-| `warning_config`              | Optional pre-incident warning phase                            |
+| Field                         | Description                                                                                             |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `component_affected`          | Component `id` to apply the effect to                                                                   |
+| `metric_affected`             | The metric key within that component                                                                    |
+| `multiplier`                  | Relative modifier: `effectiveValue = base + base * multiplier`                                          |
+| `offset`                      | Absolute modifier added on top                                                                          |
+| `materialization_probability` | Probability per tick of the effect triggering (0–1)                                                     |
+| `resolution_ticks`            | Ticks until auto-resolution. Omit for a permanent effect.                                               |
+| `max_instances_at_once`       | Maximum concurrent instances (field is stored but **not currently enforced** — reserved for future use) |
+| `warning_config`              | Optional pre-incident warning phase                                                                     |
 
 ### Traffic StatusEffect
 
@@ -404,7 +410,7 @@ Applies a multiplier/offset to a named traffic flow's volume (e.g., simulate a t
 - **Queue multiplier ≠ 1**: Setting `multiplier` to anything other than `1` on a queue's `outgoing_traffics` is a validator error. Queues forward at their egress rate, not a multiple of it.
 - **Queue targeting invalid consumer**: A queue's egress traffic must target a `compute` or `storage` component. Targeting a `database` or another `queue` is rejected.
 - **ScheduledJob `target: 'value'` mutates `current`, not `limit`**: Use `target: 'value'` only for simulating fill growth (e.g., disk usage accumulation). Use the default `target: 'limit'` for capacity configuration.
-- **`materialization_probability: 1.0` without `resolution_ticks`**: The effect will materialize on tick 1 and never resolve. This is intentional for permanent degradation scenarios but easy to overlook. Add `resolution_ticks` if you want auto-recovery.
+- **`materialization_probability: 1.0` without `resolution_ticks`**: The effect will materialize on the first eligible tick (after the warmup period) and never resolve. This is intentional for permanent degradation scenarios but easy to overlook. Add `resolution_ticks` if you want auto-recovery.
 - **Alert metric key mismatch**: The validator checks that `alert.metric` matches a key in either the component's `metrics` or `attributes` map. A typo here is a hard validation error.
 - **Alert thresholds inverted**: For `direction: "above"`, `warning_threshold` must be less than `critical_threshold`. For `direction: "below"`, `warning_threshold` must be greater than `critical_threshold`. Inverted thresholds are now a hard validation error.
 - **Status effect `metric_affected` mismatch**: `metric_affected` must match a key in the target component's `metrics` or `attributes` map. The validator enforces this — a typo will fail `npm run validate`.

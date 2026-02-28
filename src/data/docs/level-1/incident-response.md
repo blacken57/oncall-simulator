@@ -18,7 +18,7 @@ Don't just stare at the screen. Move the ticket to "Investigating." This signals
 
 Look at the **Dashboard**. Is it a latency spike or an error spike?
 
-- **Latency**: Usually means a resource is saturated (>80% usage). Check the [Architecture](architecture.md) to see what's slow.
+- **Latency**: Usually means a resource is saturated (>80% usage). Check the [Infrastructure](infrastructure.md) to see what's slow.
 - **Errors**: Usually means a hard limit was hit (Connection pool full, disk space 100%).
 
 ## Step 3: Mitigate
