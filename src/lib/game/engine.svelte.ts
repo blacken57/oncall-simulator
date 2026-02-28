@@ -27,6 +27,7 @@ export interface QueuedAction {
 }
 
 export class GameEngine implements TrafficHandler {
+  warmupTicks = 10;
   tick = $state(0);
   isRunning = $state(false);
   components: Record<string, SystemComponent> = $state({});
@@ -232,7 +233,9 @@ export class GameEngine implements TrafficHandler {
 
     // 2. Update Status Effects (Materialization & Resolution)
     for (const effect of this.statusEffects) {
-      effect.tick(this);
+      if (this.tick > this.warmupTicks) {
+        effect.tick(this);
+      }
     }
 
     // 3. Process Pending Actions
@@ -288,24 +291,27 @@ export class GameEngine implements TrafficHandler {
     Object.values(this.components).forEach((comp) => {
       comp.tick(this);
 
-      // Ticket generation: for each critical trigger
-      for (const [alertName, severity] of Object.entries(comp.statusTriggers)) {
-        if (severity === 'critical') {
-          const alreadyHasOpenTicket = this.tickets.some(
-            (t) => t.componentId === comp.id && t.alertName === alertName && t.status !== 'resolved'
-          );
+      // Ticket generation: for each critical trigger (suppressed during warmup)
+      if (this.tick > this.warmupTicks) {
+        for (const [alertName, severity] of Object.entries(comp.statusTriggers)) {
+          if (severity === 'critical') {
+            const alreadyHasOpenTicket = this.tickets.some(
+              (t) =>
+                t.componentId === comp.id && t.alertName === alertName && t.status !== 'resolved'
+            );
 
-          if (!alreadyHasOpenTicket) {
-            this.tickets.push({
-              id: Math.random().toString(36).substr(2, 9),
-              componentId: comp.id,
-              alertName: alertName,
-              title: `CRITICAL: ${comp.name} - ${alertName}`,
-              description: `${comp.name} alert '${alertName}' is in a critical state. Investigate immediately.`,
-              status: 'open',
-              createdAt: this.tick,
-              impactedMetric: alertName
-            });
+            if (!alreadyHasOpenTicket) {
+              this.tickets.push({
+                id: Math.random().toString(36).substr(2, 9),
+                componentId: comp.id,
+                alertName: alertName,
+                title: `CRITICAL: ${comp.name} - ${alertName}`,
+                description: `${comp.name} alert '${alertName}' is in a critical state. Investigate immediately.`,
+                status: 'open',
+                createdAt: this.tick,
+                impactedMetric: alertName
+              });
+            }
           }
         }
       }

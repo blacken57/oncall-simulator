@@ -119,7 +119,7 @@
         "connections": {
           "name": "Max Connections",
           "unit": "count",
-          "initialLimit": 100,
+          "initialLimit": 200,
           "minLimit": 10,
           "maxLimit": 1000,
           "apply_delay": 15
@@ -261,7 +261,7 @@
       "name": "Scheduled Load Test",
       "traffic_affected": "initiatePurchase",
       "multiplier": 2.0,
-      "materialization_probability": 0.05,
+      "materialization_probability": 0.02,
       "turnsRemaining": 10,
       "warning_config": {
         "delay_ticks": 5,

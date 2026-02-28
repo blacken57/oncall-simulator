@@ -158,6 +158,7 @@ describe('QueueNode Physics & Alerts', () => {
     // Set max to 50 so it fills up quickly
     alertLevel.components[1].attributes.backlog.initialLimit = 50;
     engine.loadLevel(alertLevel);
+    engine.warmupTicks = 0;
 
     // Tick 1: incoming 50 > outgoing 10.
     // Backlog becomes 40.

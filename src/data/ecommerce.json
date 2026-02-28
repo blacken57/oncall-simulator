@@ -228,7 +228,7 @@
         "cpu": {
           "name": "CPU Cores",
           "unit": "cores",
-          "initialLimit": 4,
+          "initialLimit": 8,
           "minLimit": 2,
           "maxLimit": 64,
           "apply_delay": 2
@@ -666,7 +666,7 @@
       "component_affected": "search-db",
       "metric_affected": "latency",
       "multiplier": 2.3,
-      "materialization_probability": 0.05,
+      "materialization_probability": 0.02,
       "resolution_ticks": 5,
       "max_instances_at_once": 1
     }

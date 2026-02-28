@@ -69,6 +69,7 @@ describe('Tickets System', () => {
   it('should generate a ticket when an alert goes critical', () => {
     const engine = new GameEngine();
     engine.loadLevel(level);
+    engine.warmupTicks = 0;
 
     expect(engine.tickets).toHaveLength(0);
 
@@ -83,6 +84,7 @@ describe('Tickets System', () => {
   it('should generate multiple tickets if multiple alerts are critical', () => {
     const engine = new GameEngine();
     engine.loadLevel(level);
+    engine.warmupTicks = 0;
 
     // Manually trigger another critical alert
     // ComputeNode.tick will recalculate gcu, but let's assume we can trigger error_rate too
@@ -100,6 +102,7 @@ describe('Tickets System', () => {
   it('should NOT generate duplicate tickets for the same alert if one is already open', () => {
     const engine = new GameEngine();
     engine.loadLevel(level);
+    engine.warmupTicks = 0;
 
     engine.update();
     expect(engine.tickets).toHaveLength(2);
@@ -111,6 +114,7 @@ describe('Tickets System', () => {
   it('should raise a new ticket if a ticket was resolved but the issue persists', () => {
     const engine = new GameEngine();
     engine.loadLevel(level);
+    engine.warmupTicks = 0;
 
     engine.update(); // Tick 1: Status becomes critical, 2 tickets generated
     expect(engine.tickets).toHaveLength(2);

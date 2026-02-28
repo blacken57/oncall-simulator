@@ -198,7 +198,7 @@
       "name": "Morning Sensor Sync Surge",
       "traffic_affected": "sensorData",
       "multiplier": 5.0,
-      "materialization_probability": 0.05,
+      "materialization_probability": 0.02,
       "turnsRemaining": 30,
       "warning_config": {
         "delay_ticks": 15,
@@ -212,7 +212,7 @@
       "component_affected": "timeseries-db",
       "metric_affected": "query_latency",
       "multiplier": 3.0,
-      "materialization_probability": 0.02,
+      "materialization_probability": 0.01,
       "resolution_ticks": 20
     }
   ],

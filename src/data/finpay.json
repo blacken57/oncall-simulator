@@ -459,7 +459,7 @@
       "component_affected": "stripe",
       "metric_affected": "latency",
       "multiplier": 4.0,
-      "materialization_probability": 0.02,
+      "materialization_probability": 0.01,
       "resolution_ticks": 25,
       "max_instances_at_once": 1,
       "warning_config": {
@@ -474,7 +474,7 @@
       "component_affected": "twilio",
       "metric_affected": "error_rate",
       "offset": 75,
-      "materialization_probability": 0.02,
+      "materialization_probability": 0.01,
       "resolution_ticks": 20,
       "max_instances_at_once": 1,
       "warning_config": {
@@ -489,7 +489,7 @@
       "component_affected": "maxmind",
       "metric_affected": "latency",
       "multiplier": 3.0,
-      "materialization_probability": 0.03,
+      "materialization_probability": 0.015,
       "resolution_ticks": 30,
       "max_instances_at_once": 1,
       "warning_config": {
@@ -518,7 +518,7 @@
       "name": "Payment Surge",
       "traffic_affected": "checkout",
       "multiplier": 1.5,
-      "materialization_probability": 0.02,
+      "materialization_probability": 0.01,
       "turnsRemaining": 20,
       "max_instances_at_once": 1,
       "warning_config": {

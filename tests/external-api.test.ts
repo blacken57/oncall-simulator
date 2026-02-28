@@ -285,6 +285,7 @@ describe('ExternalAPINode — engine integration', () => {
       max_instances_at_once: 1
     });
     engine.loadLevel(seLevel);
+    engine.warmupTicks = 0;
     engine.update();
 
     // base_latency_ms=100, multiplier=3: 100 + 100*3 = 400ms
@@ -306,6 +307,7 @@ describe('ExternalAPINode — engine integration', () => {
       max_instances_at_once: 1
     });
     engine.loadLevel(seLevel);
+    engine.warmupTicks = 0;
     engine.update();
 
     // Base error_rate=0%; with offset=75: applyEffects(0, offset=75) = 75%

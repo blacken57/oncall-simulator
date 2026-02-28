@@ -406,6 +406,7 @@ describe('GameEngine Integration', () => {
 
     const engine = new GameEngine();
     engine.loadLevel(level);
+    engine.warmupTicks = 0;
 
     // Tick 1: Warning starts
     engine.update();
@@ -450,6 +451,7 @@ describe('GameEngine Integration', () => {
 
     const engine = new GameEngine();
     engine.loadLevel(level);
+    engine.warmupTicks = 0;
 
     // Initial tick: Status effect is NOT active yet (tick() hasn't run)
     // Actually, tick() runs BEFORE traffic calculation in engine.update()
@@ -561,6 +563,7 @@ describe('GameEngine Integration', () => {
 
     const engine = new GameEngine();
     engine.loadLevel(level);
+    engine.warmupTicks = 0;
 
     // Tick 1: materialises into warning state
     engine.update();
@@ -625,6 +628,7 @@ describe('GameEngine Integration', () => {
 
     const engine = new GameEngine();
     engine.loadLevel(level);
+    engine.warmupTicks = 0;
 
     engine.update();
 
@@ -649,6 +653,7 @@ describe('GameEngine Integration', () => {
 
     const engine = new GameEngine();
     engine.loadLevel(level);
+    engine.warmupTicks = 0;
 
     // Tick 1: materialises, turnsRemaining = 2
     engine.update();
