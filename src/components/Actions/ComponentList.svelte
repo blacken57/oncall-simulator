@@ -82,8 +82,8 @@
   }
 
   .component-actions {
-    background: #111;
-    border: 1px solid #222;
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: 8px;
     padding: 1rem;
   }
@@ -91,8 +91,8 @@
   h3 {
     margin: 0 0 1rem 0;
     font-size: 1rem;
-    color: #fff;
-    border-bottom: 1px solid #222;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border);
     padding-bottom: 0.5rem;
   }
 
@@ -107,7 +107,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 0.5rem;
-    background: #0a0a0a;
+    background: var(--surface-raised);
     border-radius: 4px;
   }
 
@@ -123,7 +123,7 @@
   }
   .current-limit {
     font-size: 0.7rem;
-    color: #666;
+    color: var(--text-muted);
   }
 
   .controls {

@@ -3,6 +3,7 @@
   import { engine } from '$lib/game/engine.svelte';
   import { getLevel } from '$lib/game/levels';
   import { customLevelStore } from '$lib/game/customLevel.svelte';
+  import ThemeToggle from '../../../components/ThemeToggle.svelte';
   import DashboardLayout from '../../../components/Dashboard/DashboardLayout.svelte';
   import ComponentList from '../../../components/Actions/ComponentList.svelte';
   import TicketList from '../../../components/Tickets/TicketList.svelte';
@@ -63,6 +64,7 @@
       </div>
 
       <div class="controls">
+        <ThemeToggle />
         <button
           class="btn {isRunning ? 'stop' : 'start'}"
           onclick={() => (isRunning ? engine.stop() : engine.start())}
@@ -133,8 +135,8 @@
     align-items: center;
     justify-content: center;
     height: 100vh;
-    background: #000;
-    color: #fff;
+    background: var(--bg);
+    color: var(--text-primary);
   }
 
   .error-view a {
@@ -159,7 +161,7 @@
 
   .level-name {
     font-size: 0.7rem;
-    color: #888;
+    color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.1em;
   }
@@ -176,10 +178,10 @@
   }
 
   .notification {
-    background: #111;
-    border: 1px solid #333;
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
     padding: 0.75rem 1.5rem;
-    color: #fff;
+    color: var(--text-primary);
     font-size: 0.8rem;
     border-left: 4px solid #4ade80;
     pointer-events: auto;
@@ -198,8 +200,8 @@
 
   :global(body) {
     margin: 0;
-    background: #000;
-    color: #e0e0e0;
+    background: var(--bg);
+    color: var(--text);
     font-family: 'JetBrains Mono', 'Courier New', monospace;
   }
 
@@ -224,8 +226,8 @@
     justify-content: space-between;
     align-items: center;
     padding: 0.75rem 1.5rem;
-    background: #0a0a0a;
-    border-bottom: 2px solid #222;
+    background: var(--surface-raised);
+    border-bottom: 2px solid var(--border);
   }
 
   .brand h1 {
@@ -239,7 +241,7 @@
   }
   .version {
     font-size: 0.6rem;
-    color: #555;
+    color: var(--text-muted);
   }
 
   .game-stats {
@@ -255,7 +257,7 @@
 
   .stat-item .label {
     font-size: 0.6rem;
-    color: #666;
+    color: var(--text-muted);
   }
   .stat-item .value {
     font-size: 1.1rem;
@@ -263,9 +265,9 @@
     color: #4ade80;
   }
   .btn {
-    background: #222;
-    color: #fff;
-    border: 1px solid #444;
+    background: var(--border);
+    color: var(--text-primary);
+    border: 1px solid var(--text-faint);
     padding: 0.4rem 1rem;
     cursor: pointer;
     font-family: inherit;
@@ -274,7 +276,7 @@
   }
 
   .btn:hover {
-    background: #333;
+    background: var(--border-strong);
   }
   .btn.start {
     color: #4ade80;
@@ -285,6 +287,11 @@
     border-color: #f8717155;
   }
 
+  .controls {
+    display: flex;
+    gap: 0.5rem;
+  }
+
   .content {
     display: flex;
     flex: 1;
@@ -293,8 +300,8 @@
 
   .side-nav {
     width: 120px;
-    background: #0a0a0a;
-    border-right: 1px solid #222;
+    background: var(--surface-raised);
+    border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
     padding: 1rem 0;
@@ -303,7 +310,7 @@
   .nav-item {
     background: none;
     border: none;
-    color: #666;
+    color: var(--text-muted);
     padding: 0.75rem;
     text-align: center;
     cursor: pointer;
@@ -314,15 +321,15 @@
   }
 
   .nav-item.active {
-    color: #fff;
-    background: #111;
+    color: var(--text-primary);
+    background: var(--surface);
     border-left: 3px solid #f87171;
   }
 
   .main-view {
     flex: 1;
     overflow-y: auto;
-    background: #050505;
+    background: var(--bg-deep);
   }
 
   @media (max-width: 768px) {
@@ -349,7 +356,7 @@
       order: 3;
       justify-content: space-around;
       gap: 0;
-      border-top: 1px solid #1a1a1a;
+      border-top: 1px solid var(--surface-subtle);
       padding-top: 0.4rem;
     }
 
@@ -362,7 +369,7 @@
       height: 56px;
       flex-direction: row;
       border-right: none;
-      border-top: 1px solid #222;
+      border-top: 1px solid var(--border);
       padding: 0;
       position: fixed;
       bottom: 0;
@@ -382,7 +389,7 @@
     .nav-item.active {
       border-left: none;
       border-bottom: 3px solid #f87171;
-      background: #111;
+      background: var(--surface);
     }
 
     .main-view {

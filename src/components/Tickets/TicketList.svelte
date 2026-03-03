@@ -95,7 +95,7 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 2rem;
-    border-bottom: 2px solid #222;
+    border-bottom: 2px solid var(--border);
     padding-bottom: 1rem;
   }
 
@@ -115,7 +115,7 @@
     color: #f87171;
   }
   .stat.muted {
-    color: #666;
+    color: var(--text-muted);
   }
 
   .ticket-columns {
@@ -130,16 +130,16 @@
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    background: #0a0a0a;
+    background: var(--surface-raised);
     border-radius: 8px;
     padding: 1rem;
-    border: 1px solid #1a1a1a;
+    border: 1px solid var(--surface-subtle);
   }
 
   h3 {
     margin: 0;
     font-size: 0.8rem;
-    color: #444;
+    color: var(--text-faint);
     text-transform: uppercase;
     letter-spacing: 0.1em;
   }
@@ -153,11 +153,11 @@
   }
 
   .ticket-card {
-    background: #111;
-    border: 1px solid #222;
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: 4px;
     padding: 1rem;
-    border-left: 4px solid #444;
+    border-left: 4px solid var(--text-faint);
   }
 
   .ticket-card.open {
@@ -176,18 +176,18 @@
     justify-content: space-between;
     font-size: 0.7rem;
     margin-bottom: 0.5rem;
-    color: #666;
+    color: var(--text-muted);
   }
 
   h4 {
     margin: 0 0 0.5rem 0;
     font-size: 0.95rem;
-    color: #eee;
+    color: var(--text-primary);
   }
   p {
     margin: 0 0 1rem 0;
     font-size: 0.8rem;
-    color: #888;
+    color: var(--text-secondary);
     line-height: 1.4;
   }
 
@@ -197,9 +197,9 @@
   }
 
   button {
-    background: #222;
-    border: 1px solid #333;
-    color: #aaa;
+    background: var(--border);
+    border: 1px solid var(--border-strong);
+    color: var(--text-secondary);
     padding: 0.3rem 0.6rem;
     font-size: 0.7rem;
     font-family: inherit;
@@ -209,8 +209,8 @@
   }
 
   button:hover {
-    background: #333;
-    color: #fff;
+    background: var(--border-strong);
+    color: var(--text-primary);
   }
 
   @media (max-width: 768px) {

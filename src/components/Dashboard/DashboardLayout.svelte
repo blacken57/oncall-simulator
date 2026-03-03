@@ -98,8 +98,8 @@
   }
 
   .traffic-overview {
-    background: #0a0a0a;
-    border: 2px solid #222;
+    background: var(--surface-raised);
+    border: 2px solid var(--border);
     border-radius: 8px;
     padding: 1.5rem;
     margin-bottom: 1rem;
@@ -115,7 +115,7 @@
   .traffic-group {
     margin-bottom: 1.5rem;
     padding-bottom: 1rem;
-    border-bottom: 1px solid #1a1a1a;
+    border-bottom: 1px solid var(--surface-subtle);
   }
 
   .traffic-group:last-child {
@@ -133,14 +133,14 @@
     color: #f87171;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    background: #1a1a1a;
+    background: var(--surface-subtle);
     padding: 0.2rem 0.5rem;
     border-radius: 4px;
   }
 
   .component-group {
-    background: #111;
-    border: 1px solid #222;
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: 8px;
     padding: 1rem;
   }
@@ -157,23 +157,23 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 1rem;
-    border-bottom: 1px solid #222;
+    border-bottom: 1px solid var(--border);
     padding-bottom: 0.5rem;
   }
 
   h2 {
     margin: 0;
     font-size: 1.1rem;
-    color: #fff;
+    color: var(--text-primary);
   }
 
   .type-badge {
     font-size: 0.7rem;
     padding: 0.1rem 0.4rem;
-    background: #333;
+    background: var(--border-strong);
     border-radius: 4px;
     text-transform: uppercase;
-    color: #aaa;
+    color: var(--text-secondary);
   }
 
   .metrics-grid {
@@ -185,7 +185,7 @@
   .attr-card {
     grid-column: span 2;
     font-size: 0.8rem;
-    color: #aaa;
+    color: var(--text-secondary);
   }
 
   .attr-info {
@@ -196,7 +196,7 @@
 
   .progress-bar {
     height: 6px;
-    background: #222;
+    background: var(--border);
     border-radius: 3px;
     overflow: hidden;
   }

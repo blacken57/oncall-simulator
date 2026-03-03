@@ -102,8 +102,8 @@
 
 <style>
   .metric-card {
-    background: #111;
-    border: 1px solid #222;
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: 4px;
     padding: 0.75rem;
     display: flex;
@@ -123,7 +123,7 @@
     font-size: 0.65rem;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    color: #666;
+    color: var(--text-muted);
     font-weight: bold;
   }
 
@@ -136,18 +136,18 @@
   .value {
     font-size: 1.4rem;
     font-weight: 700;
-    color: #fff;
+    color: var(--text-primary);
   }
 
   .unit {
     font-size: 0.7rem;
-    color: #444;
+    color: var(--text-faint);
     margin-left: 0.2rem;
   }
 
   .limit {
     font-size: 0.7rem;
-    color: #444;
+    color: var(--text-faint);
     margin-left: 0.4rem;
   }
 
@@ -176,10 +176,10 @@
   .v-bar-container {
     width: 8px;
     height: 30px;
-    background: #222;
+    background: var(--border);
     border-radius: 1px;
     overflow: hidden;
-    border: 1px solid #333;
+    border: 1px solid var(--border-strong);
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
@@ -194,7 +194,7 @@
   .util-text-v {
     font-size: 0.6rem;
     font-weight: bold;
-    color: #888;
+    color: var(--text-muted);
     min-width: 25px;
   }
 

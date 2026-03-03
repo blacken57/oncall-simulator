@@ -1,6 +1,7 @@
 <script lang="ts">
   import { getAllLevels } from '$lib/game/levels';
   import { fade, fly } from 'svelte/transition';
+  import ThemeToggle from '../components/ThemeToggle.svelte';
 
   const allLevels = getAllLevels();
 
@@ -41,7 +42,10 @@
 <div class="landing-container">
   <header class="landing-header">
     <div class="brand" in:fly={{ y: -20, duration: 800 }}>
-      <h1>ONCALL <span class="highlight">SIMULATOR</span></h1>
+      <div class="brand-row">
+        <h1>ONCALL <span class="highlight">SIMULATOR</span></h1>
+        <ThemeToggle />
+      </div>
       <p class="tagline">Experience the thrill and terror of systems at scale.</p>
     </div>
   </header>
@@ -123,8 +127,8 @@
 <style>
   :global(body) {
     margin: 0;
-    background: #000;
-    color: #e0e0e0;
+    background: var(--bg);
+    color: var(--text);
     font-family: 'JetBrains Mono', 'Courier New', monospace;
   }
 
@@ -135,7 +139,7 @@
     padding: 2rem;
     max-width: 1200px;
     margin: 0 auto;
-    background: radial-gradient(circle at 50% 0%, #111 0%, #000 70%);
+    background: radial-gradient(circle at 50% 0%, var(--surface) 0%, var(--bg) 70%);
   }
 
   .landing-header {
@@ -143,11 +147,18 @@
     text-align: center;
   }
 
+  .brand-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+  }
+
   .brand h1 {
     font-size: 3rem;
     letter-spacing: 0.2em;
     margin: 0;
-    color: #fff;
+    color: var(--text-primary);
   }
 
   .highlight {
@@ -157,7 +168,7 @@
 
   .tagline {
     font-size: 1rem;
-    color: #666;
+    color: var(--text-muted);
     margin-top: 0.5rem;
     letter-spacing: 0.1em;
   }
@@ -171,9 +182,9 @@
 
   h2 {
     font-size: 1.2rem;
-    color: #444;
+    color: var(--text-faint);
     letter-spacing: 0.3em;
-    border-bottom: 1px solid #222;
+    border-bottom: 1px solid var(--border);
     padding-bottom: 0.5rem;
     margin-bottom: 1.5rem;
   }
@@ -182,7 +193,7 @@
     font-size: 1.1rem;
     line-height: 1.6;
     max-width: 800px;
-    color: #aaa;
+    color: var(--text-secondary);
   }
 
   .features {
@@ -193,14 +204,14 @@
   }
 
   .feature-card {
-    background: #050505;
-    border: 1px solid #222;
+    background: var(--bg-deep);
+    border: 1px solid var(--border);
     padding: 1.5rem;
   }
 
   .feature-card h3 {
     font-size: 0.9rem;
-    color: #fff;
+    color: var(--text-primary);
     margin-top: 0;
     margin-bottom: 0.75rem;
     text-transform: uppercase;
@@ -208,7 +219,7 @@
 
   .feature-card p {
     font-size: 0.85rem;
-    color: #666;
+    color: var(--text-muted);
     margin: 0;
   }
 
@@ -220,8 +231,8 @@
 
   .level-card {
     position: relative;
-    background: #0a0a0a;
-    border: 1px solid #333;
+    background: var(--surface-raised);
+    border: 1px solid var(--border-strong);
     padding: 2rem;
     text-decoration: none;
     color: inherit;
@@ -239,12 +250,12 @@
   .level-card h3 {
     font-size: 1.4rem;
     margin: 0 0 1rem 0;
-    color: #fff;
+    color: var(--text-primary);
   }
 
   .level-card p {
     font-size: 0.9rem;
-    color: #888;
+    color: var(--text-secondary);
     margin-bottom: 2rem;
     line-height: 1.5;
   }
@@ -254,12 +265,12 @@
     justify-content: space-between;
     align-items: center;
     font-size: 0.75rem;
-    border-top: 1px solid #222;
+    border-top: 1px solid var(--border);
     padding-top: 1rem;
   }
 
   .difficulty {
-    color: #444;
+    color: var(--text-faint);
   }
 
   .action {
@@ -292,9 +303,9 @@
   .landing-footer {
     margin-top: 4rem;
     padding-top: 2rem;
-    border-top: 1px solid #111;
+    border-top: 1px solid var(--surface);
     text-align: center;
-    color: #333;
+    color: var(--border-strong);
     font-size: 0.7rem;
   }
 
