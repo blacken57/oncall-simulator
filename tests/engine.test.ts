@@ -688,4 +688,72 @@ describe('GameEngine Integration', () => {
 
     vi.useRealTimers();
   });
+
+  it('should not activate more than maxInstancesAtOnce effects for same component+metric', () => {
+    const level = JSON.parse(JSON.stringify(baseLevel));
+    level.statusEffects = [
+      {
+        type: 'component',
+        name: 'GC Pause A',
+        component_affected: 'server',
+        metric_affected: 'latency',
+        multiplier: 1.0,
+        materialization_probability: 1.0,
+        resolution_ticks: 100,
+        max_instances_at_once: 1
+      },
+      {
+        type: 'component',
+        name: 'GC Pause B',
+        component_affected: 'server',
+        metric_affected: 'latency',
+        multiplier: 1.0,
+        materialization_probability: 1.0,
+        resolution_ticks: 100,
+        max_instances_at_once: 1
+      }
+    ];
+
+    const engine = new GameEngine();
+    engine.loadLevel(level);
+    engine.warmupTicks = 0;
+    engine.update();
+
+    const active = engine.statusEffects.filter((e) => e.isActive);
+    expect(active).toHaveLength(1);
+  });
+
+  it('should allow activation when maxInstancesAtOnce limit is not reached', () => {
+    const level = JSON.parse(JSON.stringify(baseLevel));
+    level.statusEffects = [
+      {
+        type: 'component',
+        name: 'GC Pause A',
+        component_affected: 'server',
+        metric_affected: 'latency',
+        multiplier: 1.0,
+        materialization_probability: 1.0,
+        resolution_ticks: 100,
+        max_instances_at_once: 5
+      },
+      {
+        type: 'component',
+        name: 'GC Pause B',
+        component_affected: 'server',
+        metric_affected: 'latency',
+        multiplier: 1.0,
+        materialization_probability: 1.0,
+        resolution_ticks: 100,
+        max_instances_at_once: 5
+      }
+    ];
+
+    const engine = new GameEngine();
+    engine.loadLevel(level);
+    engine.warmupTicks = 0;
+    engine.update();
+
+    const active = engine.statusEffects.filter((e) => e.isActive);
+    expect(active).toHaveLength(2);
+  });
 });

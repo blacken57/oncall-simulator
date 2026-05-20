@@ -42,9 +42,23 @@ export abstract class BaseStatusEffect {
   protected abstract get impactedMetric(): string;
   protected abstract get initialTurnsRemaining(): number | undefined;
 
+  private canActivate(engine: GameEngine): boolean {
+    if (!(this instanceof ComponentStatusEffect)) return true;
+    const activeCount = engine.statusEffects.filter(
+      (e) =>
+        e !== this &&
+        e.isActive &&
+        e instanceof ComponentStatusEffect &&
+        e.componentAffected === this.componentAffected &&
+        e.metricAffected === this.metricAffected
+    ).length;
+    return activeCount < this.maxInstancesAtOnce;
+  }
+
   tick(engine: GameEngine) {
     if (!this.isActive && !this.isWarning) {
       if (Math.random() < this.materializationProbability) {
+        if (!this.canActivate(engine)) return;
         if (this.warningConfig) {
           this.isWarning = true;
           this.delayRemaining = this.warningConfig.delay_ticks;
@@ -92,7 +106,6 @@ export class ComponentStatusEffect extends BaseStatusEffect {
   componentAffected: string;
   metricAffected: string;
   resolutionTicks: number | undefined;
-  // TODO(feature): enforce max_instances_at_once — currently config value is stored but not checked
   maxInstancesAtOnce: number;
 
   constructor(config: ComponentStatusEffectConfig) {
