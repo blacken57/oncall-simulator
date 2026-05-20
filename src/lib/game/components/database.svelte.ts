@@ -1,5 +1,6 @@
 import type { ComponentPhysicsConfig } from '../schema';
 import { SystemComponent, type TrafficHandler } from './base.svelte';
+import { symmetricNoise } from '../utils';
 
 /**
  * Specialized Component: Database Node
@@ -64,7 +65,7 @@ export class DatabaseNode extends SystemComponent {
 
     // Connections update
     if (this.attributes.connections) {
-      this.attributes.connections.update(traffic + (Math.random() - 0.5) * 2 * noiseFactor);
+      this.attributes.connections.update(traffic + symmetricNoise(noiseFactor));
     }
 
     if (this.attributes.storage) {

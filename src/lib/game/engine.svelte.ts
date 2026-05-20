@@ -16,6 +16,7 @@ import {
   type StatusEffect
 } from './statusEffects.svelte';
 import { ScheduledJob } from './scheduledJobs.svelte';
+import { generateId } from './utils';
 
 export interface QueuedAction {
   id: string;
@@ -70,7 +71,7 @@ export class GameEngine implements TrafficHandler {
   constructor() {}
 
   notify(message: string, type: 'info' | 'error' = 'info') {
-    const id = Math.random().toString(36).substr(2, 9);
+    const id = generateId();
     this.notifications.push({ id, message, type, createdAt: this.tick });
 
     // Auto-remove notification after 5 seconds (5 ticks roughly)
@@ -194,7 +195,7 @@ export class GameEngine implements TrafficHandler {
 
   queueAction(componentId: string, attributeId: string, newValue: number, latency: number) {
     this.pendingActions.push({
-      id: Math.random().toString(36).substr(2, 9),
+      id: generateId(),
       componentId,
       attributeId,
       newValue,
@@ -306,7 +307,7 @@ export class GameEngine implements TrafficHandler {
 
             if (!alreadyHasOpenTicket) {
               this.tickets.push({
-                id: Math.random().toString(36).substr(2, 9),
+                id: generateId(),
                 componentId: comp.id,
                 alertName: alertName,
                 title: `CRITICAL: ${comp.name} - ${alertName}`,

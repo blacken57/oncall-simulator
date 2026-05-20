@@ -4,6 +4,7 @@ import type {
   StatusEffectConfig
 } from './schema';
 import type { GameEngine } from './engine.svelte';
+import { generateId } from './utils';
 
 /**
  * A StatusEffect represents a temporary or permanent condition affecting the system.
@@ -64,7 +65,7 @@ export abstract class BaseStatusEffect {
           this.delayRemaining = this.warningConfig.delay_ticks;
           engine.notify(`WARNING: ${this.name} incoming!`, 'info');
           engine.tickets.push({
-            id: Math.random().toString(36).substr(2, 9),
+            id: generateId(),
             componentId: this.targetId,
             alertName: this.name,
             title: this.warningConfig.ticket_title,

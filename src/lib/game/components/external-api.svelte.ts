@@ -1,5 +1,6 @@
 import type { ComponentPhysicsConfig } from '../schema';
 import { SystemComponent, type TrafficHandler } from './base.svelte';
+import { symmetricNoise } from '../utils';
 
 /**
  * Specialized Component: External API Node
@@ -35,7 +36,7 @@ export class ExternalAPINode extends SystemComponent {
   // Fixed latency + jitter. Volume has no effect; only the route's base_latency_ms matters.
   protected calculateLocalLatency(baseLatency: number, _volume: number): number {
     const noiseFactor = this.physics.noise_factor ?? 10;
-    const noise = (Math.random() - 0.5) * noiseFactor * 2;
+    const noise = symmetricNoise(noiseFactor);
     return Math.max(0, baseLatency + noise);
   }
 

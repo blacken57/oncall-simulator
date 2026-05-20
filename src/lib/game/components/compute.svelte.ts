@@ -1,5 +1,6 @@
 import type { ComponentPhysicsConfig } from '../schema';
 import { SystemComponent, type TrafficHandler } from './base.svelte';
+import { symmetricNoise } from '../utils';
 
 /**
  * Specialized Component: Compute Node
@@ -74,7 +75,7 @@ export class ComputeNode extends SystemComponent {
     const traffic = this.incomingTrafficVolume;
     const physics = this.physics;
     const noiseFactor = physics.noise_factor ?? 0.5;
-    const noise = (Math.random() - 0.5) * 2 * noiseFactor;
+    const noise = symmetricNoise(noiseFactor);
 
     // Resource Usage (GCU/CPU)
     const primaryAttr = this.attributes.gcu || this.attributes.cpu;
@@ -86,7 +87,7 @@ export class ComputeNode extends SystemComponent {
 
       // Uncapped value for physics calculations
       const calculatedValue =
-        resourceBase + traffic / capPerUnit + (Math.random() - 0.5) * 2 * noiseFactor;
+        resourceBase + traffic / capPerUnit + symmetricNoise(noiseFactor);
 
       // Cap at limit only for the attribute storage (UI)
       primaryAttr.update(Math.min(primaryAttr.limit, calculatedValue));
