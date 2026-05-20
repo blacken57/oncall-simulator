@@ -52,6 +52,7 @@
                   max={attr.maxLimit}
                   bind:value={localLimits[compId][attrId]}
                   disabled={!!pending}
+                  aria-label="{attr.name} limit"
                 />
                 <span class="target-value">{localLimits[compId][attrId]}{attr.unit}</span>
 

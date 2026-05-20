@@ -40,7 +40,7 @@
             <h4>{ticket.title}</h4>
             <p>{ticket.description}</p>
             <div class="actions">
-              <button onclick={() => updateStatus(ticket, 'investigating')}>ACKNOWLEDGE</button>
+              <button onclick={() => updateStatus(ticket, 'investigating')} aria-label="Acknowledge ticket: {ticket.title}">ACKNOWLEDGE</button>
             </div>
           </div>
         {/each}
@@ -58,7 +58,7 @@
             </div>
             <h4>{ticket.title}</h4>
             <div class="actions">
-              <button onclick={() => updateStatus(ticket, 'resolved')}>MARK RESOLVED</button>
+              <button onclick={() => updateStatus(ticket, 'resolved')} aria-label="Mark resolved: {ticket.title}">MARK RESOLVED</button>
             </div>
           </div>
         {/each}
