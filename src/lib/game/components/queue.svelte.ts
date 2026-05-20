@@ -67,7 +67,7 @@ export class QueueNode extends SystemComponent {
     const failed = value - successfulVolume;
     this.unsuccessfulTrafficVolume += failed;
 
-    const route = this.trafficRoutes.find((r) => r.name === trafficName);
+    const route = this.routeMap.get(trafficName);
     const baseLatency = route?.base_latency_ms ?? 0;
     let localLatency = this.calculateLocalLatency(baseLatency, value);
     localLatency = this.applyLatencyEffects(localLatency, handler);

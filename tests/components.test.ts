@@ -273,4 +273,32 @@ describe('Component Physics', () => {
       expect(node.calculateFailureRate(10)).toBe(1);
     });
   });
+
+  describe('Route Map Lookup', () => {
+    it('should resolve traffic routes by name via Map', () => {
+      const config: ComponentConfig = {
+        id: 'multi',
+        name: 'Multi-Route',
+        type: 'compute',
+        physics: { request_capacity_per_unit: 100, noise_factor: 0 },
+        attributes: {
+          gcu: { name: 'GCU', unit: 'GCU', initialLimit: 10, minLimit: 0, maxLimit: 100 }
+        },
+        metrics: {
+          latency: { name: 'Lat', unit: 'ms' },
+          error_rate: { name: 'Err', unit: '%' }
+        },
+        traffic_routes: [
+          { name: 'route-a', outgoing_traffics: [] },
+          { name: 'route-b', outgoing_traffics: [] },
+          { name: 'route-c', outgoing_traffics: [] }
+        ]
+      };
+
+      const node = new ComputeNode(config);
+      // Record demand on middle route — should resolve correctly
+      node.recordDemand('route-b', 50, mockHandler as any);
+      expect(node.totalExpectedVolume).toBe(50);
+    });
+  });
 });

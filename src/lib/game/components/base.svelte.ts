@@ -48,6 +48,7 @@ export abstract class SystemComponent {
 
   /** Configuration for how traffic flows through and out of this component */
   trafficRoutes: TrafficRouteConfig[] = [];
+  protected routeMap: Map<string, TrafficRouteConfig> = new Map();
 
   /** Physics constants for this component's behavior */
   physics: ComponentPhysicsConfig;
@@ -83,6 +84,7 @@ export abstract class SystemComponent {
     this.id = config.id;
     this.name = config.name;
     this.trafficRoutes = config.traffic_routes;
+    this.routeMap = new Map(config.traffic_routes.map((r) => [r.name, r]));
     this.alerts = config.alerts || [];
 
     // Merge provided physics with subclass defaults
@@ -165,7 +167,7 @@ export abstract class SystemComponent {
   recordDemand(trafficName: string, value: number, handler: TrafficHandler) {
     this.totalExpectedVolume += value;
     this.localExpectedVolume += value;
-    const route = this.trafficRoutes.find((r) => r.name === trafficName);
+    const route = this.routeMap.get(trafficName);
 
     if (route && value > 0) {
       for (const outgoing of route.outgoing_traffics) {
@@ -190,7 +192,7 @@ export abstract class SystemComponent {
     const failureRate = this.calculateFailureRate(this.totalExpectedVolume);
     let successfulVolume = value * (1 - failureRate);
 
-    const route = this.trafficRoutes.find((r) => r.name === trafficName);
+    const route = this.routeMap.get(trafficName);
     let totalDependencyLatency = 0;
 
     // 1. Process outgoing traffic dependencies sequentially
