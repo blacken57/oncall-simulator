@@ -31,17 +31,25 @@
     return marked.parse(raw);
   });
 
-  function navigate(e: MouseEvent) {
-    const target = e.target as HTMLElement;
+  function navigateToDoc(target: HTMLElement, e: Event) {
     if (target.tagName === 'A') {
       const href = target.getAttribute('href');
       if (href && href.endsWith('.md')) {
         e.preventDefault();
         currentDoc = href;
-        // Scroll to top of the view
         const container = document.querySelector('.docs-content');
         if (container) container.scrollTop = 0;
       }
+    }
+  }
+
+  function navigate(e: MouseEvent) {
+    navigateToDoc(e.target as HTMLElement, e);
+  }
+
+  function navigateKeyboard(e: KeyboardEvent) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      navigateToDoc(e.target as HTMLElement, e);
     }
   }
 
@@ -76,9 +84,7 @@
   </aside>
 
   <main class="docs-content">
-    <!-- svelte-ignore a11y_click_events_have_key_events -->
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div class="markdown-container" onclick={navigate}>
+    <div class="markdown-container" onclick={navigate} onkeydown={navigateKeyboard} role="region" aria-label="Documentation content">
       <article class="markdown-body">
         {@html htmlContent}
       </article>
