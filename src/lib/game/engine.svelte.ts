@@ -9,7 +9,7 @@ import {
   type TrafficHandler
 } from './models.svelte';
 import { applyEffects } from './base.svelte';
-import type { LevelConfig, Ticket, TicketStatus } from './schema';
+import type { LevelConfig, Ticket, TicketStatus, ComponentConfig, ComponentType } from './schema';
 import {
   ComponentStatusEffect,
   TrafficStatusEffect,
@@ -17,6 +17,15 @@ import {
 } from './statusEffects.svelte';
 import { ScheduledJob } from './scheduledJobs.svelte';
 import { generateId } from './utils';
+
+const COMPONENT_CONSTRUCTORS: Record<ComponentType, new (config: ComponentConfig) => SystemComponent> =
+  {
+    compute: ComputeNode,
+    database: DatabaseNode,
+    storage: StorageNode,
+    queue: QueueNode,
+    external_api: ExternalAPINode
+  };
 
 export interface QueuedAction {
   id: string;
@@ -120,27 +129,11 @@ export class GameEngine implements TrafficHandler {
 
     // Create components
     for (const compConfig of config.components) {
-      let component: SystemComponent;
-      switch (compConfig.type) {
-        case 'compute':
-          component = new ComputeNode(compConfig);
-          break;
-        case 'database':
-          component = new DatabaseNode(compConfig);
-          break;
-        case 'storage':
-          component = new StorageNode(compConfig);
-          break;
-        case 'queue':
-          component = new QueueNode(compConfig);
-          break;
-        case 'external_api':
-          component = new ExternalAPINode(compConfig);
-          break;
-        default:
-          throw new Error(`Unknown component type: ${compConfig.type}`);
+      const Constructor = COMPONENT_CONSTRUCTORS[compConfig.type as ComponentType];
+      if (!Constructor) {
+        throw new Error(`Unknown component type: ${compConfig.type}`);
       }
-      this.components[compConfig.id] = component;
+      this.components[compConfig.id] = new Constructor(compConfig);
     }
 
     // Create traffics

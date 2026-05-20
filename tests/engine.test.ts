@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { GameEngine } from '../src/lib/game/engine.svelte';
 import { ComponentStatusEffect, TrafficStatusEffect } from '../src/lib/game/statusEffects.svelte';
-import type { LevelConfig } from '../src/lib/game/schema';
+import { VALID_COMPONENT_TYPES, type LevelConfig } from '../src/lib/game/schema';
 
 describe('GameEngine Integration', () => {
   const baseLevel: LevelConfig = {
@@ -101,6 +101,33 @@ describe('GameEngine Integration', () => {
       }
     ]
   };
+
+  it('should accept all VALID_COMPONENT_TYPES without throwing', () => {
+    for (const type of VALID_COMPONENT_TYPES) {
+      const level = JSON.parse(JSON.stringify(baseLevel));
+      level.components = [
+        {
+          id: 'test-comp',
+          name: 'Test',
+          type,
+          attributes: {
+            capacity: {
+              name: 'Cap',
+              unit: 'units',
+              initialLimit: 10,
+              minLimit: 0,
+              maxLimit: 100
+            }
+          },
+          metrics: {},
+          traffic_routes: []
+        }
+      ];
+      level.traffics = [];
+      const engine = new GameEngine();
+      expect(() => engine.loadLevel(level)).not.toThrow();
+    }
+  });
 
   it('should throw an error when loading a level with an unknown component type', () => {
     const engine = new GameEngine();
