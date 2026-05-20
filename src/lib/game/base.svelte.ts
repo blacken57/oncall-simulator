@@ -67,7 +67,7 @@ export class Traffic {
 export class Attribute {
   name: string;
   unit: string;
-  limit = $state(0);
+  private _limit = $state(0);
   current = $state(0);
   history = $state<number[]>([]);
   maxHistory: number;
@@ -75,12 +75,19 @@ export class Attribute {
   maxLimit: number;
   applyDelay: number;
 
+  get limit() {
+    return this._limit;
+  }
+  set limit(v: number) {
+    this._limit = Math.max(this.minLimit, Math.min(this.maxLimit, v));
+  }
+
   constructor(config: AttributeConfig) {
     this.name = config.name;
     this.unit = config.unit;
-    this.limit = config.initialLimit;
     this.minLimit = config.minLimit;
     this.maxLimit = config.maxLimit;
+    this.limit = config.initialLimit;
     this.applyDelay = config.apply_delay ?? 5;
     this.maxHistory = config.maxHistory ?? 60;
   }

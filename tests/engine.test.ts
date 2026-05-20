@@ -136,6 +136,7 @@ describe('GameEngine Integration', () => {
     // If DB is 100% down, downstream dependencies should not be called
     const level = JSON.parse(JSON.stringify(baseLevel));
     level.components[1].attributes.connections.initialLimit = 0; // DB fully down
+    level.components[1].attributes.connections.minLimit = 0;
 
     // Add another dependency AFTER the DB
     level.components[0].traffic_routes[0].outgoing_traffics.push({
