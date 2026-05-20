@@ -65,6 +65,7 @@ export class GameEngine implements TrafficHandler {
   });
 
   private interval: ReturnType<typeof setInterval> | null = null;
+  private notificationTimers: ReturnType<typeof setTimeout>[] = [];
 
   constructor() {}
 
@@ -73,9 +74,10 @@ export class GameEngine implements TrafficHandler {
     this.notifications.push({ id, message, type, createdAt: this.tick });
 
     // Auto-remove notification after 5 seconds (5 ticks roughly)
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       this.notifications = this.notifications.filter((n) => n.id !== id);
     }, 5000);
+    this.notificationTimers.push(timer);
   }
 
   private findComponent(idOrName: string): SystemComponent | undefined {
@@ -213,6 +215,8 @@ export class GameEngine implements TrafficHandler {
       clearInterval(this.interval);
       this.interval = null;
     }
+    for (const timer of this.notificationTimers) clearTimeout(timer);
+    this.notificationTimers = [];
   }
 
   update() {
