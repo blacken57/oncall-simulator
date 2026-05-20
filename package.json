@@ -13,9 +13,7 @@
     "check": "npm run validate && svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "test": "vitest run",
-    "format": "prettier --write .",
-    "deploy": "npm run build && wrangler pages deploy .svelte-kit/cloudflare",
-    "deploy:prod": "npm run build && wrangler pages deploy .svelte-kit/cloudflare --branch main"
+    "format": "prettier --write ."
   },
   "devDependencies": {
     "@sveltejs/adapter-auto": "^7.0.0",
