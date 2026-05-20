@@ -26,8 +26,8 @@
     --text-primary: #fff;
     --text: #e0e0e0;
     --text-secondary: #aaa;
-    --text-muted: #666;
-    --text-faint: #444;
+    --text-muted: #999;
+    --text-faint: #777;
   }
 
   :global([data-theme='light']) {
@@ -41,7 +41,7 @@
     --text-primary: #111;
     --text: #222;
     --text-secondary: #555;
-    --text-muted: #888;
-    --text-faint: #aaa;
+    --text-muted: #666;
+    --text-faint: #777;
   }
 </style>
