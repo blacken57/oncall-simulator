@@ -293,4 +293,23 @@ describe('QueueNode Physics & Alerts', () => {
       )
     ).toBe(true);
   });
+
+  it('should handle zero backlog correctly (no false-positive from nullish coalescing)', () => {
+    const engine = new GameEngine();
+    const zeroLevel = JSON.parse(JSON.stringify(level));
+    // Set backlog initial to 0 and egress to 0 — queue starts empty with no push capacity
+    zeroLevel.components[1].attributes.backlog.initialLimit = 100;
+    zeroLevel.components[1].attributes.backlog.minLimit = 0;
+    zeroLevel.components[1].attributes.egress.initialLimit = 0;
+    zeroLevel.components[1].attributes.egress.minLimit = 0;
+
+    engine.loadLevel(zeroLevel);
+    engine.update();
+
+    const queue = engine.components['my-queue'];
+    // With egress=0, nothing can be pushed. All 50 incoming should be in backlog.
+    expect(queue.metrics.current_message_count.value).toBe(50);
+    // Consumer should receive nothing
+    expect(engine.components['consumer'].metrics.incoming.value).toBe(0);
+  });
 });

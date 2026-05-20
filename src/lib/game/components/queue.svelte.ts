@@ -34,7 +34,7 @@ export class QueueNode extends SystemComponent {
 
   preTick(handler: TrafficHandler) {
     const egressAttr = this.attributes.egress;
-    const pushRate = egressAttr?.limit || 0;
+    const pushRate = egressAttr?.limit ?? 0;
 
     // Reserve demand for our full capacity to ensure fair resolution downstream.
     const targetPush = pushRate;
@@ -82,10 +82,10 @@ export class QueueNode extends SystemComponent {
 
   protected calculateFailureRate(totalDemand: number): number {
     const backlogAttr = this.attributes.backlog;
-    const maxCapacity = backlogAttr?.limit || 0;
-    const currentBacklog = backlogAttr?.current || 0;
+    const maxCapacity = backlogAttr?.limit ?? 0;
+    const currentBacklog = backlogAttr?.current ?? 0;
     const egressAttr = this.attributes.egress;
-    const pushRate = egressAttr?.limit || 0;
+    const pushRate = egressAttr?.limit ?? 0;
 
     // We can push up to pushRate, from either backlog or incoming demand
     const expectedPush = Math.min(pushRate, currentBacklog + totalDemand);
@@ -100,8 +100,8 @@ export class QueueNode extends SystemComponent {
   processPush(handler: TrafficHandler) {
     const backlogAttr = this.attributes.backlog;
     const egressAttr = this.attributes.egress;
-    const pushRate = egressAttr?.limit || 0;
-    const currentBacklog = backlogAttr?.current || 0;
+    const pushRate = egressAttr?.limit ?? 0;
+    const currentBacklog = backlogAttr?.current ?? 0;
     const incomingAccepted = this.incomingTrafficVolume - this.unsuccessfulTrafficVolume;
 
     // Attempted push rate is min(backlog + incoming, push_rate)
@@ -133,8 +133,8 @@ export class QueueNode extends SystemComponent {
    */
   private updateBacklogState(): void {
     const backlogAttr = this.attributes.backlog;
-    const maxCapacity = backlogAttr?.limit || 0;
-    const currentBacklog = backlogAttr?.current || 0;
+    const maxCapacity = backlogAttr?.limit ?? 0;
+    const currentBacklog = backlogAttr?.current ?? 0;
     const egressAttr = this.attributes.egress;
 
     const incomingAccepted = this.incomingTrafficVolume - this.unsuccessfulTrafficVolume;
@@ -177,7 +177,7 @@ export class QueueNode extends SystemComponent {
   }
 
   protected override addCustomStatusTriggers(): void {
-    const maxCapacity = this.attributes.backlog?.limit || 0;
+    const maxCapacity = this.attributes.backlog?.limit ?? 0;
 
     if (this.totalSuccessfulOutgoing < this.incomingTrafficVolume) {
       this.statusTriggers['large_fill_rate'] = 'critical';
