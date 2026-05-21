@@ -76,4 +76,11 @@ describe('Level System & Engine Integration', () => {
     expect(() => engine.update()).not.toThrow();
     expect(engine.tick).toBe(0); // Tick should not increment for empty engine
   });
+
+  it('FinPay should have at least one scheduled job', () => {
+    const finpay = getLevel('finpay');
+    expect(finpay).toBeDefined();
+    expect(finpay!.scheduledJobs).toBeDefined();
+    expect(finpay!.scheduledJobs!.length).toBeGreaterThan(0);
+  });
 });

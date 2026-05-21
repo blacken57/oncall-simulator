@@ -527,5 +527,28 @@
         "ticket_description": "Unusual checkout traffic detected. Volume expected to reach 2.5x normal in 5 ticks — all external API quotas will be breached."
       }
     }
+  ],
+  "scheduledJobs": [
+    {
+      "name": "Batch Reconciliation",
+      "targetName": "Transaction DB",
+      "schedule": { "interval": 30 },
+      "affectedAttributes": [],
+      "emittedTraffic": [{ "name": "save_transaction", "value": 80 }]
+    },
+    {
+      "name": "End-of-Day Settlement",
+      "targetName": "Payment API",
+      "schedule": { "interval": 60 },
+      "affectedAttributes": [],
+      "emittedTraffic": [{ "name": "checkout", "value": 30 }]
+    },
+    {
+      "name": "Compliance Audit Scan",
+      "targetName": "User DB",
+      "schedule": { "interval": 45 },
+      "affectedAttributes": [{ "name": "connections", "target": "value", "offset": 10 }],
+      "emittedTraffic": [{ "name": "verify_identity", "value": 25 }]
+    }
   ]
 }
