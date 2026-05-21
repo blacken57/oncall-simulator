@@ -48,6 +48,7 @@ All simulation state uses Svelte 5 runes (`$state`, `$derived`):
 - `DatabaseNode` — Connection pool capacity; 4× penalty at 90%+ saturation
 - `StorageNode` — Blob/object storage; fails completely if disk is 100% full
 - `QueueNode` — Async FIFO queue; accepts ingress to a bounded backlog, drains at a configurable egress rate; tracks egress failures separately from ingress failures
+- `ExternalAPINode` — Third-party API calls (Stripe, Twilio, etc.) with fixed per-call latency, hard `quota_rps` throttling, and StatusEffect-driven degradation
 
 **Additional primitives:**
 
@@ -64,7 +65,7 @@ All simulation state uses Svelte 5 runes (`$state`, `$derived`):
 ### Installation
 
 ```bash
-git clone https://github.com/your-repo/oncall-simulator.git
+git clone https://github.com/blacken57/oncall-simulator.git
 cd oncall-simulator
 npm install
 ```
@@ -100,9 +101,9 @@ npm run preview   # Preview the production build
 - `src/routes/` — SvelteKit pages (`/`, `/game/[levelId]`)
 - `src/data/docs/custom/index.md` — [Guide for creating and configuring new levels](/custom/guide)
 
-## Roadmap
+## Status
 
-See [FUTURE_PLANS.md](FUTURE_PLANS.md) for the full technical roadmap. Top priorities include new component types (`CacheNode`, `ExternalAPINode`), expanded ticket categories, and a player-facing level editor.
+**Paused (May 2026).** The simulation engine, validator, five playable levels, and 152-test suite are stable. See [FUTURE_PLANS.md](FUTURE_PLANS.md) for the unimplemented roadmap (`CacheNode`, expanded ticket categories, player-facing level editor).
 
 ## License
 

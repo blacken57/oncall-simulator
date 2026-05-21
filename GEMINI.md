@@ -7,7 +7,7 @@ This file provides foundational context for the Oncall Simulator project to ensu
 - **Framework**: Svelte 5 with Runes (`$state`, `$derived`, `$effect`).
 - **Routing**: Dynamic level loading via `src/routes/game/[levelId]/+page.svelte`. Landing page at `/`.
 - **Core Engine**: `src/lib/game/engine.svelte.ts`. Manages a 1s/tick loop and automated ticket/incident lifecycle.
-- **Physics Engine**: `src/lib/game/components/`. Modular node implementations (`ComputeNode`, `DatabaseNode`, `StorageNode`, `QueueNode`) inheriting from `SystemComponent`.
+- **Physics Engine**: `src/lib/game/components/`. Modular node implementations (`ComputeNode`, `DatabaseNode`, `StorageNode`, `QueueNode`, `ExternalAPINode`) inheriting from `SystemComponent`.
 - **Status Effects**: Stochastic and scheduled effects (Traffic/Component) with a **Warning Phase** (pre-incident tickets) and an **Active Phase**.
 - **Data-Driven**: Level registry in `src/lib/game/levels.ts`. Configs in `src/data/*.json`.
 - **Documentation**: Level-specific runbooks in `src/data/docs/[levelId]/*.md`.
@@ -36,13 +36,16 @@ This file provides foundational context for the Oncall Simulator project to ensu
 - `src/lib/game/schema.ts`: Defines `AlertConfig`, `ComponentConfig`, `ScheduledJobConfig`, `StatusEffectConfig`, and `LevelConfig`.
 - `src/lib/game/validator.ts`: Pure validation function; runs at build time and in `engine.loadLevel()`.
 
-## Immediate Roadmap (Next Session)
+## Project Status
+
+**Paused (May 2026).** Engine, validator, five levels, and the 152-test suite are stable. The roadmap below is preserved for if work resumes; see [FUTURE_PLANS.md](FUTURE_PLANS.md) for the canonical version.
+
+## Roadmap (Unimplemented)
 
 1. **CacheNode**: Redis/Memcached simulation with `hit_rate` metric. High hit rate reduces downstream DB traffic via multiplier. "Cache Stampede" StatusEffect when hit rate collapses.
-2. **ExternalAPINode**: Fixed-latency external service (Stripe, Twilio). No player-controlled scaling; `requests_per_second` quota attribute; "API Rate Limit Hit" StatusEffect.
-3. **Expanded Ticket Types**: `OnboardingRequest`, `QuotaIncreaseRequest`, `ChangeRequest` — each requiring a specific player action to resolve (new `category` + `action_required` fields on `Ticket`).
-4. **Player JSON Level Editor**: In-browser textarea editor with live `validateLevel()` feedback; loads into `GameEngine.loadLevel()` via a `/sandbox` route.
-5. **Property-Based Testing**: Use `fast-check` to fuzz level config generation through the validator and engine.
+2. **Expanded Ticket Types**: `OnboardingRequest`, `QuotaIncreaseRequest`, `ChangeRequest` — each requiring a specific player action to resolve (new `category` + `action_required` fields on `Ticket`).
+3. **Player JSON Level Editor**: In-browser textarea editor with live `validateLevel()` feedback; loads into `GameEngine.loadLevel()` via a `/sandbox` route.
+4. **Property-Based Testing**: Use `fast-check` to fuzz level config generation through the validator and engine.
 
 ## Known Constraints
 

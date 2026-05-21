@@ -46,6 +46,7 @@ The two-pass design is critical: it ensures failures are distributed fairly acro
 - `DatabaseNode` — connection pool capacity, higher saturation penalties (4x at 90%+)
 - `StorageNode` — blob/object storage, simpler latency model
 - `QueueNode` — async FIFO queues with backlog physics and egress failure tracking; overrides `preTick()` and `processPush()` in addition to the standard interface
+- `ExternalAPINode` — third-party APIs with fixed per-call latency, hard `quota_rps` throttling, and noise jitter
 
 Each subclass implements `getDefaultPhysics()`, `calculateFailureRate()`, `calculateLocalLatency()`, and `tick()`. QueueNode additionally overrides `preTick()` (pre-registers downstream demand) and `processPush()` (drains backlog after resolution pass).
 

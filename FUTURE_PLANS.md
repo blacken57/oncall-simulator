@@ -2,7 +2,9 @@
 
 This document tracks the roadmap and architectural direction for the Oncall Simulator.
 
-## Completed (Recent Sessions)
+> **Status (May 2026):** Project paused. Engine, validator, five levels, and the 152-test suite are stable. The items below remain unimplemented and capture the direction if work resumes.
+
+## Completed
 
 - **Multi-Level Support**: Dynamic level loading with a dedicated Landing Page (`/`) and dynamic routing (`/game/[levelId]`).
 - **Level Registry**: Centralized level management in `src/lib/game/levels.ts`.
@@ -14,6 +16,7 @@ This document tracks the roadmap and architectural direction for the Oncall Simu
 - **Automated Ticketing**: Automated Pager/Ticketing system with `open` / `investigating` / `resolved` states.
 - **Cycle Detection**: DFS-based validation catches circular traffic dependencies at load time.
 - **QueueNode**: Async FIFO queue component with backlog physics, egress failure tracking, and a decoupled push model (`preTick`/`processPush` hooks). Validator enforces `multiplier === 1` and `consumer.type` must be `compute` or `storage`.
+- **ExternalAPINode**: Third-party API component with fixed per-call latency, hard `quota_rps` throttling (excess traffic dropped proportionally), noise jitter, and StatusEffect-driven latency/error modifiers. Used across five upstream APIs in `finpay.json`.
 - **ScheduledJob System**: Periodic background tasks that mutate component attribute limits/values and inject internal traffic into the two-pass system at a fixed `interval`.
 - **`applyEffects()` utility**: Pure additive stacking function for multiplier+offset effect chains (`result = base + base * sum(multipliers) + sum(offsets)`).
 - **`resolution_ticks` schema field**: Controls how long a `ComponentStatusEffect` stays active before auto-resolving.
@@ -28,15 +31,6 @@ This document tracks the roadmap and architectural direction for the Oncall Simu
 - Naturally participates in the existing two-pass system without engine changes.
 - **"Cache Stampede" StatusEffect**: When `hit_rate` collapses (e.g., after a cache flush), a thundering herd floods the downstream database for N ticks.
 - Player actions: `Warm Cache` (sets `hit_rate` to a target over N ticks), `Increase Cache Size` (scales limit).
-
-### ExternalAPINode (Stripe, Twilio, SendGrid)
-
-- Fixed external latency — no player-controlled scaling of the upstream service itself.
-- `requests_per_second` quota attribute with a hard cap; exceeding it triggers "Rate Limit Hit" StatusEffect.
-- Budget is charged per successful call volume each tick.
-- **"API Degradation" StatusEffect**: Upstream service becomes slow or partially unavailable for N ticks.
-- **"Rate Limit Hit" StatusEffect**: All traffic above quota is dropped until the next quota window.
-- Player action: `Request Quota Increase` — has a simulated SLA delay and budget cost.
 
 ### DataWarehouseNode (Snowflake, BigQuery)
 
