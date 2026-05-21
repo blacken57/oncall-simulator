@@ -83,4 +83,13 @@ describe('Level System & Engine Integration', () => {
     expect(finpay!.scheduledJobs).toBeDefined();
     expect(finpay!.scheduledJobs!.length).toBeGreaterThan(0);
   });
+
+  it('all ecommerce components should have at least one alert', () => {
+    const ecommerce = getLevel('ecommerce-megastore');
+    expect(ecommerce).toBeDefined();
+    const missingAlerts = ecommerce!.components
+      .filter((c) => !c.alerts || c.alerts.length === 0)
+      .map((c) => c.name);
+    expect(missingAlerts).toEqual([]);
+  });
 });

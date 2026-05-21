@@ -248,7 +248,22 @@
           "unit": "%"
         }
       },
-      "alerts": [],
+      "alerts": [
+        {
+          "name": "Cart Service Latency High",
+          "metric": "latency",
+          "warning_threshold": 100,
+          "critical_threshold": 250,
+          "direction": "above"
+        },
+        {
+          "name": "Cart Service Errors",
+          "metric": "error_rate",
+          "warning_threshold": 2,
+          "critical_threshold": 10,
+          "direction": "above"
+        }
+      ],
       "traffic_routes": [
         {
           "name": "internal_cart",
@@ -498,7 +513,22 @@
           "unit": "%"
         }
       },
-      "alerts": [],
+      "alerts": [
+        {
+          "name": "Inventory Service Slow",
+          "metric": "latency",
+          "warning_threshold": 200,
+          "critical_threshold": 500,
+          "direction": "above"
+        },
+        {
+          "name": "Inventory Service Errors",
+          "metric": "error_rate",
+          "warning_threshold": 3,
+          "critical_threshold": 15,
+          "direction": "above"
+        }
+      ],
       "traffic_routes": [
         {
           "name": "inventory_updates",
@@ -568,7 +598,22 @@
           "unit": "%"
         }
       },
-      "alerts": [],
+      "alerts": [
+        {
+          "name": "Inventory DB Connection Saturation",
+          "metric": "connections",
+          "warning_threshold": 80,
+          "critical_threshold": 95,
+          "direction": "above"
+        },
+        {
+          "name": "Inventory DB Slow Queries",
+          "metric": "query_latency",
+          "warning_threshold": 50,
+          "critical_threshold": 150,
+          "direction": "above"
+        }
+      ],
       "traffic_routes": [
         {
           "name": "inventory_db_queries",
