@@ -74,6 +74,7 @@
       "traffic_routes": [
         {
           "name": "enqueueTelemetry",
+          "base_latency_ms": 2,
           "outgoing_traffics": [{ "name": "processTelemetry", "multiplier": 1 }]
         }
       ],
@@ -122,6 +123,7 @@
       "traffic_routes": [
         {
           "name": "processTelemetry",
+          "base_latency_ms": 50,
           "outgoing_traffics": [{ "name": "writeTimeseries", "multiplier": 1 }]
         }
       ],
@@ -156,7 +158,9 @@
         "incoming": { "name": "Inserts", "unit": "qps" },
         "query_latency": { "name": "Insert Latency", "unit": "ms" }
       },
-      "traffic_routes": [{ "name": "writeTimeseries", "outgoing_traffics": [] }],
+      "traffic_routes": [
+        { "name": "writeTimeseries", "base_latency_ms": 10, "outgoing_traffics": [] }
+      ],
       "alerts": [
         {
           "name": "DB Connection Pool Exhausted",

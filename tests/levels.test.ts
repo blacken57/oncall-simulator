@@ -92,4 +92,19 @@ describe('Level System & Engine Integration', () => {
       .map((c) => c.name);
     expect(missingAlerts).toEqual([]);
   });
+
+  it('all traffic routes across all levels should have explicit base_latency_ms', () => {
+    const levels = getAllLevels();
+    const missing: string[] = [];
+    levels.forEach((level) => {
+      level.components.forEach((comp) => {
+        comp.traffic_routes.forEach((route) => {
+          if (route.base_latency_ms === undefined) {
+            missing.push(`${level.id}: ${comp.name}.${route.name}`);
+          }
+        });
+      });
+    });
+    expect(missing).toEqual([]);
+  });
 });
