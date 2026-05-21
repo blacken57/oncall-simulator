@@ -86,8 +86,7 @@ export class ComputeNode extends SystemComponent {
         physics.resource_base_usage?.gcu ?? physics.resource_base_usage?.cpu ?? 0;
 
       // Uncapped value for physics calculations
-      const calculatedValue =
-        resourceBase + traffic / capPerUnit + symmetricNoise(noiseFactor);
+      const calculatedValue = resourceBase + traffic / capPerUnit + symmetricNoise(noiseFactor);
 
       // Cap at limit only for the attribute storage (UI)
       primaryAttr.update(Math.min(primaryAttr.limit, calculatedValue));

@@ -18,14 +18,16 @@ import {
 import { ScheduledJob } from './scheduledJobs.svelte';
 import { generateId } from './utils';
 
-const COMPONENT_CONSTRUCTORS: Record<ComponentType, new (config: ComponentConfig) => SystemComponent> =
-  {
-    compute: ComputeNode,
-    database: DatabaseNode,
-    storage: StorageNode,
-    queue: QueueNode,
-    external_api: ExternalAPINode
-  };
+const COMPONENT_CONSTRUCTORS: Record<
+  ComponentType,
+  new (config: ComponentConfig) => SystemComponent
+> = {
+  compute: ComputeNode,
+  database: DatabaseNode,
+  storage: StorageNode,
+  queue: QueueNode,
+  external_api: ExternalAPINode
+};
 
 export interface QueuedAction {
   id: string;

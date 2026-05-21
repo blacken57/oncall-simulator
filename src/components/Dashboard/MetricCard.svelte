@@ -10,6 +10,9 @@
 
   let { name, value, unit, history, limit, status = 'healthy' }: Props = $props();
 
+  // Create a unique ID for the SVG gradient fill to avoid collision
+  const gradientId = 'grad-' + Math.random().toString(36).substring(2, 9);
+
   // Calculate SVG Path for the line and the filled area
   let paths = $derived.by(() => {
     if (history.length < 2) return { line: '', area: '' };
@@ -62,6 +65,7 @@
       <span class="status-dot"></span>
     </div>
   </div>
+
   <div class="body">
     <div class="value-container">
       <span class="value">{value.toFixed(1)}</span>
@@ -74,14 +78,20 @@
     <div class="visuals">
       <div class="sparkline-container">
         <svg viewBox="0 0 100 30" preserveAspectRatio="none" width="100%" height="30">
+          <defs>
+            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="currentColor" stop-opacity="0.25" />
+              <stop offset="100%" stop-color="currentColor" stop-opacity="0.0" />
+            </linearGradient>
+          </defs>
           <!-- Area Fill -->
-          <path d={paths.area} fill="currentColor" fill-opacity="0.1" />
+          <path d={paths.area} fill={`url(#${gradientId})`} />
           <!-- The Line -->
           <path
             d={paths.line}
             fill="none"
             stroke="currentColor"
-            stroke-width="1.5"
+            stroke-width="1.8"
             stroke-linejoin="round"
             stroke-linecap="round"
           />
@@ -90,7 +100,7 @@
 
       {#if limit !== undefined}
         <div class="utilization-v-side">
-          <div class="v-bar-container">
+          <div class="v-bar-container" title="Utilization: {utilization.toFixed(1)}%">
             <div class="v-bar-fill" style="height: {Math.min(100, utilization)}%"></div>
           </div>
           <span class="util-text-v">{utilization.toFixed(0)}%</span>
@@ -104,64 +114,90 @@
   .metric-card {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 0.75rem;
+    border-radius: var(--radius-md);
+    padding: 1rem;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    min-height: 110px;
+    min-height: 120px;
+    box-sizing: border-box;
+    position: relative;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.25s ease;
+  }
+
+  .metric-card:hover {
+    border-color: var(--border-strong);
+    box-shadow: var(--shadow-md);
+  }
+
+  .metric-card.warning {
+    border-color: rgba(245, 158, 11, 0.35);
+    background: linear-gradient(to bottom right, var(--surface), rgba(245, 158, 11, 0.02));
+    box-shadow: 0 4px 15px -3px rgba(245, 158, 11, 0.05);
+  }
+
+  .metric-card.critical {
+    border-color: rgba(239, 68, 68, 0.35);
+    background: linear-gradient(to bottom right, var(--surface), rgba(239, 68, 68, 0.02));
+    box-shadow: 0 4px 15px -3px rgba(239, 68, 68, 0.05);
   }
 
   .header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.5rem;
   }
 
   .name {
     font-size: 0.65rem;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.15em;
     color: var(--text-muted);
     font-weight: bold;
+    font-family: var(--font-mono);
   }
 
   .value-container {
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.85rem;
     display: flex;
     align-items: baseline;
   }
 
   .value {
-    font-size: 1.4rem;
-    font-weight: 700;
+    font-size: 1.6rem;
+    font-weight: bold;
     color: var(--text-primary);
+    font-family: var(--font-mono);
+    letter-spacing: -0.02em;
   }
 
   .unit {
-    font-size: 0.7rem;
-    color: var(--text-faint);
-    margin-left: 0.2rem;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-left: 0.25rem;
+    font-family: var(--font-mono);
   }
 
   .limit {
     font-size: 0.7rem;
     color: var(--text-faint);
-    margin-left: 0.4rem;
+    margin-left: 0.5rem;
+    font-family: var(--font-mono);
   }
 
   .visuals {
     display: flex;
     align-items: stretch;
-    gap: 0.75rem;
+    gap: 1rem;
     height: 35px;
   }
 
   .sparkline-container {
     flex: 1;
     height: 30px;
-    color: #4ade80;
+    color: var(--success);
     overflow: hidden;
     align-self: flex-end;
   }
@@ -169,17 +205,17 @@
   .utilization-v-side {
     display: flex;
     align-items: flex-end;
-    gap: 4px;
-    width: 45px;
+    gap: 6px;
+    width: 55px;
   }
 
   .v-bar-container {
     width: 8px;
     height: 30px;
-    background: var(--border);
-    border-radius: 1px;
+    background: var(--bg-deep);
+    border-radius: 2px;
     overflow: hidden;
-    border: 1px solid var(--border-strong);
+    border: 1px solid var(--border);
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
@@ -188,28 +224,30 @@
   .v-bar-fill {
     width: 100%;
     background: currentColor;
-    transition: height 0.3s ease;
+    border-radius: 1px;
+    transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .util-text-v {
-    font-size: 0.6rem;
+    font-size: 0.65rem;
     font-weight: bold;
-    color: var(--text-muted);
+    color: var(--text-secondary);
+    font-family: var(--font-mono);
     min-width: 25px;
   }
 
   /* Status Colors */
   .healthy .sparkline-container,
   .healthy .v-bar-fill {
-    color: #4ade80;
+    color: var(--success);
   }
   .warning .sparkline-container,
   .warning .v-bar-fill {
-    color: #fbbf24;
+    color: var(--warning);
   }
   .critical .sparkline-container,
   .critical .v-bar-fill {
-    color: #f87171;
+    color: var(--critical);
   }
 
   .status-dot {
@@ -217,18 +255,37 @@
     height: 6px;
     border-radius: 50%;
     display: block;
+    position: relative;
   }
 
   .healthy .status-dot {
-    background: #4ade80;
-    box-shadow: 0 0 8px #4ade8055;
+    background: var(--success);
   }
+
   .warning .status-dot {
-    background: #fbbf24;
-    box-shadow: 0 0 8px #fbbf2455;
+    background: var(--warning);
+    box-shadow: 0 0 8px var(--warning-glow);
+    animation: status-pulse 1.5s infinite;
   }
+
   .critical .status-dot {
-    background: #f87171;
-    box-shadow: 0 0 8px #f8717155;
+    background: var(--critical);
+    box-shadow: 0 0 10px var(--critical-glow);
+    animation: status-pulse 1s infinite;
+  }
+
+  @keyframes status-pulse {
+    0% {
+      transform: scale(0.95);
+      opacity: 0.7;
+    }
+    50% {
+      transform: scale(1.15);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(0.95);
+      opacity: 0.7;
+    }
   }
 </style>
