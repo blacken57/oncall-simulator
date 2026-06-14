@@ -16,7 +16,7 @@ From there the system fans out across a **shared read path** (Matching Service �
 
 ## Current Priorities
 
-1. **Pre-scale on the warning ticket.** The Friday surge fires a heads-up ticket **15 ticks** before it lands. The Trip DB connection pool takes **15 ticks to provision** — if you wait for the surge to hit, your scaling action arrives after the incident is over. Provision ahead.
+1. **Pre-scale on the warning ticket.** The Friday surge fires a heads-up ticket **15 ticks** before it lands. The Trip DB connection pool takes **10 ticks to provision** — if you wait for the surge to hit, your scaling action arrives late. Provision ahead. (You won't need to max anything out — a modest bump on the read path covers the surge.)
 2. **Scale the whole read path, not just the front.** A rider surge multiplies load on Matching _and_ everything Matching calls. Adding CPU to Matching while leaving Geo Cache and Trip DB at baseline just moves the bottleneck one hop down.
 3. **You cannot scale Stripe.** When the Stripe degradation warning lands, accept that payment latency will rise and focus on keeping the rest of the system healthy so the slowdown stays contained to the payment path.
 4. **Watch the queue, watch the disk.** Async paths fail silently. The GPS queue drops messages when its backlog fills; the Trip Archive hard-fails writes at 100% disk. Neither will page you the way a latency spike does — you have to look.

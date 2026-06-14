@@ -25,9 +25,9 @@
         "cpu": {
           "name": "CPU Cores",
           "unit": "cores",
-          "initialLimit": 40,
+          "initialLimit": 56,
           "minLimit": 8,
-          "maxLimit": 256,
+          "maxLimit": 512,
           "apply_delay": 3
         }
       },
@@ -116,7 +116,7 @@
         "cpu": {
           "name": "CPU Cores",
           "unit": "cores",
-          "initialLimit": 24,
+          "initialLimit": 44,
           "minLimit": 4,
           "maxLimit": 200,
           "apply_delay": 5
@@ -191,7 +191,7 @@
         "cpu": {
           "name": "CPU Cores",
           "unit": "cores",
-          "initialLimit": 12,
+          "initialLimit": 16,
           "minLimit": 2,
           "maxLimit": 96,
           "apply_delay": 5
@@ -266,7 +266,7 @@
         "cpu": {
           "name": "CPU Cores",
           "unit": "cores",
-          "initialLimit": 32,
+          "initialLimit": 44,
           "minLimit": 4,
           "maxLimit": 256,
           "apply_delay": 4
@@ -338,7 +338,7 @@
         "connections": {
           "name": "Connections",
           "unit": "count",
-          "initialLimit": 6000,
+          "initialLimit": 9000,
           "minLimit": 1000,
           "maxLimit": 60000,
           "apply_delay": 4
@@ -406,10 +406,10 @@
         "connections": {
           "name": "Connection Pool",
           "unit": "count",
-          "initialLimit": 1200,
+          "initialLimit": 2600,
           "minLimit": 100,
-          "maxLimit": 8000,
-          "apply_delay": 15
+          "maxLimit": 20000,
+          "apply_delay": 10
         },
         "storage": {
           "name": "Disk Usage",
@@ -548,7 +548,7 @@
         "egress": {
           "name": "Drain Rate",
           "unit": "msgs/s",
-          "initialLimit": 2200,
+          "initialLimit": 3000,
           "minLimit": 100,
           "maxLimit": 20000,
           "apply_delay": 3
@@ -745,26 +745,26 @@
       "type": "traffic",
       "name": "Friday Night Surge",
       "traffic_affected": "ride_request",
-      "multiplier": 7.0,
+      "multiplier": 3.0,
       "materialization_probability": 0.004,
       "turnsRemaining": 45,
       "warning_config": {
         "delay_ticks": 15,
         "ticket_title": "Demand Forecast: Friday Night Surge",
-        "ticket_description": "Demand modeling predicts a 7x rider spike in ~15 ticks. Pre-scale Matching Service, Geo Cache, and Trip DB before it lands — connection-pool changes take time to provision."
+        "ticket_description": "Demand modeling predicts a 4x rider spike in ~15 ticks. Pre-scale Matching Service and the read path (Geo Cache, Trip DB) before it lands — Trip DB connection-pool changes take time to provision."
       }
     },
     {
       "type": "traffic",
       "name": "Bad Weather GPS Storm",
       "traffic_affected": "driver_gps",
-      "multiplier": 2.0,
-      "materialization_probability": 0.005,
+      "multiplier": 1.0,
+      "materialization_probability": 0.004,
       "turnsRemaining": 30,
       "warning_config": {
         "delay_ticks": 10,
         "ticket_title": "Storm Front Incoming",
-        "ticket_description": "Heavy rain triples driver density downtown. Expect a GPS ping flood into the ingest queue. Raise queue drain rate and Location Worker capacity."
+        "ticket_description": "Heavy rain doubles driver density downtown. Expect a GPS ping flood into the ingest queue. Raise queue drain rate and Location Worker capacity together."
       }
     },
     {
@@ -788,8 +788,8 @@
       "name": "Geo Cache Eviction Storm",
       "component_affected": "geo-cache",
       "metric_affected": "query_latency",
-      "multiplier": 6.0,
-      "materialization_probability": 0.004,
+      "multiplier": 4.0,
+      "materialization_probability": 0.0025,
       "resolution_ticks": 20,
       "max_instances_at_once": 1
     },
@@ -798,8 +798,8 @@
       "name": "Trip DB Autovacuum Lock",
       "component_affected": "trip-db",
       "metric_affected": "query_latency",
-      "multiplier": 4.0,
-      "materialization_probability": 0.003,
+      "multiplier": 3.0,
+      "materialization_probability": 0.0025,
       "resolution_ticks": 15,
       "max_instances_at_once": 1,
       "warning_config": {

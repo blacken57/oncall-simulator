@@ -13,7 +13,7 @@ ride_request → Edge Gateway → Matching Service ─┬─> Geo Cache   (×3 l
                                                 └─> Trip DB     (×2 reads per match)
 ```
 
-`Matching Service` is CPU-heavy and fans out aggressively: every match does **3 geo-cache lookups and 2 trip-db reads**. A 7× rider surge therefore becomes a **21× lookup surge** on Geo Cache. Plan capacity around the multiplier, not the inbound rate.
+`Matching Service` is CPU-heavy and fans out aggressively: every match does **3 geo-cache lookups and 2 trip-db reads**. A 4× rider surge therefore becomes a **12× lookup surge** on Geo Cache and an **8× read surge** on Trip DB. Plan capacity around the multiplier, not the inbound rate — the read path saturates long before the front door does.
 
 ### GPS Ingestion (asynchronous)
 
@@ -41,7 +41,7 @@ payment_webhook → Edge Gateway → Payment Service ─┬─> Stripe API (exte
 ### Internal Databases (`database`)
 
 - `Geo Cache` — high-throughput, low-latency key/value store. Scale **connections**. Shared by Matching (reads) and Location Worker (writes).
-- `Trip DB` — the system of record. Scale **connections** (slow: **15-tick** provisioning delay). Also has a growing **Disk Usage** attribute. Shared by Matching (reads), Payment (writes), and the analytics batch job.
+- `Trip DB` — the system of record. Scale **connections** (slow: **10-tick** provisioning delay). Also has a growing **Disk Usage** attribute. Shared by Matching (reads), Payment (writes), and the analytics batch job.
 
 ### Queue (`queue`)
 
@@ -58,6 +58,6 @@ payment_webhook → Edge Gateway → Payment Service ─┬─> Stripe API (exte
 ## Key Scaling Rules
 
 - **The shared dependencies (Geo Cache, Trip DB) are your blind spots.** Scaling Matching Service without scaling them just relocates the bottleneck.
-- **Trip DB has the longest provisioning delay (15 ticks).** It is the single most important thing to scale _ahead_ of a known surge.
+- **Trip DB has the longest provisioning delay (10 ticks).** It is the single most important thing to scale _ahead_ of a known surge.
 - **A fast queue needs a fast consumer.** Raise GPS Queue egress and Location Worker CPU together.
 - **Disk and backlog fail quietly.** They do not spike latency on the way down — they just start dropping work. Keep an eye on Backlog Depth and Disk Usage even when the dashboards look green.

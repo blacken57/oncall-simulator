@@ -23,15 +23,15 @@ Every scheduled job and status effect on this level, with standard operating pro
 - **Type**: `traffic` → `ride_request`
 - **Warning**: **15-tick delay** (the longest on the level). _"Demand modeling predicts a 7x rider spike."_
 - **Duration**: 45 ticks.
-- **Impact**: **7× multiplier** on `ride_request`. Because Matching fans out ×3 to Geo Cache and ×2 to Trip DB, the real downstream impact is far larger than 7×.
-- **SOP**: The defining incident. On the warning ticket, **immediately** scale Matching Service CPU, Geo Cache connections, _and_ Trip DB connections. Trip DB's 15-tick provisioning delay means it must go first — start it the moment the ticket opens.
+- **Impact**: **4× rider volume** (config multiplier 3 → base + 3×base). Because Matching fans out ×3 to Geo Cache and ×2 to Trip DB, the downstream read amplification is far larger.
+- **SOP**: The defining incident. On the warning ticket, scale Matching Service CPU and the read path (Trip DB connections especially). Trip DB's 10-tick provisioning delay means it must go first — start it the moment the ticket opens. A modest bump (roughly a third of each slider) is plenty; you do not need to max anything.
 
 ### Bad Weather GPS Storm
 
 - **Type**: `traffic` → `driver_gps`
 - **Warning**: 10-tick delay. _"Heavy rain triples driver density downtown."_
 - **Duration**: 30 ticks.
-- **Impact**: **2× multiplier** on `driver_gps` (≈4000 req/s into a queue draining at 2200).
+- **Impact**: **2× GPS volume** (config multiplier 1), ≈4000 req/s into a queue draining at 3000.
 - **SOP**: The GPS Queue backlog will start climbing immediately. Raise **Drain Rate** _and_ **Location Worker CPU** together — a faster queue feeding a saturated worker just relocates the failure. Watch Trip Archive disk too; the write rate doubles.
 
 ### Stripe Regional Degradation
@@ -39,7 +39,7 @@ Every scheduled job and status effect on this level, with standard operating pro
 - **Type**: `component` → `Stripe API`
 - **Warning**: 8-tick delay. _"Stripe status: elevated latency (us-east-1)."_
 - **Duration**: 25 ticks.
-- **Impact**: **5× latency + 200ms** on Stripe responses.
+- **Impact**: **6× latency + 200ms** on Stripe responses (config multiplier 5).
 - **SOP**: **You cannot scale Stripe.** Latency propagates up through Payment Service, so the payment path will look slow — that is expected and contained. Do not panic-scale Payment Service CPU; the bottleneck is external, not local. Keep the rest of the system healthy and ride it out. (In the real world: this is where you'd reach for timeouts, async retry queues, and a capacity buffer — none of which you can scale away after the fact.)
 
 ### Geo Cache Eviction Storm
@@ -47,7 +47,7 @@ Every scheduled job and status effect on this level, with standard operating pro
 - **Type**: `component` → `Geo Cache`
 - **Warning**: None — fires without notice.
 - **Duration**: 20 ticks.
-- **Impact**: **6× lookup latency.** Propagates up into Matching Service P99, since every match waits on 3 cache lookups.
+- **Impact**: **5× lookup latency** (config multiplier 4). Propagates up into Matching Service P99, since every match waits on 3 cache lookups.
 - **SOP**: No warning means you react, not pre-empt. The Matching latency alert will fire as a _symptom_; the root cause is the cache. Don't chase Matching CPU — the cache latency is the thing degrading, and it will resolve on its own in 20 ticks.
 
 ### Trip DB Autovacuum Lock
@@ -55,5 +55,5 @@ Every scheduled job and status effect on this level, with standard operating pro
 - **Type**: `component` → `Trip Database`
 - **Warning**: 5-tick delay. _"Autovacuum will hold locks and slow queries."_
 - **Duration**: 15 ticks.
-- **Impact**: **4× query latency** during the lock window.
+- **Impact**: **4× query latency** during the lock window (config multiplier 3).
 - **SOP**: Short and self-resolving, but it _stacks_ with the Driver Analytics Batch and any active surge. If the warning lands near a batch tick or during the Friday surge, expect the combined load to push the pool toward exhaustion. Mind the connection count.
