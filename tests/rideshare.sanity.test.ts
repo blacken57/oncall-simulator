@@ -93,6 +93,31 @@ describe('rideshare showcase level', () => {
     expect(comp(engine, 'gps-queue').metrics.current_message_count!.value).toBeLessThan(2000);
   });
 
+  it('counts backlog overflow as drops once a stuck queue is full', () => {
+    // Regression: when the consumer fails, the queue used to keep "accepting"
+    // ingress and silently clamp the overflowing backlog away, so a full, stuck
+    // queue reported a 0% drop rate. Overflow is now counted as dropped traffic.
+    const engine = new GameEngine();
+    engine.loadLevel(rideshare as unknown as LevelConfig);
+    run(engine, 12);
+
+    const queue = comp(engine, 'gps-queue');
+    const backlogCap = queue.attributes.backlog.limit;
+
+    // Cripple the consumer so the queue cannot drain.
+    comp(engine, 'location-worker').attributes.cpu.limit = 4;
+
+    // While the backlog still has room, buffering is legitimately successful.
+    run(engine, 6);
+    expect(queue.metrics.current_message_count!.value).toBeLessThan(backlogCap);
+    expect(queue.metrics.error_rate!.value, 'no drops while backlog has room').toBeLessThan(5);
+
+    // Once the backlog is full and stuck, ingress must be reported as dropped.
+    run(engine, 25);
+    expect(queue.metrics.current_message_count!.value).toBeGreaterThanOrEqual(backlogCap - 1);
+    expect(queue.metrics.error_rate!.value, 'full stuck queue must report drops').toBeGreaterThan(50);
+  });
+
   it('cascades third-party Stripe latency into Payment Service P99', () => {
     const engine = new GameEngine();
     engine.loadLevel(rideshare as unknown as LevelConfig);

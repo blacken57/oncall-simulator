@@ -150,11 +150,20 @@ export class QueueNode extends SystemComponent {
 
     const incomingAccepted = this.incomingTrafficVolume - this.unsuccessfulTrafficVolume;
 
-    // We only remove SUCCESSFUL pushes from the backlog (guaranteed delivery)
-    this.newBacklog = Math.min(
-      maxCapacity,
-      Math.max(0, currentBacklog + incomingAccepted - this.totalSuccessfulOutgoing)
-    );
+    // Project the backlog after this tick's accepted ingress and successful drain.
+    // We only remove SUCCESSFUL pushes from the backlog (guaranteed delivery).
+    const projectedBacklog = currentBacklog + incomingAccepted - this.totalSuccessfulOutgoing;
+    this.newBacklog = Math.min(maxCapacity, Math.max(0, projectedBacklog));
+
+    // Messages projected beyond capacity cannot be stored and are lost. The ingress
+    // drop calc (calculateFailureRate) optimistically assumes we drain at the full
+    // egress rate, so when the consumer is failing it under-drops at ingress and the
+    // backlog overflows. Count that overflow as dropped here so a full, stuck queue
+    // reflects the loss in its drop rate instead of silently discarding messages.
+    const overflow = Math.max(0, projectedBacklog - maxCapacity);
+    if (overflow > 0) {
+      this.unsuccessfulTrafficVolume += overflow;
+    }
 
     // Update attributes for UI display
     if (backlogAttr) backlogAttr.update(this.newBacklog);
