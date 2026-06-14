@@ -2,6 +2,21 @@
 
 Every scheduled job and status effect on this level, with standard operating procedures. Most incidents fire a **warning ticket** before going active — that window is when the level is won or lost.
 
+## Reading Async Failures (read this first)
+
+The GPS path is asynchronous: `driver_gps` → **GPS Queue** → **Location Worker**. The queue decouples the producer from the consumer, which changes how failures show up — and it is the single most common way to get blindsided on this level.
+
+When the Location Worker degrades (e.g. you under-provisioned its CPU), **you will _not_ see `driver_gps` errors at the Edge Gateway.** From the producer's point of view, every ping that lands in the queue succeeded — it was durably accepted. The worker failing to process it afterwards is an async _processing_ failure, not a request failure. This is correct, and it mirrors real message-queue behaviour: your front door stays green while the pipeline behind it quietly melts down.
+
+So don't trust inbound success rate for the GPS path. The real signals live downstream:
+
+- **Location Worker `error_rate`** — the consumer itself, the root cause.
+- **GPS Queue → Backlog Depth** — climbs when the worker can't keep up; trips the **"GPS Backlog Growing"** alert. This is your earliest warning.
+- **GPS Queue → Drain Failures** (`egress_failures`) — pushes the queue attempted but the consumer rejected.
+- **GPS Queue → Drop Rate** — stays **0% while the backlog still has room** (buffered ≠ failed). It only spikes once the backlog is _full_ and messages are genuinely lost. By then you are already dropping data — the backlog alert should have moved you long before this.
+
+Contrast the synchronous paths: if `Matching Service`, `Trip DB`, or `Geo Cache` degrade, the failure _does_ propagate back to the `ride_request` error rate at the gateway, because those calls are inline. The asymmetry is the lesson — **synchronous failures announce themselves; asynchronous ones you have to go looking for.**
+
 ## Scheduled Jobs
 
 ### Driver Analytics Batch
