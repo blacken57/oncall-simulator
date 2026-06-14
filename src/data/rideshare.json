@@ -1,0 +1,843 @@
+{
+  "id": "rideshare-surge",
+  "name": "RideShare: Friday Night Surge",
+  "description": "You are on call for a ride-hailing platform heading into peak Friday-night demand. Riders, driver GPS pings, and payment webhooks all funnel through a shared backend. Watch for cascading latency, queue backpressure, connection-pool exhaustion, a flaky third-party payment API, and a disk that fills faster than the cleanup cron can drain it.",
+  "components": [
+    {
+      "id": "edge-gateway",
+      "name": "Edge Gateway",
+      "type": "compute",
+      "physics": {
+        "request_capacity_per_unit": 100,
+        "latency_base_ms": 8,
+        "latency_load_factor": 0.005,
+        "saturation_threshold_percent": 85,
+        "saturation_penalty_factor": 0.15,
+        "resource_base_usage": {
+          "cpu": 2.0
+        },
+        "consumption_rates": {
+          "cpu": 0.0005
+        },
+        "noise_factor": 0.1
+      },
+      "attributes": {
+        "cpu": {
+          "name": "CPU Cores",
+          "unit": "cores",
+          "initialLimit": 40,
+          "minLimit": 8,
+          "maxLimit": 256,
+          "apply_delay": 3
+        }
+      },
+      "metrics": {
+        "incoming": {
+          "name": "Requests",
+          "unit": "req/s"
+        },
+        "latency": {
+          "name": "P99 Latency",
+          "unit": "ms"
+        },
+        "error_rate": {
+          "name": "Error Rate",
+          "unit": "%"
+        }
+      },
+      "alerts": [
+        {
+          "name": "Gateway Latency Spike",
+          "metric": "latency",
+          "warning_threshold": 250,
+          "critical_threshold": 500,
+          "direction": "above"
+        },
+        {
+          "name": "Gateway 5xx Errors",
+          "metric": "error_rate",
+          "warning_threshold": 5,
+          "critical_threshold": 20,
+          "direction": "above"
+        }
+      ],
+      "traffic_routes": [
+        {
+          "name": "ride_request",
+          "base_latency_ms": 6,
+          "outgoing_traffics": [
+            {
+              "name": "match_request",
+              "multiplier": 1
+            }
+          ]
+        },
+        {
+          "name": "driver_gps",
+          "base_latency_ms": 3,
+          "outgoing_traffics": [
+            {
+              "name": "gps_ingest",
+              "multiplier": 1
+            }
+          ]
+        },
+        {
+          "name": "payment_webhook",
+          "base_latency_ms": 5,
+          "outgoing_traffics": [
+            {
+              "name": "payment_process",
+              "multiplier": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "matching-service",
+      "name": "Matching Service",
+      "type": "compute",
+      "physics": {
+        "request_capacity_per_unit": 50,
+        "latency_base_ms": 25,
+        "latency_load_factor": 0.02,
+        "saturation_threshold_percent": 75,
+        "saturation_penalty_factor": 0.4,
+        "resource_base_usage": {
+          "cpu": 4.0
+        },
+        "consumption_rates": {
+          "cpu": 0.002
+        },
+        "noise_factor": 0.3
+      },
+      "attributes": {
+        "cpu": {
+          "name": "CPU Cores",
+          "unit": "cores",
+          "initialLimit": 24,
+          "minLimit": 4,
+          "maxLimit": 200,
+          "apply_delay": 5
+        }
+      },
+      "metrics": {
+        "incoming": {
+          "name": "Match Requests",
+          "unit": "req/s"
+        },
+        "latency": {
+          "name": "P99 Latency",
+          "unit": "ms"
+        },
+        "error_rate": {
+          "name": "Error Rate",
+          "unit": "%"
+        }
+      },
+      "alerts": [
+        {
+          "name": "Matching Latency High",
+          "metric": "latency",
+          "warning_threshold": 300,
+          "critical_threshold": 700,
+          "direction": "above"
+        },
+        {
+          "name": "Match Failures",
+          "metric": "error_rate",
+          "warning_threshold": 5,
+          "critical_threshold": 20,
+          "direction": "above"
+        }
+      ],
+      "traffic_routes": [
+        {
+          "name": "match_request",
+          "base_latency_ms": 25,
+          "outgoing_traffics": [
+            {
+              "name": "geo_cache_lookup",
+              "multiplier": 3
+            },
+            {
+              "name": "trip_db_read",
+              "multiplier": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "payment-service",
+      "name": "Payment Service",
+      "type": "compute",
+      "physics": {
+        "request_capacity_per_unit": 40,
+        "latency_base_ms": 30,
+        "latency_load_factor": 0.05,
+        "saturation_threshold_percent": 80,
+        "saturation_penalty_factor": 0.3,
+        "resource_base_usage": {
+          "cpu": 4.0
+        },
+        "consumption_rates": {
+          "cpu": 0.002
+        },
+        "noise_factor": 0.2
+      },
+      "attributes": {
+        "cpu": {
+          "name": "CPU Cores",
+          "unit": "cores",
+          "initialLimit": 12,
+          "minLimit": 2,
+          "maxLimit": 96,
+          "apply_delay": 5
+        }
+      },
+      "metrics": {
+        "incoming": {
+          "name": "Payments",
+          "unit": "req/s"
+        },
+        "latency": {
+          "name": "P99 Latency",
+          "unit": "ms"
+        },
+        "error_rate": {
+          "name": "Error Rate",
+          "unit": "%"
+        }
+      },
+      "alerts": [
+        {
+          "name": "Payment Latency High",
+          "metric": "latency",
+          "warning_threshold": 400,
+          "critical_threshold": 900,
+          "direction": "above"
+        },
+        {
+          "name": "Payment Failures",
+          "metric": "error_rate",
+          "warning_threshold": 5,
+          "critical_threshold": 20,
+          "direction": "above"
+        }
+      ],
+      "traffic_routes": [
+        {
+          "name": "payment_process",
+          "base_latency_ms": 30,
+          "outgoing_traffics": [
+            {
+              "name": "stripe_charge",
+              "multiplier": 1
+            },
+            {
+              "name": "trip_db_write",
+              "multiplier": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "location-worker",
+      "name": "Location Worker",
+      "type": "compute",
+      "physics": {
+        "request_capacity_per_unit": 100,
+        "latency_base_ms": 10,
+        "latency_load_factor": 0.002,
+        "saturation_threshold_percent": 85,
+        "saturation_penalty_factor": 0.2,
+        "resource_base_usage": {
+          "cpu": 3.0
+        },
+        "consumption_rates": {
+          "cpu": 0.001
+        },
+        "noise_factor": 0.2
+      },
+      "attributes": {
+        "cpu": {
+          "name": "CPU Cores",
+          "unit": "cores",
+          "initialLimit": 32,
+          "minLimit": 4,
+          "maxLimit": 256,
+          "apply_delay": 4
+        }
+      },
+      "metrics": {
+        "incoming": {
+          "name": "GPS Writes",
+          "unit": "req/s"
+        },
+        "latency": {
+          "name": "P99 Latency",
+          "unit": "ms"
+        },
+        "error_rate": {
+          "name": "Error Rate",
+          "unit": "%"
+        }
+      },
+      "alerts": [
+        {
+          "name": "Location Worker Slow",
+          "metric": "latency",
+          "warning_threshold": 200,
+          "critical_threshold": 500,
+          "direction": "above"
+        },
+        {
+          "name": "Location Write Failures",
+          "metric": "error_rate",
+          "warning_threshold": 5,
+          "critical_threshold": 20,
+          "direction": "above"
+        }
+      ],
+      "traffic_routes": [
+        {
+          "name": "gps_process",
+          "base_latency_ms": 8,
+          "outgoing_traffics": [
+            {
+              "name": "geo_cache_write",
+              "multiplier": 1
+            },
+            {
+              "name": "archive_write",
+              "multiplier": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "geo-cache",
+      "name": "Geo Cache",
+      "type": "database",
+      "physics": {
+        "request_capacity_per_unit": 1,
+        "latency_base_ms": 1,
+        "latency_load_factor": 0.001,
+        "saturation_threshold_percent": 90,
+        "saturation_penalty_factor": 8,
+        "consumption_rates": {
+          "storage": 0.000001
+        },
+        "noise_factor": 5
+      },
+      "attributes": {
+        "connections": {
+          "name": "Connections",
+          "unit": "count",
+          "initialLimit": 6000,
+          "minLimit": 1000,
+          "maxLimit": 60000,
+          "apply_delay": 4
+        }
+      },
+      "metrics": {
+        "incoming": {
+          "name": "Cache Ops",
+          "unit": "ops/s"
+        },
+        "query_latency": {
+          "name": "Lookup Latency",
+          "unit": "ms"
+        },
+        "error_rate": {
+          "name": "Error Rate",
+          "unit": "%"
+        }
+      },
+      "alerts": [
+        {
+          "name": "Geo Cache Saturation",
+          "metric": "connections",
+          "warning_threshold": 80,
+          "critical_threshold": 95,
+          "direction": "above"
+        },
+        {
+          "name": "Geo Cache Slow Lookups",
+          "metric": "query_latency",
+          "warning_threshold": 50,
+          "critical_threshold": 150,
+          "direction": "above"
+        }
+      ],
+      "traffic_routes": [
+        {
+          "name": "geo_cache_lookup",
+          "base_latency_ms": 1,
+          "outgoing_traffics": []
+        },
+        {
+          "name": "geo_cache_write",
+          "base_latency_ms": 2,
+          "outgoing_traffics": []
+        }
+      ]
+    },
+    {
+      "id": "trip-db",
+      "name": "Trip Database",
+      "type": "database",
+      "physics": {
+        "request_capacity_per_unit": 1,
+        "latency_base_ms": 15,
+        "latency_load_factor": 0.1,
+        "saturation_threshold_percent": 85,
+        "saturation_penalty_factor": 5,
+        "consumption_rates": {
+          "storage": 0.002
+        },
+        "noise_factor": 2
+      },
+      "attributes": {
+        "connections": {
+          "name": "Connection Pool",
+          "unit": "count",
+          "initialLimit": 1200,
+          "minLimit": 100,
+          "maxLimit": 8000,
+          "apply_delay": 15
+        },
+        "storage": {
+          "name": "Disk Usage",
+          "unit": "GB",
+          "initialLimit": 800,
+          "minLimit": 100,
+          "maxLimit": 20000
+        }
+      },
+      "metrics": {
+        "incoming": {
+          "name": "Queries",
+          "unit": "qps"
+        },
+        "query_latency": {
+          "name": "Query Latency",
+          "unit": "ms"
+        },
+        "error_rate": {
+          "name": "Error Rate",
+          "unit": "%"
+        }
+      },
+      "alerts": [
+        {
+          "name": "Trip DB Pool Exhaustion",
+          "metric": "connections",
+          "warning_threshold": 80,
+          "critical_threshold": 95,
+          "direction": "above"
+        },
+        {
+          "name": "Trip DB Slow Queries",
+          "metric": "query_latency",
+          "warning_threshold": 80,
+          "critical_threshold": 200,
+          "direction": "above"
+        },
+        {
+          "name": "Trip DB Disk Filling",
+          "metric": "storage",
+          "warning_threshold": 85,
+          "critical_threshold": 95,
+          "direction": "above"
+        }
+      ],
+      "traffic_routes": [
+        {
+          "name": "trip_db_read",
+          "base_latency_ms": 15,
+          "outgoing_traffics": []
+        },
+        {
+          "name": "trip_db_write",
+          "base_latency_ms": 20,
+          "outgoing_traffics": []
+        },
+        {
+          "name": "batch_trip_read",
+          "base_latency_ms": 40,
+          "outgoing_traffics": []
+        }
+      ]
+    },
+    {
+      "id": "trip-archive",
+      "name": "Trip Archive (Blob)",
+      "type": "storage",
+      "physics": {
+        "consumption_rates": {
+          "storage_usage": 0.01
+        },
+        "saturation_threshold_percent": 100,
+        "noise_factor": 1.0
+      },
+      "attributes": {
+        "storage_usage": {
+          "name": "Disk Usage",
+          "unit": "GB",
+          "initialLimit": 6000,
+          "minLimit": 500,
+          "maxLimit": 40000
+        }
+      },
+      "metrics": {
+        "incoming": {
+          "name": "Write IOPS",
+          "unit": "iops"
+        },
+        "fill_rate": {
+          "name": "Fill Rate",
+          "unit": "GB/s"
+        },
+        "latency": {
+          "name": "Write Latency",
+          "unit": "ms"
+        },
+        "error_rate": {
+          "name": "Error Rate",
+          "unit": "%"
+        }
+      },
+      "alerts": [
+        {
+          "name": "Archive Disk Filling",
+          "metric": "storage_usage",
+          "warning_threshold": 80,
+          "critical_threshold": 95,
+          "direction": "above"
+        }
+      ],
+      "traffic_routes": [
+        {
+          "name": "archive_write",
+          "base_latency_ms": 30,
+          "outgoing_traffics": []
+        }
+      ]
+    },
+    {
+      "id": "gps-queue",
+      "name": "GPS Ingest Queue",
+      "type": "queue",
+      "physics": {
+        "latency_base_ms": 5
+      },
+      "attributes": {
+        "backlog": {
+          "name": "Backlog Depth",
+          "unit": "msgs",
+          "initialLimit": 50000,
+          "minLimit": 1000,
+          "maxLimit": 500000,
+          "apply_delay": 1
+        },
+        "egress": {
+          "name": "Drain Rate",
+          "unit": "msgs/s",
+          "initialLimit": 2200,
+          "minLimit": 100,
+          "maxLimit": 20000,
+          "apply_delay": 3
+        }
+      },
+      "metrics": {
+        "current_message_count": {
+          "name": "Backlog Depth",
+          "unit": "msgs"
+        },
+        "incoming_message_count": {
+          "name": "Ingest Rate",
+          "unit": "msgs/s"
+        },
+        "egress_failures": {
+          "name": "Drain Failures",
+          "unit": "msgs/s"
+        },
+        "error_rate": {
+          "name": "Drop Rate",
+          "unit": "%"
+        }
+      },
+      "alerts": [
+        {
+          "name": "GPS Backlog Growing",
+          "metric": "current_message_count",
+          "warning_threshold": 20000,
+          "critical_threshold": 40000,
+          "direction": "above"
+        },
+        {
+          "name": "GPS Messages Dropped",
+          "metric": "error_rate",
+          "warning_threshold": 1,
+          "critical_threshold": 5,
+          "direction": "above"
+        }
+      ],
+      "traffic_routes": [
+        {
+          "name": "gps_ingest",
+          "base_latency_ms": 5,
+          "outgoing_traffics": [
+            {
+              "name": "gps_process",
+              "multiplier": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "stripe-api",
+      "name": "Stripe API (3rd party)",
+      "type": "external_api",
+      "physics": {
+        "latency_base_ms": 150,
+        "noise_factor": 15
+      },
+      "attributes": {
+        "quota_rps": {
+          "name": "Rate Limit",
+          "unit": "rps",
+          "initialLimit": 250,
+          "minLimit": 50,
+          "maxLimit": 2000,
+          "apply_delay": 2
+        }
+      },
+      "metrics": {
+        "latency": {
+          "name": "API Latency",
+          "unit": "ms"
+        },
+        "error_rate": {
+          "name": "Error Rate",
+          "unit": "%"
+        },
+        "success": {
+          "name": "Charges OK",
+          "unit": "req/s"
+        },
+        "failures": {
+          "name": "Charges Failed",
+          "unit": "req/s"
+        }
+      },
+      "alerts": [
+        {
+          "name": "Stripe Latency Degraded",
+          "metric": "latency",
+          "warning_threshold": 500,
+          "critical_threshold": 1200,
+          "direction": "above"
+        },
+        {
+          "name": "Stripe Rate Limited (429s)",
+          "metric": "quota_rps",
+          "warning_threshold": 80,
+          "critical_threshold": 95,
+          "direction": "above"
+        }
+      ],
+      "traffic_routes": [
+        {
+          "name": "stripe_charge",
+          "base_latency_ms": 150,
+          "outgoing_traffics": []
+        }
+      ]
+    }
+  ],
+  "traffics": [
+    {
+      "type": "external",
+      "name": "ride_request",
+      "target_component_name": "Edge Gateway",
+      "value": 400,
+      "base_variance": 40
+    },
+    {
+      "type": "external",
+      "name": "driver_gps",
+      "target_component_name": "Edge Gateway",
+      "value": 2000,
+      "base_variance": 150
+    },
+    {
+      "type": "external",
+      "name": "payment_webhook",
+      "target_component_name": "Edge Gateway",
+      "value": 150,
+      "base_variance": 15
+    },
+    {
+      "type": "internal",
+      "name": "match_request",
+      "target_component_name": "Matching Service"
+    },
+    {
+      "type": "internal",
+      "name": "gps_ingest",
+      "target_component_name": "GPS Ingest Queue"
+    },
+    {
+      "type": "internal",
+      "name": "payment_process",
+      "target_component_name": "Payment Service"
+    },
+    {
+      "type": "internal",
+      "name": "gps_process",
+      "target_component_name": "Location Worker"
+    },
+    {
+      "type": "internal",
+      "name": "geo_cache_lookup",
+      "target_component_name": "Geo Cache"
+    },
+    {
+      "type": "internal",
+      "name": "geo_cache_write",
+      "target_component_name": "Geo Cache"
+    },
+    {
+      "type": "internal",
+      "name": "trip_db_read",
+      "target_component_name": "Trip Database"
+    },
+    {
+      "type": "internal",
+      "name": "trip_db_write",
+      "target_component_name": "Trip Database"
+    },
+    {
+      "type": "internal",
+      "name": "batch_trip_read",
+      "target_component_name": "Trip Database"
+    },
+    {
+      "type": "internal",
+      "name": "archive_write",
+      "target_component_name": "Trip Archive (Blob)"
+    },
+    {
+      "type": "internal",
+      "name": "stripe_charge",
+      "target_component_name": "Stripe API (3rd party)"
+    }
+  ],
+  "statusEffects": [
+    {
+      "type": "traffic",
+      "name": "Friday Night Surge",
+      "traffic_affected": "ride_request",
+      "multiplier": 7.0,
+      "materialization_probability": 0.004,
+      "turnsRemaining": 45,
+      "warning_config": {
+        "delay_ticks": 15,
+        "ticket_title": "Demand Forecast: Friday Night Surge",
+        "ticket_description": "Demand modeling predicts a 7x rider spike in ~15 ticks. Pre-scale Matching Service, Geo Cache, and Trip DB before it lands — connection-pool changes take time to provision."
+      }
+    },
+    {
+      "type": "traffic",
+      "name": "Bad Weather GPS Storm",
+      "traffic_affected": "driver_gps",
+      "multiplier": 2.0,
+      "materialization_probability": 0.005,
+      "turnsRemaining": 30,
+      "warning_config": {
+        "delay_ticks": 10,
+        "ticket_title": "Storm Front Incoming",
+        "ticket_description": "Heavy rain triples driver density downtown. Expect a GPS ping flood into the ingest queue. Raise queue drain rate and Location Worker capacity."
+      }
+    },
+    {
+      "type": "component",
+      "name": "Stripe Regional Degradation",
+      "component_affected": "stripe-api",
+      "metric_affected": "latency",
+      "multiplier": 5.0,
+      "offset": 200,
+      "materialization_probability": 0.003,
+      "resolution_ticks": 25,
+      "max_instances_at_once": 1,
+      "warning_config": {
+        "delay_ticks": 8,
+        "ticket_title": "Stripe Status: Elevated Latency (us-east-1)",
+        "ticket_description": "Third-party payment latency is spiking and will cascade into Payment Service P99. You cannot scale Stripe — consider what an SRE actually controls here (timeouts, async retries, capacity buffer)."
+      }
+    },
+    {
+      "type": "component",
+      "name": "Geo Cache Eviction Storm",
+      "component_affected": "geo-cache",
+      "metric_affected": "query_latency",
+      "multiplier": 6.0,
+      "materialization_probability": 0.004,
+      "resolution_ticks": 20,
+      "max_instances_at_once": 1
+    },
+    {
+      "type": "component",
+      "name": "Trip DB Autovacuum Lock",
+      "component_affected": "trip-db",
+      "metric_affected": "query_latency",
+      "multiplier": 4.0,
+      "materialization_probability": 0.003,
+      "resolution_ticks": 15,
+      "max_instances_at_once": 1,
+      "warning_config": {
+        "delay_ticks": 5,
+        "ticket_title": "Trip DB: Autovacuum Scheduled",
+        "ticket_description": "Autovacuum will hold locks and slow queries for a short window. This stacks with batch jobs — mind the connection pool."
+      }
+    }
+  ],
+  "scheduledJobs": [
+    {
+      "name": "Driver Analytics Batch",
+      "targetName": "Trip Database",
+      "schedule": {
+        "interval": 30
+      },
+      "affectedAttributes": [],
+      "emittedTraffic": [
+        {
+          "name": "batch_trip_read",
+          "value": 600
+        }
+      ]
+    },
+    {
+      "name": "Archive Log Compaction",
+      "targetName": "Trip Archive (Blob)",
+      "schedule": {
+        "interval": 25
+      },
+      "affectedAttributes": [
+        {
+          "name": "storage_usage",
+          "target": "value",
+          "multiplier": -0.4
+        }
+      ],
+      "emittedTraffic": []
+    }
+  ]
+}
