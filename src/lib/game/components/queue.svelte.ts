@@ -26,6 +26,10 @@ export class QueueNode extends SystemComponent {
   // State set by updateBacklogState() and consumed by updateStandardMetrics / addCustomStatusTriggers
   private newBacklog = 0;
 
+  // Previous tick's ingress, used by preTick() to estimate how much we can push
+  // before this tick's incoming demand is known.
+  private lastIncomingVolume = 0;
+
   protected getDefaultPhysics(): ComponentPhysicsConfig {
     return {
       latency_base_ms: 5
@@ -35,9 +39,16 @@ export class QueueNode extends SystemComponent {
   preTick(handler: TrafficHandler) {
     const egressAttr = this.attributes.egress;
     const pushRate = egressAttr?.limit ?? 0;
+    const currentBacklog = this.attributes.backlog?.current ?? 0;
 
-    // Reserve demand for our full capacity to ensure fair resolution downstream.
-    const targetPush = pushRate;
+    // Reserve only what we can realistically push this tick so downstream
+    // consumers reserve fair capacity for our drain — bounded by the egress rate
+    // AND by the messages actually available (current backlog plus an estimate of
+    // incoming, using the previous tick's ingress since this tick's is not yet
+    // known). Reserving the full egress limit regardless of available messages
+    // inflates phantom demand on consumers whenever egress is set above real load,
+    // which made raising the drain rate counter-productively saturate the consumer.
+    const targetPush = Math.min(pushRate, currentBacklog + this.lastIncomingVolume);
 
     if (targetPush > 0) {
       for (const route of this.trafficRoutes) {
@@ -148,6 +159,10 @@ export class QueueNode extends SystemComponent {
     // Update attributes for UI display
     if (backlogAttr) backlogAttr.update(this.newBacklog);
     if (egressAttr) egressAttr.update(this.totalAttemptedOutgoing);
+
+    // Remember this tick's ingress so next tick's preTick() can estimate how much
+    // it can push before incoming demand is recorded.
+    this.lastIncomingVolume = this.incomingTrafficVolume;
   }
 
   protected override updateStandardMetrics(_handler: TrafficHandler): void {

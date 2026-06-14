@@ -67,6 +67,22 @@ describe('rideshare showcase level', () => {
     expect(backlogAfter, 'backlog should drain after raising egress').toBeLessThan(backlogPeak);
   });
 
+  it('does not flood the consumer when drain rate is raised above real load', () => {
+    // Regression: QueueNode.preTick() used to reserve its full egress limit as
+    // downstream demand regardless of buffered messages, so cranking the drain
+    // rate slider inflated phantom demand and saturated the Location Worker.
+    const engine = new GameEngine();
+    engine.loadLevel(rideshare as unknown as LevelConfig);
+    run(engine, 12);
+
+    // Real GPS load unchanged; operator maxes the drain rate to "stay ahead".
+    comp(engine, 'gps-queue').attributes.egress.limit = 20000;
+    run(engine, 5);
+
+    expect(comp(engine, 'location-worker').metrics.error_rate!.value).toBeLessThan(5);
+    expect(comp(engine, 'gps-queue').metrics.current_message_count!.value).toBeLessThan(2000);
+  });
+
   it('cascades third-party Stripe latency into Payment Service P99', () => {
     const engine = new GameEngine();
     engine.loadLevel(rideshare as unknown as LevelConfig);
