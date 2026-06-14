@@ -746,7 +746,7 @@
       "name": "Friday Night Surge",
       "traffic_affected": "ride_request",
       "multiplier": 3.0,
-      "materialization_probability": 0.004,
+      "materialization_probability": 0.009,
       "turnsRemaining": 45,
       "warning_config": {
         "delay_ticks": 15,
@@ -759,7 +759,7 @@
       "name": "Bad Weather GPS Storm",
       "traffic_affected": "driver_gps",
       "multiplier": 1.0,
-      "materialization_probability": 0.004,
+      "materialization_probability": 0.012,
       "turnsRemaining": 30,
       "warning_config": {
         "delay_ticks": 10,
@@ -774,7 +774,7 @@
       "metric_affected": "latency",
       "multiplier": 5.0,
       "offset": 200,
-      "materialization_probability": 0.003,
+      "materialization_probability": 0.012,
       "resolution_ticks": 25,
       "max_instances_at_once": 1,
       "warning_config": {
@@ -789,7 +789,7 @@
       "component_affected": "geo-cache",
       "metric_affected": "query_latency",
       "multiplier": 4.0,
-      "materialization_probability": 0.0025,
+      "materialization_probability": 0.014,
       "resolution_ticks": 20,
       "max_instances_at_once": 1
     },
@@ -799,7 +799,7 @@
       "component_affected": "trip-db",
       "metric_affected": "query_latency",
       "multiplier": 3.0,
-      "materialization_probability": 0.0025,
+      "materialization_probability": 0.014,
       "resolution_ticks": 15,
       "max_instances_at_once": 1,
       "warning_config": {
